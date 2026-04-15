@@ -1,17 +1,25 @@
 interface StatCardProps {
   label: string;
   value: string;
-  helpText: string;
+  helpText?: string;
+  icon?: string;
 }
 
-const StatCard = ({ label, value, helpText }: StatCardProps) => {
+const StatCard = ({ label, value, icon }: StatCardProps) => {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm uppercase tracking-[0.22em] text-slate-500">{label}</p>
-      <p className="mt-3 text-3xl font-semibold text-slate-950">{value}</p>
-      <p className="mt-2 text-sm text-slate-500">{helpText}</p>
+    <div className="flex items-center justify-between rounded-[24px] border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+      <div>
+        <p className="text-sm font-medium text-slate-500">{label}</p>
+        <p className="mt-2 text-3xl font-bold text-slate-900">{value}</p>
+      </div>
+      {icon && (
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
+          <img src={icon} alt="" className="h-7 w-7 opacity-80" />
+        </div>
+      )}
     </div>
   );
 };
+
 
 export default StatCard;

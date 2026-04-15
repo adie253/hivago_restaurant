@@ -1,14 +1,25 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import live_orders_icon from '../assets/live_orders_icon.svg';
+import menu_icon from '../assets/menu_icon.svg';
+import payout_icon from '../assets/payout_icon.svg';
+import settings_icon from '../assets/settings_icon.svg';
+import logout_icon from '../assets/logout_icon.svg';
+
 
 const menuItems = [
-  { label: 'Live Orders', path: '/dashboard' },
-  { label: 'Menu', path: '/menu' },
-  { label: 'Payout', path: '/payout ' },
-  { label: 'Settings', path: '/settings' }
+  { label: 'Live Orders', path: '/dashboard', img: live_orders_icon },
+  { label: 'Menu', path: '/menu', img: menu_icon },
+  { label: 'Payouts', path: '/payouts', img: payout_icon },
+  { label: 'Settings', path: '/settings', img: settings_icon }
 ];
 
-const Sidebar = () => {
+interface SidebarProps {
+  isOpen?: boolean;
+  onDismiss?: () => void;
+}
+
+const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
@@ -18,44 +29,57 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="hidden h-full w-72 shrink-0 rounded-[32px] bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:flex md:flex-col md:block">
-      <div className="mb-10 flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500 text-white shadow-lg">
-          H
-        </div>
-        <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Hivago</p>
-          <h2 className="text-lg font-semibold text-slate-900">Restaurant Dashboard</h2>
+    <div className="flex h-full flex-col border-r border-slate-100 bg-white">
+      <div className="p-6 md:hidden">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-bold uppercase tracking-widest text-slate-400">Menu</p>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-slate-500 transition hover:bg-slate-100"
+            aria-label="Close sidebar"
+          >
+            ✕
+          </button>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-2">
+      <nav className="flex-1 space-y-1 px-4 py-6">
         {menuItems.map(item => (
           <NavLink
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `block rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                isActive ? 'bg-brand-50 text-brand-600' : 'text-slate-700 hover:bg-slate-100'
+              `group flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 ${
+                isActive
+                  ? 'bg-[#FFF5F4] text-[#AD221F] shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               }`
             }
           >
+            <img 
+                src={item.img} 
+                alt="" 
+                className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110`} 
+            />
             {item.label}
           </NavLink>
         ))}
       </nav>
 
-      <div className="mt-6 pt-6 border-t border-slate-200">
+      <div className="p-4">
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          className="group flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:text-slate-900"
         >
+          <img src={logout_icon} alt="" className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
           Logout
         </button>
       </div>
-    </aside>
+    </div>
   );
 };
+
 
 export default Sidebar;
