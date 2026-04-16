@@ -50,7 +50,7 @@ const MenuPage = () => {
     }
 
     try {
-      await toggleItemAvailability(itemId);
+      await toggleItemAvailability(itemId, isAvailable);
     } catch (err) {
       // Revert if API fails
       setItems((prev) =>

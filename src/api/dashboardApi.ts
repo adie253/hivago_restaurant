@@ -303,8 +303,8 @@ export const fetchMenuItems = async (restaurantId: string): Promise<MenuItem[]> 
   return items;
 };
 
-export const toggleItemAvailability = async (itemId: string): Promise<void> => {
-  await client.patch(`/restaurant/items/${itemId}/availability`);
+export const toggleItemAvailability = async (itemId: string, isAvailable: boolean): Promise<void> => {
+  await client.patch(`/restaurant/items/${itemId}/availability`, { isAvailable });
 };
 
 // Settings & Profile APIs
