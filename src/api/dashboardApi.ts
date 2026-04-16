@@ -227,6 +227,7 @@ export const fetchFullMenu = async (restaurantId: string): Promise<{ categories:
   try {
     const response = await client.get(`/catalog/restaurants/${restaurantId}/menu`);
     const data = response.data;
+    console.log('Full Menu Data:', data);
     
     // The endpoint is "Get full menu with items and options"
     // Usually returns a list of menus (categories) each containing items
@@ -302,8 +303,8 @@ export const fetchMenuItems = async (restaurantId: string): Promise<MenuItem[]> 
   return items;
 };
 
-export const toggleItemAvailability = async (itemId: string): Promise<void> => {
-  await client.patch(`/restaurant/items/${itemId}/availability`);
+export const toggleItemAvailability = async (itemId: string, isAvailable: boolean): Promise<void> => {
+  await client.patch(`/restaurant/items/${itemId}/availability`, { isAvailable });
 };
 
 // Settings & Profile APIs
