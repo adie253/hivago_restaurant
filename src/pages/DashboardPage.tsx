@@ -1,24 +1,73 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { confirmOrder, rejectOrder } from '../api/dashboardApi';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useOrders } from '../hooks/useOrders';
 import OrderCard from '../components/OrderCard';
+import NewOrderOverlay from '../components/NewOrderOverlay';
+import HistoryTable from '../components/HistoryTable';
 import StatCard from '../components/StatCard';
 import LoadingState from '../components/LoadingState';
-import { OrderStatus } from '../types';
+import { Order, OrderSectionKey } from '../types';
+
+import todays_orders_icon from '../assets/todays_orders_icon.svg';
+import todays_revenue_icon from '../assets/todays_revenue_icon.svg';
+import prep_time_icon from '../assets/prep_time_icon.svg';
+import rejection_rate_icon from '../assets/rejection_rate_icon.svg';
+
+import preparing_icon from '../assets/preparing_icon.svg';
+import ready_ordres_icon from '../assets/ready_ordres_icon.svg';
+import pickup_icon from '../assets/pickup_icon.svg';
+import order_history_icon from '../assets/order_history_icon.svg';
 
 const orderSections = [
-  { key: 'PREPARING', label: 'Preparing' },
-  { key: 'READY', label: 'Ready' },
-  { key: 'PICKED_UP', label: 'Picked up' },
-  { key: 'HISTORY', label: 'Order History' }
+  { key: 'PREPARING', label: 'Preparing', icon: preparing_icon, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { key: 'READY', label: 'Ready', icon: ready_ordres_icon, color: 'text-slate-500', bg: 'bg-slate-50' },
+  { key: 'PICKED_UP', label: 'Picked up', icon: pickup_icon, color: 'text-slate-500', bg: 'bg-slate-50' },
+  { key: 'HISTORY', label: 'Order History', icon: order_history_icon, color: 'text-slate-500', bg: 'bg-slate-50' }
 ] as const;
-
-type OrderSectionKey = typeof orderSections[number]['key'];
 
 const DashboardPage = () => {
   const [activeSection, setActiveSection] = useState<OrderSectionKey>('PREPARING');
+  const [newOrderModal, setNewOrderModal] = useState<Order | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
   const { stats, loading: loadingStats, error: statsError } = useDashboardStats();
-  const { orders, loading: loadingOrders, error: ordersError } = useOrders();
+  const { orders, newOrder, setNewOrder, refreshOrders, loading: loadingOrders, error: ordersError } = useOrders();
+
+  useEffect(() => {
+    if (newOrder) {
+      setNewOrderModal(newOrder);
+    }
+  }, [newOrder]);
+
+  const handleConfirm = async () => {
+    if (!newOrderModal) return;
+    setActionLoading(true);
+    try {
+      await confirmOrder(newOrderModal.id);
+      setNewOrderModal(null);
+      setNewOrder(null);
+      await refreshOrders();
+    } catch (err) {
+      // ignore
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!newOrderModal) return;
+    setActionLoading(true);
+    try {
+      await rejectOrder(newOrderModal.id);
+      setNewOrderModal(null);
+      setNewOrder(null);
+      await refreshOrders();
+    } catch (err) {
+      // ignore
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const sectionCounts = useMemo(() => {
     const counts = {
@@ -32,7 +81,7 @@ const DashboardPage = () => {
       if (order.status === 'PREPARING') counts.PREPARING += 1;
       if (order.status === 'READY') counts.READY += 1;
       if (order.status === 'PICKED_UP') counts.PICKED_UP += 1;
-      if (order.status === 'DELIVERED') counts.HISTORY += 1;
+      if (order.status === 'DELIVERED' || order.status === 'REJECTED' || order.status === 'CANCELLED') counts.HISTORY += 1;
     });
 
     return counts;
@@ -40,66 +89,69 @@ const DashboardPage = () => {
 
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
-      if (activeSection === 'HISTORY') return order.status === 'DELIVERED';
+      if (activeSection === 'HISTORY') {
+        return order.status === 'DELIVERED' || order.status === 'REJECTED' || order.status === 'CANCELLED';
+      }
       return order.status === activeSection;
     });
   }, [activeSection, orders]);
 
   return (
-    <div className="space-y-6">
-      <header className="rounded-[32px] bg-white p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm text-brand-500">Live Orders</p>
-            <h1 className="mt-2 text-3xl font-semibold text-slate-950">Track every order in real time</h1>
-          </div>
-          <div className="inline-flex items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 shadow-sm">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-            Connected to restaurant APIs
-          </div>
-        </div>
-      </header>
-
-      <section className="grid gap-5 md:grid-cols-4">
+    <div className="space-y-10">
+      <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {loadingStats ? (
           <LoadingState />
         ) : stats ? (
           <>
-            <StatCard label="Today's Orders" value={stats.liveOrders.toString()} helpText="Orders currently active" />
-            <StatCard label="Today's Revenue" value={`₹${stats.todayRevenue.toLocaleString()}`} helpText="Sales collected today" />
-            <StatCard label="Avg Prep Time" value={stats.avgPrepTime} helpText="Average kitchen prep time" />
-            <StatCard label="Rejection Rate" value={`${stats.rejectionRate.toFixed(1)}%`} helpText="Orders rejected by kitchen" />
+            <StatCard label="Today's Orders" value={stats.liveOrders.toString()} icon={todays_orders_icon} />
+            <StatCard label="Today's Revenue" value={`₹${stats.todayRevenue.toLocaleString()}`} icon={todays_revenue_icon} />
+            <StatCard label="Avg Prep Time" value={stats.avgPrepTime} icon={prep_time_icon} />
+            <StatCard label="Rejection Rate" value={`${stats.rejectionRate.toFixed(1)}%`} icon={rejection_rate_icon} />
           </>
         ) : (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 text-slate-500 shadow-sm">{statsError ?? 'Unable to load metrics.'}</div>
         )}
       </section>
 
-      <section className="rounded-[32px] bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-950">Live order queue</h2>
-            <p className="text-sm text-slate-500">Switch between active order stages and order history.</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {orderSections.map(section => (
-              <button
-                key={section.key}
-                type="button"
-                onClick={() => setActiveSection(section.key)}
-                className={`rounded-3xl px-4 py-3 text-sm font-semibold transition ${
-                  activeSection === section.key
-                    ? 'bg-brand-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                {section.label}
-                <span className="ml-2 inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-white px-2 text-xs font-semibold text-slate-700 shadow-sm">
-                  {sectionCounts[section.key]}
-                </span>
-              </button>
-            ))}
-          </div>
+      {newOrderModal ? (
+
+        <NewOrderOverlay
+          order={newOrderModal}
+          onAccept={handleConfirm}
+          onReject={handleReject}
+          onClose={() => {
+            setNewOrderModal(null);
+            setNewOrder(null);
+          }}
+        />
+      ) : null}
+
+      <section className="space-y-6">
+        <div className="flex flex-wrap items-center gap-3">
+          {orderSections.map(section => (
+            <button
+              key={section.key}
+              type="button"
+              onClick={() => setActiveSection(section.key)}
+              className={`flex items-center gap-2.5 rounded-full px-5 py-3 text-sm font-semibold transition-all duration-200 ${
+                activeSection === section.key
+                  ? 'bg-[#E7F7F0] text-[#1D915F] shadow-sm'
+                  : 'bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              <img 
+                src={section.icon} 
+                className={`h-5 w-5 ${activeSection === section.key ? '' : 'opacity-40 grayscale'}`} 
+                alt="" 
+              />
+              {section.label}
+              <span className={`ml-1 flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-xs font-bold ${
+                activeSection === section.key ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'
+              }`}>
+                {sectionCounts[section.key]}
+              </span>
+            </button>
+          ))}
         </div>
 
         {loadingOrders ? (
@@ -107,13 +159,17 @@ const DashboardPage = () => {
         ) : ordersError ? (
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500">{ordersError}</div>
         ) : (
-          <div className="space-y-5">
+          <div>
             {filteredOrders.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-slate-500">
-                No orders available in this section.
+              <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-16 text-center shadow-sm">
+                <p className="text-base font-medium text-slate-400">No orders in {activeSection.toLowerCase()} stage</p>
               </div>
+            ) : activeSection === 'HISTORY' ? (
+              <HistoryTable orders={filteredOrders} />
             ) : (
-              filteredOrders.map(order => <OrderCard key={order.id} order={order} />)
+              <div className="grid gap-6">
+                {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
+              </div>
             )}
           </div>
         )}
