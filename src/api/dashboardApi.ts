@@ -227,6 +227,7 @@ export const fetchFullMenu = async (restaurantId: string): Promise<{ categories:
   try {
     const response = await client.get(`/catalog/restaurants/${restaurantId}/menu`);
     const data = response.data;
+    console.log('Full Menu Data:', data);
     
     // The endpoint is "Get full menu with items and options"
     // Usually returns a list of menus (categories) each containing items
