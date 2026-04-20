@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const savedUser = localStorage.getItem(USER_KEY);
 
     if (savedAccessToken) {
+      console.log('[Auth] Restoring session from localStorage...');
       setAccessToken(savedAccessToken);
       client.defaults.headers.common.Authorization = `Bearer ${savedAccessToken}`;
     }
@@ -56,8 +57,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      logout();
+      sessionStorage.setItem('hivago_session_expired', 'true');
+    };
+
+    window.addEventListener('hivago-unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('hivago-unauthorized', handleUnauthorized);
+  }, []);
+
   const login = async (credentials: LoginCredentials) => {
+    console.log(`[Auth] Attempting login for ${credentials.email}...`);
     const response: LoginResponse = await loginRestaurant(credentials);
+    console.log('[Auth] Login successful, saving tokens and user info...');
     setAccessToken(response.accessToken);
     setRefreshToken(response.refreshToken);
     setAccessTokenExpiresAt(response.accessTokenExpiresAt);
@@ -80,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    console.log('[Auth] Logging out user and clearing session...');
     setAccessToken(null);
     setRefreshToken(null);
     setAccessTokenExpiresAt(null);

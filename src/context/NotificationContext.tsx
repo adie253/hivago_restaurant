@@ -16,11 +16,16 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (isAuthenticated) {
+      console.log('[Notification] Starting SignalR connection...');
       signalRService.start().then(() => {
+        console.log('[Notification] SignalR connected successfully.');
         setIsConnected(true);
+      }).catch(err => {
+        console.error('[Notification] SignalR connection failed:', err);
       });
 
       const unsubscribe = signalRService.onNewOrder((data) => {
+        console.log('[Notification] New order received via SignalR:', data);
         setLastOrderReceived(data);
         playNotification();
       });

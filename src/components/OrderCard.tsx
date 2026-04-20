@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Order } from '../types';
 import { formatCurrency, formatRelativeTime } from '../utils/format';
-import { fetchOrderById } from '../api/dashboardApi';
+import { fetchOrderById, readyOrder } from '../api/dashboardApi';
 import pickup_icon from '../assets/pickup_icon.svg';
 import order_preparing_man from '../assets/order_preparing_man.svg';
 import ready_to_pickup from '../assets/ready_to_pickup.svg';
 
 interface OrderCardProps {
   order: Order;
+  onUpdate?: () => void;
 }
 
-const OrderCard = ({ order: initialOrder }: OrderCardProps) => {
+const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
   const [order, setOrder] = useState<Order>(initialOrder);
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     const loadFullDetails = async () => {
@@ -32,6 +34,18 @@ const OrderCard = ({ order: initialOrder }: OrderCardProps) => {
 
     loadFullDetails();
   }, [initialOrder.id]);
+
+  const handleReady = async () => {
+    setActionLoading(true);
+    try {
+      await readyOrder(order.id);
+      if (onUpdate) onUpdate();
+    } catch (err) {
+      console.error('Failed to mark order as ready:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   return (
     <article className="overflow-hidden rounded-[40px] border border-slate-100 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
@@ -301,8 +315,14 @@ const OrderCard = ({ order: initialOrder }: OrderCardProps) => {
                         <p className="text-2xl font-black text-slate-900">{formatCurrency(order.total)}</p>
                     </div>
 
-                    <button className="w-full rounded-[20px] bg-[#AD221F] py-5 text-sm font-bold text-white shadow-xl shadow-red-100 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                      Order ready <span className="ml-1 opacity-60">(Est: 35 mins)</span>
+                    <button 
+                      onClick={handleReady}
+                      disabled={actionLoading}
+                      className="w-full rounded-[20px] bg-[#AD221F] py-5 text-sm font-bold text-white shadow-xl shadow-red-100 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      {actionLoading ? 'Updating...' : (
+                        <>Order ready <span className="ml-1 opacity-60">(Est: 35 mins)</span></>
+                      )}
                     </button>
                 </div>
              )}

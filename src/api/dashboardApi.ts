@@ -215,11 +215,19 @@ export const fetchOrderById = async (orderId: string): Promise<Order> => {
 };
 
 export const confirmOrder = async (orderId: string): Promise<void> => {
-  await client.post(`/orders/${orderId}/confirm`);
+  await client.put(`/orders/${orderId}/confirm`);
 };
 
 export const rejectOrder = async (orderId: string): Promise<void> => {
-  await client.post(`/orders/${orderId}/reject`);
+  await client.put(`/orders/${orderId}/reject`);
+};
+
+export const preparingOrder = async (orderId: string): Promise<void> => {
+  await client.put(`/orders/${orderId}/preparing`);
+};
+
+export const readyOrder = async (orderId: string): Promise<void> => {
+  await client.put(`/orders/${orderId}/ready`);
 };
 
 // Menu Management APIs (Unified Catalog Endpoint)

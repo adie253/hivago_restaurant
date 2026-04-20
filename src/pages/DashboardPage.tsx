@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { confirmOrder, rejectOrder } from '../api/dashboardApi';
+import { confirmOrder, preparingOrder, rejectOrder } from '../api/dashboardApi';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useOrders } from '../hooks/useOrders';
 import OrderCard from '../components/OrderCard';
@@ -43,12 +43,12 @@ const DashboardPage = () => {
     if (!newOrderModal) return;
     setActionLoading(true);
     try {
-      await confirmOrder(newOrderModal.id);
+      await preparingOrder(newOrderModal.id);
       setNewOrderModal(null);
       setNewOrder(null);
       await refreshOrders();
     } catch (err) {
-      // ignore
+      console.error('Failed to mark order as preparing:', err);
     } finally {
       setActionLoading(false);
     }
@@ -63,7 +63,7 @@ const DashboardPage = () => {
       setNewOrder(null);
       await refreshOrders();
     } catch (err) {
-      // ignore
+      console.error('Failed to reject order:', err);
     } finally {
       setActionLoading(false);
     }
@@ -168,7 +168,13 @@ const DashboardPage = () => {
               <HistoryTable orders={filteredOrders} />
             ) : (
               <div className="grid gap-6">
-                {filteredOrders.map(order => <OrderCard key={order.id} order={order} />)}
+                {filteredOrders.map(order => (
+                  <OrderCard 
+                    key={order.id} 
+                    order={order} 
+                    onUpdate={refreshOrders}
+                  />
+                ))}
               </div>
             )}
           </div>
