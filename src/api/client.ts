@@ -15,12 +15,21 @@ client.interceptors.request.use(config => {
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, config.params ?? '');
   return config;
 });
 
 client.interceptors.response.use(
-  response => response,
+  response => {
+    console.log(`[API Success] ${response.config.method?.toUpperCase()} ${response.config.url}`);
+    return response;
+  },
   error => {
+    console.error(`[API Error] ${error?.response?.status} ${error?.config?.url}`, error?.response?.data || error.message);
+    if (error?.response?.status === 401) {
+      console.warn('[Auth] Unauthorized access detected, triggering logout...');
+      window.dispatchEvent(new CustomEvent('hivago-unauthorized'));
+    }
     return Promise.reject(error?.response?.data || error);
   }
 );

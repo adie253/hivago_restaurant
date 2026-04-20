@@ -2,6 +2,8 @@ import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import login_page_logo from '../assets/login_page_logo.svg';
 import { useAuth } from '../context/AuthContext';
+import Toast from '../components/Toast';
+import { useEffect } from 'react';
 
 const LoginPage = () => {
   const { login } = useAuth();
@@ -10,7 +12,16 @@ const LoginPage = () => {
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const expired = sessionStorage.getItem('hivago_session_expired');
+    if (expired === 'true') {
+      setToastMessage('Your session has expired. Please log in again.');
+      sessionStorage.removeItem('hivago_session_expired');
+    }
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,6 +101,12 @@ const LoginPage = () => {
           </button>
         </form>
       </div>
+      {toastMessage && (
+        <Toast 
+          message={toastMessage} 
+          onClose={() => setToastMessage(null)} 
+        />
+      )}
     </div>
   );
 };
