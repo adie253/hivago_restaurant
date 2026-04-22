@@ -6,7 +6,8 @@ import OrderCard from '../components/OrderCard';
 import NewOrderOverlay from '../components/NewOrderOverlay';
 import HistoryTable from '../components/HistoryTable';
 import StatCard from '../components/StatCard';
-import LoadingState from '../components/LoadingState';
+import { StatCardSkeleton, OrderCardSkeleton } from '../components/Skeletons';
+import Toast from '../components/Toast';
 import { Order, OrderSectionKey } from '../types';
 
 import todays_orders_icon from '../assets/todays_orders_icon.svg';
@@ -20,6 +21,7 @@ import pickup_icon from '../assets/pickup_icon.svg';
 import order_history_icon from '../assets/order_history_icon.svg';
 
 const orderSections = [
+  { key: 'PENDING', label: 'Pending', icon: preparing_icon, color: 'text-amber-600', bg: 'bg-amber-50' },
   { key: 'PREPARING', label: 'Preparing', icon: preparing_icon, color: 'text-emerald-600', bg: 'bg-emerald-50' },
   { key: 'READY', label: 'Ready', icon: ready_ordres_icon, color: 'text-slate-500', bg: 'bg-slate-50' },
   { key: 'PICKED_UP', label: 'Picked up', icon: pickup_icon, color: 'text-slate-500', bg: 'bg-slate-50' },
@@ -27,9 +29,10 @@ const orderSections = [
 ] as const;
 
 const DashboardPage = () => {
-  const [activeSection, setActiveSection] = useState<OrderSectionKey>('PREPARING');
+  const [activeSection, setActiveSection] = useState<OrderSectionKey>('PENDING');
   const [newOrderModal, setNewOrderModal] = useState<Order | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { stats, loading: loadingStats, error: statsError } = useDashboardStats();
   const { orders, newOrder, setNewOrder, refreshOrders, loading: loadingOrders, error: ordersError } = useOrders();
 
@@ -47,8 +50,9 @@ const DashboardPage = () => {
       setNewOrderModal(null);
       setNewOrder(null);
       await refreshOrders();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to mark order as preparing:', err);
+      setErrorMessage(err.response?.data?.message || err.message || 'Failed to accept order');
     } finally {
       setActionLoading(false);
     }
@@ -62,8 +66,9 @@ const DashboardPage = () => {
       setNewOrderModal(null);
       setNewOrder(null);
       await refreshOrders();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to reject order:', err);
+      setErrorMessage(err.response?.data?.message || err.message || 'Failed to reject order');
     } finally {
       setActionLoading(false);
     }
@@ -71,6 +76,7 @@ const DashboardPage = () => {
 
   const sectionCounts = useMemo(() => {
     const counts = {
+      PENDING: 0,
       PREPARING: 0,
       READY: 0,
       PICKED_UP: 0,
@@ -78,6 +84,7 @@ const DashboardPage = () => {
     } as Record<OrderSectionKey, number>;
 
     orders.forEach(order => {
+      if (order.status === 'PENDING') counts.PENDING += 1;
       if (order.status === 'PREPARING') counts.PREPARING += 1;
       if (order.status === 'READY') counts.READY += 1;
       if (order.status === 'PICKED_UP') counts.PICKED_UP += 1;
@@ -100,7 +107,12 @@ const DashboardPage = () => {
     <div className="space-y-10">
       <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {loadingStats ? (
-          <LoadingState />
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
         ) : stats ? (
           <>
             <StatCard label="Today's Orders" value={stats.liveOrders.toString()} icon={todays_orders_icon} />
@@ -155,7 +167,11 @@ const DashboardPage = () => {
         </div>
 
         {loadingOrders ? (
-          <LoadingState />
+          <div className="grid gap-6">
+            <OrderCardSkeleton />
+            <OrderCardSkeleton />
+            <OrderCardSkeleton />
+          </div>
         ) : ordersError ? (
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500">{ordersError}</div>
         ) : (
@@ -180,6 +196,13 @@ const DashboardPage = () => {
           </div>
         )}
       </section>
+      {errorMessage && (
+        <Toast
+          message={errorMessage}
+          type="error"
+          onClose={() => setErrorMessage(null)}
+        />
+      )}
     </div>
   );
 };

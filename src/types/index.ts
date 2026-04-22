@@ -1,6 +1,6 @@
-export type OrderStatus = 'PREPARING' | 'READY' | 'PICKED_UP' | 'DELIVERED' | 'CANCELLED' | 'REJECTED';
+export type OrderStatus = 'PENDING' | 'PREPARING' | 'READY' | 'PICKED_UP' | 'DELIVERED' | 'CANCELLED' | 'REJECTED';
 
-export type OrderSectionKey = 'PREPARING' | 'READY' | 'PICKED_UP' | 'HISTORY';
+export type OrderSectionKey = 'PENDING' | 'PREPARING' | 'READY' | 'PICKED_UP' | 'HISTORY';
 
 
 export interface OrderItem {

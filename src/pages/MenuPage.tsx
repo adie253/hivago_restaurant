@@ -4,7 +4,7 @@ import { MenuCategory, MenuItem } from '../types';
 import { fetchFullMenu, toggleItemAvailability } from '../api/dashboardApi';
 import CategorySidebar from '../components/CategorySidebar';
 import MenuItemCard from '../components/MenuItemCard';
-import LoadingState from '../components/LoadingState';
+import { MenuPageSkeleton } from '../components/Skeletons';
 import Toast from '../components/Toast';
 
 const MenuPage = () => {
@@ -84,7 +84,7 @@ const MenuPage = () => {
     return result;
   }, [items, activeCategoryId, searchQuery, categories]);
 
-  if (loading) return <LoadingState />;
+  if (loading) return <MenuPageSkeleton />;
 
   return (
     <div className="grid gap-10 lg:grid-cols-[280px_1fr]">

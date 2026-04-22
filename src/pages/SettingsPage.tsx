@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 // import { RestaurantProfile } from '../types';
 import { fetchRestaurantProfile, updateRestaurantProfile } from '../api/dashboardApi';
-import LoadingState from '../components/LoadingState';
+import { SettingsPageSkeleton } from '../components/Skeletons';
 import Toast from '../components/Toast';
 import BusinessHoursForm from '../components/BusinessHoursForm';
 import DeliverySettingsForm from '../components/DeliverySettingsForm';
@@ -131,7 +131,7 @@ const SettingsPage = () => {
 
 
 
-  if (loading) return <LoadingState />;
+  if (loading) return <SettingsPageSkeleton />;
 
   return (
     <div className="space-y-8">

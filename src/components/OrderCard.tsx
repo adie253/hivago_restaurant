@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Order } from '../types';
 import { formatCurrency, formatRelativeTime } from '../utils/format';
-import { fetchOrderById, readyOrder } from '../api/dashboardApi';
+import { fetchOrderById, preparingOrder, readyOrder, rejectOrder } from '../api/dashboardApi';
 import pickup_icon from '../assets/pickup_icon.svg';
 import order_preparing_man from '../assets/order_preparing_man.svg';
 import ready_to_pickup from '../assets/ready_to_pickup.svg';
+import Toast from './Toast';
 
 interface OrderCardProps {
   order: Order;
@@ -15,6 +16,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
   const [order, setOrder] = useState<Order>(initialOrder);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const loadFullDetails = async () => {
@@ -24,8 +26,9 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
         try {
           const fullOrder = await fetchOrderById(initialOrder.id);
           setOrder(fullOrder);
-        } catch (err) {
+        } catch (err: any) {
           console.error(`Failed to fetch details for order ${initialOrder.id}`, err);
+          setErrorMessage('Unable to load full order details');
         } finally {
           setLoading(false);
         }
@@ -40,8 +43,34 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     try {
       await readyOrder(order.id);
       if (onUpdate) onUpdate();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to mark order as ready:', err);
+      setErrorMessage(err.response?.data?.message || err.message || 'Failed to update order status');
+      setActionLoading(false);
+    }
+  };
+
+  const handleAccept = async () => {
+    setActionLoading(true);
+    try {
+      await preparingOrder(order.id);
+      if (onUpdate) onUpdate();
+    } catch (err: any) {
+      console.error('Failed to accept order:', err);
+      setErrorMessage(err.response?.data?.message || err.message || 'Failed to accept order');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    setActionLoading(true);
+    try {
+      await rejectOrder(order.id);
+      if (onUpdate) onUpdate();
+    } catch (err: any) {
+      console.error('Failed to reject order:', err);
+      setErrorMessage(err.response?.data?.message || err.message || 'Failed to reject order');
     } finally {
       setActionLoading(false);
     }
@@ -288,7 +317,49 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                         </div>
                     </div>
                 </div>
-             ) : (
+              ) : order.status === 'PENDING' ? (
+                <div className="space-y-6">
+                    <div className="flex overflow-hidden rounded-[32px] p-2 text-center ring-1 ring-amber-100">
+                        <div className="h-22 rounded-[32px] bg-amber-50 p-4 flex items-center justify-center">
+                             <div className="relative">
+                                <span className="text-4xl">⏳</span>
+                             </div>
+                        </div>
+                        <div className='text-start p-4'>
+                           <h4 className="text-xl font-black text-amber-600">Pending</h4>
+                           <p className="mt-1 text-sm font-bold text-amber-600/60">Waiting for your acceptance</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between px-2">
+                        <div className="flex items-center gap-2">
+                           <p className="text-sm font-bold text-slate-600">Total Bill</p>
+                           <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-500">
+                              <span className="h-3.5 w-3.5 rounded-full border border-emerald-500 flex items-center justify-center text-[8px]">✓</span>
+                              Paid
+                           </span>
+                        </div>
+                        <p className="text-2xl font-black text-slate-900">{formatCurrency(order.total)}</p>
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button 
+                          onClick={handleReject}
+                          disabled={actionLoading}
+                          className="flex-1 rounded-[20px] border-2 border-red-100 bg-white py-4 text-sm font-bold text-red-500 transition-all hover:bg-red-50 active:scale-[0.98] disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                        <button 
+                          onClick={handleAccept}
+                          disabled={actionLoading}
+                          className="flex-[1.5] rounded-[20px] bg-emerald-500 py-4 text-sm font-bold text-white shadow-xl shadow-emerald-100 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                        >
+                          {actionLoading ? 'Accepting...' : 'Accept Order'}
+                        </button>
+                    </div>
+                </div>
+              ) : (
                 <div className="space-y-5">
                     <div className="flex overflow-hidden rounded-[32px]  p-2 text-center ring-1 ring-[#DEE5FF]">
                         <div className="h-22  rounded-[32px] bg-[#EEF2FF] p-4">
@@ -325,7 +396,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                       )}
                     </button>
                 </div>
-             )}
+              )}
           </div>
 
           <div className="mt-8 flex">
@@ -338,6 +409,13 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
           </div>
         </div>
       </div>
+      {errorMessage && (
+        <Toast
+          message={errorMessage}
+          type="error"
+          onClose={() => setErrorMessage(null)}
+        />
+      )}
     </article>
   );
 };

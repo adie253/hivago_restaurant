@@ -28,19 +28,18 @@ interface FetchOrdersOptions {
 }
 
 const normalizeStatus = (status?: string): Order['status'] => {
-  if (!status) return 'PREPARING';
+  if (!status) return 'PENDING';
   const normalized = status.toLowerCase();
 
+  if (normalized.includes('pending') || normalized === 'confirmed') return 'PENDING';
   if (normalized.includes('ready')) return 'READY';
   if (normalized.includes('picked')) return 'PICKED_UP';
   if (normalized === 'delivered') return 'DELIVERED';
   if (normalized === 'rejected' || normalized === 'cancelled') return 'REJECTED';
   
-  // "Confirmed" usually means the kitchen is preparing it
-  if (normalized === 'confirmed' || normalized === 'preparing') return 'PREPARING';
+  if (normalized === 'preparing') return 'PREPARING';
 
-
-  return 'PREPARING';
+  return 'PENDING';
 };
 
 const normalizePickupType = (pickupType?: string): Order['pickupType'] => {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { PayoutCycle, PayoutSummary } from '../types';
 import { fetchPayoutSummary } from '../api/payoutsApi';
-import LoadingState from '../components/LoadingState';
+import { PayoutsPageSkeleton } from '../components/Skeletons';
 
 const PayoutsPage = () => {
     const { user } = useAuth();
@@ -86,7 +86,7 @@ const PayoutsPage = () => {
         }).format(amount);
     };
 
-    if (loading) return <LoadingState />;
+    if (loading) return <PayoutsPageSkeleton />;
 
     return (
         <div className="space-y-8">
