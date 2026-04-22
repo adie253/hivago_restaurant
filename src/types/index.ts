@@ -61,49 +61,72 @@ export interface MenuItem {
   menuId: string;
 }
 
-export interface RestaurantProfile {
-  id: string;
+export type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
+
+export interface WeeklyScheduleSlot {
+  opensAt: string; // "09:00" or "09:00:00"
+  closesAt: string;
+}
+
+export interface DaySchedule {
+  dayOfWeek: DayOfWeek | string;
+  slots: WeeklyScheduleSlot[];
+}
+
+export interface ProfileSettings {
   name: string;
   phone: string;
   email: string;
-  fssaiNumber: string;
-  address: string;
-  description: string;
-  openingHours?: OpeningHours;
-  minOrderAmount?: number;
-  hasJainOptions?: boolean;
-  isVeganFriendly?: boolean;
-  isPureVeg?: boolean;
-  
-  // Delivery Settings
-  defaultPrepTime?: number;
-  defaultDeliveryPartner?: string;
-  isAcceptingOrders?: boolean;
-  isAutoAcceptEnabled?: boolean;
-  isAutoWorkingHoursEnabled?: boolean;
-  isPickupEnabled?: boolean;
-  isDeliveryEnabled?: boolean;
-  logoUrl?: string;
+  fssaiNumber: string | null;
+  addressLine: string;
+  latitude: number | null;
+  longitude: number | null;
+  description: string | null;
+  logoUrl: string | null;
 }
 
-export interface TimeSlot {
-  from: string; // "09:00"
-  to: string;   // "22:00"
+export interface DietarySettings {
+  dietaryType: "PureVeg" | "PureNonVeg" | "Both";
+  isPureVeg: boolean;
+  isVeganFriendly: boolean;
+  hasJainOptions: boolean;
+  cuisineTypes: string[];
 }
 
-export interface DayHours {
-  isClosed: boolean;
-  slots: TimeSlot[];
+export interface OperationsSettings {
+  isActive: boolean;
+  isAcceptingOrders: boolean;
+  autoAcceptOrders: boolean;
+  avgPrepTimeMins: number;
+  minOrderAmount: number;
+  commissionPercentage: number;
 }
 
-export interface OpeningHours {
-  monday: DayHours;
-  tuesday: DayHours;
-  wednesday: DayHours;
-  thursday: DayHours;
-  friday: DayHours;
-  saturday: DayHours;
-  sunday: DayHours;
+export interface HoursSettings {
+  useCustomSchedule: boolean;
+  openingTime: string;
+  closingTime: string;
+  weeklySchedule: DaySchedule[];
+}
+
+export interface DeliverySettings {
+  deliveryMode: "Hivago" | "SelfDelivery";
+}
+
+export interface NotificationSettings {
+  emailAlerts: boolean;
+  browserNotifications: boolean;
+  orderSound: boolean;
+}
+
+export interface RestaurantSettings {
+  id: string;
+  profile: ProfileSettings;
+  dietary: DietarySettings;
+  operations: OperationsSettings;
+  hours: HoursSettings;
+  delivery: DeliverySettings;
+  notifications: NotificationSettings;
 }
 
 export interface PayoutCycle {

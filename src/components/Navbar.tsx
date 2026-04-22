@@ -4,6 +4,8 @@ import hivago_logo from '../assets/hivago_logo.svg';
 import notification_icon from '../assets/notification_icon.svg';
 import logout_icon from '../assets/logout_icon.svg';
 import manage_outlet_icon from '../assets/manage_outlet_icon.svg';
+import { useState } from 'react';
+import ManageOutletModal from './ManageOutletModal';
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -12,6 +14,7 @@ interface NavbarProps {
 const Navbar = ({ onToggleSidebar }: NavbarProps) => {
     const { logout } = useAuth();
     const navigate = useNavigate();
+    const [isManageOutletOpen, setIsManageOutletOpen] = useState(false);
 
     const handleLogout = () => {
         logout();
@@ -38,6 +41,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                 <div className="flex items-center gap-2 sm:gap-6">
                     <button
                         type="button"
+                        onClick={() => setIsManageOutletOpen(true)}
                         className="group inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#AD221F] shadow-sm transition hover:bg-slate-50"
                     >
                         <img src={manage_outlet_icon} className="mr-2.5 h-4 w-4" alt="" />
@@ -71,6 +75,11 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                     </div>
                 </div>
             </div>
+
+            <ManageOutletModal 
+                isOpen={isManageOutletOpen} 
+                onClose={() => setIsManageOutletOpen(false)} 
+            />
         </nav>
     );
 };
