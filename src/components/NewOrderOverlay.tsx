@@ -8,7 +8,7 @@ import restaurant_delivery_popup from '../assets/restaurant_delivery_popup.svg';
 interface NewOrderOverlayProps {
   order: Order;
   onAccept: (prepTime: number) => void;
-  onReject: () => void;
+  onReject: (reason: string) => void;
   onClose: () => void;
 }
 
@@ -18,6 +18,9 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
   const [selectedPrepTime, setSelectedPrepTime] = useState(25);
   const [deliveryPartner, setDeliveryPartner] = useState<'HIVAGO' | 'RESTAURANT'>('HIVAGO');
+
+  const [showRejectReason, setShowRejectReason] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   useEffect(() => {
     const loadFullDetails = async () => {
@@ -208,19 +211,59 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={onReject}
-                  className="flex-1 py-2 rounded-2xl border-2 border-red-100 bg-white text-md font-bold text-red-500 transition-all hover:bg-red-50 active:scale-[0.98]"
-                >
-                  Reject
-                </button>
-                <button
-                  onClick={() => onAccept(selectedPrepTime)}
-                  className="flex-[1.5] rounded-2xl bg-emerald-500 text-md font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-600 active:scale-[0.98]"
-                >
-                  Accept order ({formatTimer(timeLeft)})
-                </button>
+              <div className="mt-8">
+                {showRejectReason ? (
+                  <div className="space-y-4 rounded-3xl border border-red-100 bg-red-50/50 p-5">
+                    <div>
+                      <h4 className="text-sm font-bold text-red-600">Why are you rejecting this order?</h4>
+                    </div>
+                    <select
+                      value={rejectReason}
+                      onChange={e => setRejectReason(e.target.value)}
+                      className="w-full rounded-2xl border border-red-100 bg-white p-3.5 text-sm font-semibold text-slate-700 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                    >
+                      <option value="">Select a reason...</option>
+                      <option value="Items out of stock">Items out of stock</option>
+                      <option value="Kitchen is too busy">Kitchen is too busy</option>
+                      <option value="Closing soon">Closing soon</option>
+                      <option value="Delivery area too far">Delivery area too far</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={() => {
+                          setShowRejectReason(false);
+                          setRejectReason('');
+                        }}
+                        className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-all active:scale-[0.98]"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={() => onReject(rejectReason)}
+                        disabled={!rejectReason}
+                        className="flex-1 rounded-xl bg-red-500 py-3 text-sm font-bold text-white shadow-md shadow-red-200 hover:bg-red-600 transition-all active:scale-[0.98] disabled:opacity-50"
+                      >
+                        Confirm Reject
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowRejectReason(true)}
+                      className="flex-1 py-2 rounded-2xl border-2 border-red-100 bg-white text-md font-bold text-red-500 transition-all hover:bg-red-50 active:scale-[0.98]"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => onAccept(selectedPrepTime)}
+                      className="flex-[1.5] rounded-2xl bg-emerald-500 text-md font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-600 active:scale-[0.98]"
+                    >
+                      Accept order ({formatTimer(timeLeft)})
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
