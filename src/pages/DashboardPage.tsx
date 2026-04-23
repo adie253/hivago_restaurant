@@ -58,11 +58,11 @@ const DashboardPage = () => {
     }
   };
 
-  const handleReject = async () => {
+  const handleReject = async (reason: string) => {
     if (!newOrderModal) return;
     setActionLoading(true);
     try {
-      await rejectOrder(newOrderModal.id);
+      await rejectOrder(newOrderModal.id, reason);
       setNewOrderModal(null);
       setNewOrder(null);
       await refreshOrders();
