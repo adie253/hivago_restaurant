@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import client from '../api/client';
-import { LoginCredentials, LoginResponse, loginRestaurant } from '../api/authApi';
+import { LoginCredentials, LoginResponse, loginRestaurant, refreshAuthToken } from '../api/authApi';
 
 interface AuthUser {
   id: string;
@@ -30,6 +30,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [accessTokenExpiresAt, setAccessTokenExpiresAt] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
+
+  const [showSessionWarning, setShowSessionWarning] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const savedAccessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -67,6 +70,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener('hivago-unauthorized', handleUnauthorized);
   }, []);
 
+  // Expiration Tracker
+  useEffect(() => {
+    if (!accessTokenExpiresAt) {
+      setShowSessionWarning(false);
+      return;
+    }
+
+    const WARNING_THRESHOLD = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+    const checkExpiration = () => {
+      const expiresAt = new Date(accessTokenExpiresAt).getTime();
+      const now = Date.now();
+      const timeRemaining = expiresAt - now;
+
+      if (timeRemaining <= 0) {
+        // Token has expired
+        logout();
+        setShowSessionWarning(false);
+        sessionStorage.setItem('hivago_session_expired', 'true');
+      } else if (timeRemaining <= WARNING_THRESHOLD) {
+        // Soon to expire
+        setShowSessionWarning(true);
+      } else {
+        setShowSessionWarning(false);
+      }
+    };
+
+    checkExpiration();
+    const interval = setInterval(checkExpiration, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [accessTokenExpiresAt]);
+
   const login = async (credentials: LoginCredentials) => {
     console.log(`[Auth] Attempting login for ${credentials.email}...`);
     const response: LoginResponse = await loginRestaurant(credentials);
@@ -90,6 +126,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }));
 
     client.defaults.headers.common.Authorization = `Bearer ${response.accessToken}`;
+  };
+
+  const refreshSession = async () => {
+    if (!refreshToken) return;
+    setIsRefreshing(true);
+    try {
+      console.log('[Auth] Attempting to refresh token...');
+      const response: LoginResponse = await refreshAuthToken(refreshToken);
+      setAccessToken(response.accessToken);
+      setRefreshToken(response.refreshToken);
+      setAccessTokenExpiresAt(response.accessTokenExpiresAt);
+      
+      localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
+      localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
+      localStorage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
+      
+      client.defaults.headers.common.Authorization = `Bearer ${response.accessToken}`;
+      setShowSessionWarning(false);
+    } catch (err) {
+      console.error('[Auth] Failed to refresh token:', err);
+      logout();
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const logout = () => {
@@ -118,7 +178,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [user, accessToken, refreshToken, accessTokenExpiresAt]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {showSessionWarning && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[24px] w-full max-w-[420px] shadow-2xl p-8 text-center animate-in fade-in zoom-in duration-300">
+            <div className="mx-auto w-16 h-16 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mb-6 shadow-inner">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Session Expiring Soon</h2>
+            <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+              For your security, your session will automatically end in a few moments. Would you like to stay logged in?
+            </p>
+            
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={refreshSession}
+                disabled={isRefreshing}
+                className="w-full bg-[#1D915F] hover:bg-[#15794d] text-white font-bold py-3.5 rounded-2xl transition-all shadow-md shadow-emerald-100/50 disabled:opacity-70 disabled:cursor-wait"
+              >
+                {isRefreshing ? 'Refreshing...' : 'Stay Logged In'}
+              </button>
+              <button 
+                onClick={logout}
+                disabled={isRefreshing}
+                className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold py-3.5 rounded-2xl transition-all disabled:opacity-70"
+              >
+                Logout Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {

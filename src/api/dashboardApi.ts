@@ -217,8 +217,8 @@ export const confirmOrder = async (orderId: string): Promise<void> => {
   await client.put(`/orders/${orderId}/confirm`);
 };
 
-export const rejectOrder = async (orderId: string): Promise<void> => {
-  await client.put(`/orders/${orderId}/reject`);
+export const rejectOrder = async (orderId: string, reason: string): Promise<void> => {
+  await client.put(`/orders/${orderId}/reject`, { reason });
 };
 
 export const preparingOrder = async (orderId: string): Promise<void> => {

@@ -17,3 +17,8 @@ export const loginRestaurant = async (credentials: LoginCredentials): Promise<Lo
   const response = await client.post<LoginResponse>('/restaurants/login', credentials);
   return response.data;
 };
+
+export const refreshAuthToken = async (refreshToken: string): Promise<LoginResponse> => {
+  const response = await client.post<LoginResponse>('/auth/refresh', { refreshToken });
+  return response.data;
+};

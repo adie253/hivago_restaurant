@@ -57,7 +57,7 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-      <div className="w-full h-full max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-[0_32px_120px_rgba(15,23,42,0.3)] flex flex-col max-h-[95vh]">
+      <div className="w-full h-auto max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-[0_32px_120px_rgba(15,23,42,0.3)] flex flex-col max-h-[95vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-8 py-5 pb-0 shrink-0">
           <h2 className="text-xl font-black tracking-tight text-slate-900">1 new order</h2>
