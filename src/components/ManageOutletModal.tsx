@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Toast from './Toast';
+import { getOwnerOutlets } from '../api/ownerApi';
 
 interface Outlet {
   id: string;
@@ -12,14 +13,7 @@ interface Outlet {
 
 type FlowStep = 'list' | 'reason' | 'duration' | 'success';
 
-const initialDummyOutlets: Outlet[] = [
-  { id: '1', name: 'Vikroli Outlet', area: 'Vikroli, Mumbai', initials: 'VO', color: 'bg-teal-600', status: 'Online' },
-  { id: '2', name: 'Andheri Outlet', area: 'Andheri West, Mumbai', initials: 'AO', color: 'bg-[#AD221F]', status: 'Online' },
-  { id: '3', name: 'Bandra Outlet', area: 'Bandra East, Mumbai', initials: 'BO', color: 'bg-blue-600', status: 'Offline' },
-  { id: '4', name: 'Powai Outlet', area: 'Powai, Mumbai', initials: 'PO', color: 'bg-rose-500', status: 'Online' },
-  { id: '5', name: 'Dadar Outlet', area: 'Dadar West, Mumbai', initials: 'DO', color: 'bg-indigo-600', status: 'Online' },
-  { id: '6', name: 'Thane Outlet', area: 'Thane West, Mumbai', initials: 'TO', color: 'bg-orange-600', status: 'Online' },
-];
+const COLORS = ['bg-teal-600', 'bg-[#AD221F]', 'bg-blue-600', 'bg-rose-500', 'bg-indigo-600', 'bg-orange-600'];
 
 const OFFLINE_REASONS = [
   "High order rush / Kitchen is Full",
@@ -50,7 +44,33 @@ interface ManageOutletModalProps {
 const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
   const [activeTab, setActiveTab] = useState<'manage' | 'schedule'>('manage');
   const [searchQuery, setSearchQuery] = useState('');
-  const [outlets, setOutlets] = useState<Outlet[]>(initialDummyOutlets);
+  const [outlets, setOutlets] = useState<Outlet[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchOutlets = async () => {
+        setIsLoading(true);
+        try {
+          const data = await getOwnerOutlets();
+          const formattedOutlets: Outlet[] = data.map((d, index) => ({
+            id: d.id,
+            name: d.name,
+            area: d.addressLine || 'Address not provided',
+            initials: d.name.substring(0, 2).toUpperCase(),
+            color: COLORS[index % COLORS.length],
+            status: 'Online'
+          }));
+          setOutlets(formattedOutlets);
+        } catch (error) {
+          console.error("Failed to fetch outlets:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchOutlets();
+    }
+  }, [isOpen]);
 
   const [flowStep, setFlowStep] = useState<FlowStep>('list');
   const [selectedOfflineOutlet, setSelectedOfflineOutlet] = useState<Outlet | null>(null);
@@ -105,6 +125,12 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
     return true;
   };
 
+  const filteredOutlets = outlets.filter(o => 
+    o.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    o.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    o.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const renderManageViewContent = () => (
     <>
       <div className="px-8 py-5">
@@ -125,8 +151,15 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
       </div>
 
       <div className="px-8 pb-8 overflow-y-auto space-y-3 custom-scrollbar flex-1">
-        {outlets.map((outlet) => (
-          <div key={outlet.id} className="flex items-center justify-between p-4 rounded-3xl border border-slate-100 bg-white shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all hover:border-slate-200">
+        {isLoading ? (
+          <div className="flex justify-center items-center py-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#008940]"></div>
+          </div>
+        ) : filteredOutlets.length === 0 ? (
+          <div className="text-center py-10 text-slate-500 text-sm font-semibold">No outlets found.</div>
+        ) : (
+          filteredOutlets.map((outlet) => (
+            <div key={outlet.id} className="flex items-center justify-between p-4 rounded-3xl border border-slate-100 bg-white shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all hover:border-slate-200">
             
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-base shadow-sm ${outlet.color}`}>
@@ -164,7 +197,7 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
             </div>
 
           </div>
-        ))}
+        )))}
       </div>
     </>
   );

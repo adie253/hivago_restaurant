@@ -4,6 +4,7 @@ import login_page_logo from '../assets/login_page_logo.svg';
 import { useAuth } from '../context/AuthContext';
 import Toast from '../components/Toast';
 import { useEffect } from 'react';
+import { AuthRole } from '../types';
 
 const LoginPage = () => {
   const { login } = useAuth();
@@ -13,6 +14,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [role, setRole] = useState<AuthRole>('restaurant');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,8 +31,12 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      await login({ email, password });
-      navigate('/dashboard');
+      await login({ email, password }, role);
+      if (role === 'owner') {
+        navigate('/owner/outlets');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to sign in. Please try again.';
       setError(message);
@@ -47,7 +53,28 @@ const LoginPage = () => {
             <img src={login_page_logo} alt="" />
           </div>
           <h1 className="text-2xl font-semibold text-slate-900">Hivago</h1>
-          <p className="mt-2 text-sm text-slate-500">Restaurant dashboard access for managers and staff.</p>
+          <p className="mt-2 text-sm text-slate-500">Access for owners, managers and staff.</p>
+        </div>
+
+        <div className="mb-6 flex rounded-2xl bg-slate-100 p-1">
+          <button
+            type="button"
+            onClick={() => setRole('restaurant')}
+            className={`flex-1 rounded-xl py-2 text-sm font-semibold transition ${
+              role === 'restaurant' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Restaurant
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole('owner')}
+            className={`flex-1 rounded-xl py-2 text-sm font-semibold transition ${
+              role === 'owner' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Owner
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">

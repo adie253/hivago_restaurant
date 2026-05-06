@@ -12,7 +12,7 @@ const client = axios.create({
 
 client.interceptors.request.use(config => {
   const token = localStorage.getItem('hivago_access_token');
-  if (token && config.headers) {
+  if (token && config.headers && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, config.params ?? '');

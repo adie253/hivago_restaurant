@@ -144,3 +144,24 @@ export interface PayoutSummary {
   pastCycles: PayoutCycle[];
 }
 
+export type AuthRole = 'admin' | 'owner' | 'restaurant';
+
+export interface Owner {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  panNumber?: string;
+  gstNumber?: string;
+  bankAccountNumber?: string;
+  bankIfscCode?: string;
+  bankAccountName?: string;
+}
+
+export interface RestaurantMinimal {
+  id: string;
+  name: string;
+  rstCode: string;
+  addressLine?: string;
+}
+

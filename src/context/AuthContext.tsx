@@ -3,10 +3,15 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import client from '../api/client';
 import { LoginCredentials, LoginResponse, loginRestaurant, refreshAuthToken } from '../api/authApi';
 
+import { AuthRole } from '../types';
+import { loginOwner, switchOutlet as switchOutletApi } from '../api/ownerApi';
+
 interface AuthUser {
   id: string;
   name: string;
   email: string;
+  role: AuthRole;
+  originalRole?: AuthRole;
   outletId?: string;
 }
 
@@ -16,7 +21,8 @@ interface AuthContextValue {
   refreshToken: string | null;
   accessTokenExpiresAt: string | null;
   isAuthenticated: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials, role: AuthRole) => Promise<void>;
+  switchOutlet: (outletId: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -103,27 +109,76 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(interval);
   }, [accessTokenExpiresAt]);
 
-  const login = async (credentials: LoginCredentials) => {
-    console.log(`[Auth] Attempting login for ${credentials.email}...`);
-    const response: LoginResponse = await loginRestaurant(credentials);
+  const login = async (credentials: LoginCredentials, role: AuthRole) => {
+    console.log(`[Auth] Attempting ${role} login for ${credentials.email}...`);
+    
+    let response: LoginResponse;
+    if (role === 'owner') {
+      response = await loginOwner(credentials);
+    } else {
+      response = await loginRestaurant(credentials);
+    }
+
     console.log('[Auth] Login successful, saving tokens and user info...');
     setAccessToken(response.accessToken);
     setRefreshToken(response.refreshToken);
     setAccessTokenExpiresAt(response.accessTokenExpiresAt);
-    setUser({
-      id: response.restaurantId,
-      name: response.name,
-      email: credentials.email
-    });
+    
+    client.defaults.headers.common.Authorization = `Bearer ${response.accessToken}`;
+
+    let profileData: any = null;
+    if (role === 'owner') {
+      const { getOwnerProfile } = await import('../api/ownerApi');
+      try {
+        profileData = await getOwnerProfile();
+      } catch (err) {
+        console.error('[Auth] Failed to fetch owner profile', err);
+      }
+    }
+
+    const newUser: AuthUser = {
+      id: role === 'owner' ? (profileData?.id || (response as any).ownerId) : (response as any).restaurantId,
+      name: role === 'owner' ? (profileData?.name || response.name || 'Owner') : response.name,
+      email: role === 'owner' ? (profileData?.email || credentials.email) : credentials.email,
+      role,
+      originalRole: role
+    };
+    setUser(newUser);
 
     localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
     localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
     localStorage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
-    localStorage.setItem(USER_KEY, JSON.stringify({
-      id: response.restaurantId,
-      name: response.name,
-      email: credentials.email
-    }));
+    localStorage.setItem(USER_KEY, JSON.stringify(newUser));
+
+    if (role === 'owner') {
+      localStorage.setItem('hivago_owner_access_token', response.accessToken);
+    }
+  };
+
+  const switchOutlet = async (outletId: string) => {
+    console.log(`[Auth] Switching to outlet ${outletId}...`);
+    const response = await switchOutletApi(outletId);
+    
+    console.log('[Auth] Switch successful, updating tokens...');
+    setAccessToken(response.accessToken);
+    setRefreshToken(response.refreshToken);
+    setAccessTokenExpiresAt(response.accessTokenExpiresAt);
+    
+    // Update user role to restaurant for the dashboard
+    if (user) {
+      const updatedUser: AuthUser = {
+        ...user,
+        role: 'restaurant',
+        originalRole: user.originalRole || user.role,
+        outletId: response.restaurantId
+      };
+      setUser(updatedUser);
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+    }
+
+    localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
+    localStorage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
 
     client.defaults.headers.common.Authorization = `Bearer ${response.accessToken}`;
   };
@@ -162,6 +217,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(`${ACCESS_TOKEN_KEY}_expires_at`);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem('hivago_owner_access_token');
     delete client.defaults.headers.common.Authorization;
   };
 
@@ -173,6 +229,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       accessTokenExpiresAt,
       isAuthenticated: Boolean(accessToken),
       login,
+      switchOutlet,
       logout
     }),
     [user, accessToken, refreshToken, accessTokenExpiresAt]

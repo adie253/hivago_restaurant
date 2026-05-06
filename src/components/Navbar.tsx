@@ -4,17 +4,66 @@ import hivago_logo from '../assets/hivago_logo.svg';
 import notification_icon from '../assets/notification_icon.svg';
 import logout_icon from '../assets/logout_icon.svg';
 import manage_outlet_icon from '../assets/manage_outlet_icon.svg';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ManageOutletModal from './ManageOutletModal';
+import { getOwnerOutlets } from '../api/ownerApi';
+import { RestaurantMinimal } from '../types';
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
 }
 
 const Navbar = ({ onToggleSidebar }: NavbarProps) => {
-    const { logout } = useAuth();
+    const { logout, user, switchOutlet } = useAuth();
     const navigate = useNavigate();
     const [isManageOutletOpen, setIsManageOutletOpen] = useState(false);
+    
+    // Switch Outlet Dropdown State
+    const [isSwitchOutletOpen, setIsSwitchOutletOpen] = useState(false);
+    const [outlets, setOutlets] = useState<RestaurantMinimal[]>([]);
+    const [loadingOutlets, setLoadingOutlets] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    
+    const isOwner = user?.role === 'owner' || user?.originalRole === 'owner';
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsSwitchOutletOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSwitchOutletClick = async () => {
+        if (!isSwitchOutletOpen) {
+            setIsSwitchOutletOpen(true);
+            if (outlets.length === 0) {
+                setLoadingOutlets(true);
+                try {
+                    const data = await getOwnerOutlets();
+                    setOutlets(data);
+                } catch (error) {
+                    console.error("Failed to fetch outlets:", error);
+                } finally {
+                    setLoadingOutlets(false);
+                }
+            }
+        } else {
+            setIsSwitchOutletOpen(false);
+        }
+    };
+
+    const handleSelectOutlet = async (outletId: string) => {
+        try {
+            await switchOutlet(outletId);
+            setIsSwitchOutletOpen(false);
+            navigate('/dashboard');
+        } catch (error) {
+            console.error("Failed to switch outlet:", error);
+        }
+    };
 
     const handleLogout = () => {
         logout();
@@ -39,17 +88,72 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-6">
-                    <button
-                        type="button"
-                        onClick={() => setIsManageOutletOpen(true)}
-                        className="group inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#AD221F] shadow-sm transition hover:bg-slate-50"
-                    >
-                        <img src={manage_outlet_icon} className="mr-2.5 h-4 w-4" alt="" />
-                        Manage Outlets
-                        <svg className="ml-2 h-4 w-4 transition-transform group-hover:translate-y-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
+                    {isOwner && (
+                        <div className="relative" ref={dropdownRef}>
+                            <button
+                                type="button"
+                                onClick={handleSwitchOutletClick}
+                                className="group inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#AD221F] shadow-sm transition hover:bg-slate-50"
+                            >
+                                <svg className="mr-2.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                </svg>
+                                Switch Outlet
+                            </button>
+
+                            {isSwitchOutletOpen && (
+                                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white p-2 shadow-xl border border-slate-100 z-50 animate-in fade-in zoom-in duration-200">
+                                    <div className="px-3 py-2 border-b border-slate-100 mb-2">
+                                        <h3 className="text-sm font-bold text-slate-900">Your Outlets</h3>
+                                    </div>
+                                    <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                                        {loadingOutlets ? (
+                                            <div className="flex justify-center p-4">
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#AD221F]"></div>
+                                            </div>
+                                        ) : outlets.length === 0 ? (
+                                            <div className="text-center p-4 text-xs font-semibold text-slate-500">No outlets found</div>
+                                        ) : (
+                                            outlets.map((outlet) => (
+                                                <button
+                                                    key={outlet.id}
+                                                    onClick={() => handleSelectOutlet(outlet.id)}
+                                                    className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors flex flex-col"
+                                                >
+                                                    <span className="text-sm font-bold text-slate-900">{outlet.name}</span>
+                                                    <span className="text-xs font-semibold text-slate-500 mt-0.5">{outlet.rstCode}</span>
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
+                                    <div className="px-2 pt-2 mt-1 border-t border-slate-100">
+                                        <button
+                                            onClick={() => {
+                                                setIsSwitchOutletOpen(false);
+                                                navigate('/owner/outlets');
+                                            }}
+                                            className="w-full text-center px-3 py-2 rounded-lg text-xs font-bold text-[#AD221F] hover:bg-red-50 transition-colors"
+                                        >
+                                            Manage All Outlets
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {isOwner && (
+                        <button
+                            type="button"
+                            onClick={() => setIsManageOutletOpen(true)}
+                            className="group inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#AD221F] shadow-sm transition hover:bg-slate-50"
+                        >
+                            <img src={manage_outlet_icon} className="mr-2.5 h-4 w-4" alt="" />
+                            Manage Outlets
+                            <svg className="ml-2 h-4 w-4 transition-transform group-hover:translate-y-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                    )}
 
                     <div className="flex items-center gap-1 sm:gap-3">
                         <button

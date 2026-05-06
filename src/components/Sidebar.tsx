@@ -8,10 +8,12 @@ import logout_icon from '../assets/logout_icon.svg';
 
 
 const menuItems = [
-  { label: 'Live Orders', path: '/dashboard', img: live_orders_icon },
-  { label: 'Menu', path: '/menu', img: menu_icon },
-  { label: 'Payouts', path: '/payouts', img: payout_icon },
-  { label: 'Settings', path: '/settings', img: settings_icon }
+  { label: 'Live Orders', path: '/dashboard', img: live_orders_icon, roles: ['restaurant'] },
+  { label: 'Menu', path: '/menu', img: menu_icon, roles: ['restaurant'] },
+  { label: 'Payouts', path: '/payouts', img: payout_icon, roles: ['restaurant'] },
+  { label: 'Settings', path: '/settings', img: settings_icon, roles: ['restaurant'] },
+  { label: 'My Outlets', path: '/owner/outlets', img: settings_icon, roles: ['owner'] },
+  { label: 'Add Restaurant', path: '/admin/create-restaurant', img: settings_icon, roles: ['owner'] },
 ];
 
 interface SidebarProps {
@@ -20,7 +22,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -45,7 +47,9 @@ const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
       </div>
 
       <nav className="flex-1 space-y-1 px-4 py-6">
-        {menuItems.map(item => (
+        {menuItems
+          .filter(item => !item.roles || (user && (item.roles.includes(user.role) || (user.originalRole && item.roles.includes(user.originalRole)))))
+          .map(item => (
           <NavLink
             key={item.path}
             to={item.path}

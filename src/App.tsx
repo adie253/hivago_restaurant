@@ -5,25 +5,37 @@ import LoginPage from './pages/LoginPage';
 import MenuPage from './pages/MenuPage';
 import SettingsPage from './pages/SettingsPage';
 import PayoutsPage from './pages/PayoutsPage';
+import OwnerOutletsPage from './pages/owner/OwnerOutletsPage';
+import AdminCreateRestaurantPage from './pages/admin/AdminCreateRestaurantPage';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 
-const RequireAuth = ({ children }: { children: JSX.Element }) => {
-  const { isAuthenticated } = useAuth();
+const RequireAuth = ({ children, allowedRoles }: { children: JSX.Element; allowedRoles?: string[] }) => {
+  const { isAuthenticated, user } = useAuth();
   const location = useLocation();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    // If owner tries to access restaurant dashboard without switching, redirect to outlets
+    if (user.role === 'owner') return <Navigate to="/owner/outlets" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return children;
 };
 
 const RedirectIfAuthenticated = ({ children }: { children: JSX.Element }) => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : children;
+  const { isAuthenticated, user } = useAuth();
+  if (isAuthenticated) {
+    if (user?.role === 'owner') return <Navigate to="/owner/outlets" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
 };
 
 const App = () => {
@@ -85,18 +97,34 @@ const App = () => {
               <Route
                 path="/dashboard"
                 element={
-                  <RequireAuth>
+                  <RequireAuth allowedRoles={['restaurant']}>
                     <DashboardPage />
                   </RequireAuth>
                 }
               />
 
+              <Route
+                path="/owner/outlets"
+                element={
+                  <RequireAuth allowedRoles={['owner']}>
+                    <OwnerOutletsPage />
+                  </RequireAuth>
+                }
+              />
 
+              <Route
+                path="/admin/create-restaurant"
+                element={
+                  <RequireAuth allowedRoles={['admin', 'restaurant']}>
+                    <AdminCreateRestaurantPage />
+                  </RequireAuth>
+                }
+              />
 
               <Route
                 path="/menu"
                 element={
-                  <RequireAuth>
+                  <RequireAuth allowedRoles={['restaurant']}>
                     <MenuPage />
                   </RequireAuth>
                 }
@@ -105,7 +133,7 @@ const App = () => {
               <Route
                 path="/payouts"
                 element={
-                  <RequireAuth>
+                  <RequireAuth allowedRoles={['restaurant']}>
                     <PayoutsPage />
                   </RequireAuth>
                 }
@@ -114,7 +142,7 @@ const App = () => {
               <Route
                 path="/settings"
                 element={
-                  <RequireAuth>
+                  <RequireAuth allowedRoles={['restaurant']}>
                     <SettingsPage />
                   </RequireAuth>
                 }

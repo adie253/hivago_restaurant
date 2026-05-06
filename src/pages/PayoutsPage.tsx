@@ -4,7 +4,7 @@ import { PayoutCycle, PayoutSummary } from '../types';
 import { fetchPayoutSummary } from '../api/payoutsApi';
 import { PayoutsPageSkeleton } from '../components/Skeletons';
 
-const PayoutsPage = () => {
+const   PayoutsPage = () => {
     const { user } = useAuth();
     const [payouts, setPayouts] = useState<PayoutSummary | null>(null);
     const [loading, setLoading] = useState(true);
@@ -17,7 +17,7 @@ const PayoutsPage = () => {
 
     const outlets = ['Vikroli Outlet', 'Andheri Outlet', 'Bandra Outlet', 'Powai Outlet', 'Dadar Outlet'];
 
-    // Calendar Helpers
+    // Calendar Helpers 
     const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
