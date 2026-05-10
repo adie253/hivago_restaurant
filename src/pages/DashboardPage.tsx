@@ -24,7 +24,6 @@ const orderSections = [
   { key: 'PENDING', label: 'Pending', icon: preparing_icon, color: 'text-amber-600', bg: 'bg-amber-50' },
   { key: 'PREPARING', label: 'Preparing', icon: preparing_icon, color: 'text-emerald-600', bg: 'bg-emerald-50' },
   { key: 'READY', label: 'Ready', icon: ready_ordres_icon, color: 'text-slate-500', bg: 'bg-slate-50' },
-  { key: 'PICKED_UP', label: 'Picked up', icon: pickup_icon, color: 'text-slate-500', bg: 'bg-slate-50' },
   { key: 'HISTORY', label: 'Order History', icon: order_history_icon, color: 'text-slate-500', bg: 'bg-slate-50' }
 ] as const;
 
@@ -97,7 +96,6 @@ const DashboardPage = () => {
       PENDING: 0,
       PREPARING: 0,
       READY: 0,
-      PICKED_UP: 0,
       HISTORY: 0
     } as Record<OrderSectionKey, number>;
 
@@ -105,8 +103,7 @@ const DashboardPage = () => {
       if (order.status === 'PENDING') counts.PENDING += 1;
       if (order.status === 'PREPARING') counts.PREPARING += 1;
       if (order.status === 'READY') counts.READY += 1;
-      if (order.status === 'PICKED_UP') counts.PICKED_UP += 1;
-      if (order.status === 'DELIVERED' || order.status === 'REJECTED' || order.status === 'CANCELLED' || order.status === 'REFUNDING') counts.HISTORY += 1;
+      if (order.status === 'PICKED_UP' || order.status === 'DELIVERED' || order.status === 'REJECTED' || order.status === 'CANCELLED' || order.status === 'REFUNDING') counts.HISTORY += 1;
     });
 
     return counts;
@@ -115,7 +112,7 @@ const DashboardPage = () => {
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
       if (activeSection === 'HISTORY') {
-        return order.status === 'DELIVERED' || order.status === 'REJECTED' || order.status === 'CANCELLED' || order.status === 'REFUNDING';
+        return order.status === 'PICKED_UP' || order.status === 'DELIVERED' || order.status === 'REJECTED' || order.status === 'CANCELLED' || order.status === 'REFUNDING';
       }
       return order.status === activeSection;
     });

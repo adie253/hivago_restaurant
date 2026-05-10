@@ -500,9 +500,14 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                           <button 
                             onClick={handleRejectClick}
                             disabled={actionLoading}
-                            className="flex-1 rounded-[20px] border-2 border-red-100 bg-white py-4 text-sm font-bold text-red-500 transition-all hover:bg-red-50 active:scale-[0.98] disabled:opacity-50"
+                            className={`flex-1 rounded-[20px] border-2 py-4 text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-50 flex flex-col items-center justify-center ${
+                              timeLeft < 120 
+                                ? 'border-red-500 bg-red-50 text-red-600 animate-pulse' 
+                                : 'border-red-100 bg-white text-red-500 hover:bg-red-50'
+                            }`}
                           >
-                            Reject
+                            <span>Reject</span>
+                            <span className="text-[10px] opacity-70">({formatTimer(timeLeft)})</span>
                           </button>
                           <button 
                             onClick={handleAccept}

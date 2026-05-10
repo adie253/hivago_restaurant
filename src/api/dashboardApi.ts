@@ -35,7 +35,8 @@ const normalizeStatus = (status?: string): Order['status'] => {
   if (normalized.includes('ready')) return 'READY';
   if (normalized.includes('picked')) return 'PICKED_UP';
   if (normalized === 'delivered') return 'DELIVERED';
-  if (normalized === 'rejected' || normalized === 'cancelled') return 'REJECTED';
+  if (normalized === 'rejected') return 'REJECTED';
+  if (normalized === 'cancelled') return 'CANCELLED';
   if (normalized === 'refunding' || normalized.includes('refund')) return 'REFUNDING';
   
   if (normalized === 'preparing') return 'PREPARING';

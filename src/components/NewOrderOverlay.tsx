@@ -269,18 +269,20 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowRejectReason(true)}
-                      className="flex-1 py-2 rounded-2xl border-2 border-red-100 bg-white text-md font-bold text-red-500 transition-all hover:bg-red-50 active:scale-[0.98]"
+                      className={`flex-1 py-2 rounded-2xl border-2 text-md font-bold transition-all active:scale-[0.98] flex flex-col items-center justify-center ${
+                        timeLeft < 120 
+                          ? 'border-red-500 bg-red-50 text-red-600 animate-pulse' 
+                          : 'border-red-100 bg-white text-red-500 hover:bg-red-50'
+                      }`}
                     >
-                      Reject
+                      <span>Reject</span>
+                      <span className="text-[10px] opacity-70">({formatTimer(timeLeft)})</span>
                     </button>
                     <button
                       onClick={() => onAccept(selectedPrepTime)}
-                      className={`flex-[1.5] rounded-2xl text-md font-bold text-white shadow-lg transition-all active:scale-[0.98] flex flex-col items-center justify-center py-2 ${
-                        timeLeft < 120 ? 'bg-red-500 shadow-red-200 animate-pulse' : 'bg-emerald-500 shadow-emerald-200 hover:bg-emerald-600'
-                      }`}
+                      className="flex-[1.5] rounded-2xl bg-emerald-500 text-md font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-600 active:scale-[0.98] py-3"
                     >
-                      <span>Accept order</span>
-                      <span className="text-xs opacity-90 font-black">({formatTimer(timeLeft)} remaining)</span>
+                      Accept order
                     </button>
                   </div>
                 )}
