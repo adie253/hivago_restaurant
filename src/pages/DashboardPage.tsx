@@ -33,8 +33,26 @@ const DashboardPage = () => {
   const [newOrderModal, setNewOrderModal] = useState<Order | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const { stats, loading: loadingStats, error: statsError } = useDashboardStats();
-  const { orders, newOrder, setNewOrder, refreshOrders, loading: loadingOrders, error: ordersError } = useOrders();
+  const { orders, newOrder, setNewOrder, refreshOrders, updateLocalOrder, loading: loadingOrders, error: ordersError } = useOrders();
+
+  const handleOrderUpdate = (updatedOrder: Order) => {
+    updateLocalOrder(updatedOrder);
+    
+    let type: 'success' | 'info' = 'success';
+    let msg = `Order #${updatedOrder.orderNumber} is now ${updatedOrder.status.toLowerCase()}`;
+    
+    if (updatedOrder.status === 'REJECTED' || updatedOrder.status === 'CANCELLED') {
+      type = 'info';
+      msg = `Order #${updatedOrder.orderNumber} has been ${updatedOrder.status.toLowerCase()}`;
+    } else if (updatedOrder.status === 'REFUNDING') {
+      type = 'success';
+      msg = `Refund initiated for Order #${updatedOrder.orderNumber}`;
+    }
+    
+    setToast({ message: msg, type });
+  };
 
   useEffect(() => {
     if (newOrder) {
@@ -46,10 +64,10 @@ const DashboardPage = () => {
     if (!newOrderModal) return;
     setActionLoading(true);
     try {
-      await preparingOrder(newOrderModal.id);
+      const updatedOrder = await preparingOrder(newOrderModal.id);
+      handleOrderUpdate(updatedOrder);
       setNewOrderModal(null);
       setNewOrder(null);
-      await refreshOrders();
     } catch (err: any) {
       console.error('Failed to mark order as preparing:', err);
       setErrorMessage(err.response?.data?.message || err.message || 'Failed to accept order');
@@ -62,10 +80,10 @@ const DashboardPage = () => {
     if (!newOrderModal) return;
     setActionLoading(true);
     try {
-      await rejectOrder(newOrderModal.id, reason);
+      const updatedOrder = await rejectOrder(newOrderModal.id, reason);
+      handleOrderUpdate(updatedOrder);
       setNewOrderModal(null);
       setNewOrder(null);
-      await refreshOrders();
     } catch (err: any) {
       console.error('Failed to reject order:', err);
       setErrorMessage(err.response?.data?.message || err.message || 'Failed to reject order');
@@ -88,7 +106,7 @@ const DashboardPage = () => {
       if (order.status === 'PREPARING') counts.PREPARING += 1;
       if (order.status === 'READY') counts.READY += 1;
       if (order.status === 'PICKED_UP') counts.PICKED_UP += 1;
-      if (order.status === 'DELIVERED' || order.status === 'REJECTED' || order.status === 'CANCELLED') counts.HISTORY += 1;
+      if (order.status === 'DELIVERED' || order.status === 'REJECTED' || order.status === 'CANCELLED' || order.status === 'REFUNDING') counts.HISTORY += 1;
     });
 
     return counts;
@@ -97,7 +115,7 @@ const DashboardPage = () => {
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
       if (activeSection === 'HISTORY') {
-        return order.status === 'DELIVERED' || order.status === 'REJECTED' || order.status === 'CANCELLED';
+        return order.status === 'DELIVERED' || order.status === 'REJECTED' || order.status === 'CANCELLED' || order.status === 'REFUNDING';
       }
       return order.status === activeSection;
     });
@@ -188,7 +206,7 @@ const DashboardPage = () => {
                   <OrderCard 
                     key={order.id} 
                     order={order} 
-                    onUpdate={refreshOrders}
+                    onUpdate={handleOrderUpdate}
                   />
                 ))}
               </div>
@@ -196,6 +214,13 @@ const DashboardPage = () => {
           </div>
         )}
       </section>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       {errorMessage && (
         <Toast
           message={errorMessage}

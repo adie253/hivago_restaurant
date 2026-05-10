@@ -36,6 +36,7 @@ const normalizeStatus = (status?: string): Order['status'] => {
   if (normalized.includes('picked')) return 'PICKED_UP';
   if (normalized === 'delivered') return 'DELIVERED';
   if (normalized === 'rejected' || normalized === 'cancelled') return 'REJECTED';
+  if (normalized === 'refunding' || normalized.includes('refund')) return 'REFUNDING';
   
   if (normalized === 'preparing') return 'PREPARING';
 
@@ -157,7 +158,7 @@ export const fetchOrders = async (
   const orders: Order[] = [];
 
   while (true) {
-    const response = await client.get<unknown>(`/orders/restaurant/${restaurantId}`, {
+    const response = await client.get<unknown>(`orders/restaurant/${restaurantId}`, {
       params: { activeOnly, page: currentPage, pageSize }
     });
 
@@ -205,7 +206,7 @@ export const fetchOrders = async (
 
 
 export const fetchOrderById = async (orderId: string): Promise<Order> => {
-  const response = await client.get<Record<string, unknown>>(`/orders/${orderId}`);
+  const response = await client.get<Record<string, unknown>>(`orders/${orderId}`);
   
   // If the response data is an object with a 'data' property (common wrapper)
   const rawData = response.data.data ? (response.data.data as Record<string, unknown>) : response.data;
@@ -213,26 +214,30 @@ export const fetchOrderById = async (orderId: string): Promise<Order> => {
   return normalizeOrder(rawData);
 };
 
-export const confirmOrder = async (orderId: string): Promise<void> => {
-  await client.put(`/orders/${orderId}/confirm`);
+export const confirmOrder = async (orderId: string): Promise<Order> => {
+  const response = await client.put(`orders/${orderId}/confirm`, {});
+  return normalizeOrder(response.data.data || response.data);
 };
 
-export const rejectOrder = async (orderId: string, reason: string): Promise<void> => {
-  await client.put(`/orders/${orderId}/reject`, { reason });
+export const rejectOrder = async (orderId: string, reason: string): Promise<Order> => {
+  const response = await client.put(`orders/${orderId}/reject`, { reason });
+  return normalizeOrder(response.data.data || response.data);
 };
 
-export const preparingOrder = async (orderId: string): Promise<void> => {
-  await client.put(`/orders/${orderId}/preparing`);
+export const preparingOrder = async (orderId: string): Promise<Order> => {
+  const response = await client.put(`orders/${orderId}/preparing`, {});
+  return normalizeOrder(response.data.data || response.data);
 };
 
-export const readyOrder = async (orderId: string): Promise<void> => {
-  await client.put(`/orders/${orderId}/ready`);
+export const readyOrder = async (orderId: string): Promise<Order> => {
+  const response = await client.put(`orders/${orderId}/ready`, {});
+  return normalizeOrder(response.data.data || response.data);
 };
 
 // Menu Management APIs (Unified Catalog Endpoint)
 export const fetchFullMenu = async (restaurantId: string): Promise<{ categories: MenuCategory[], items: MenuItem[] }> => {
   try {
-    const response = await client.get(`/catalog/restaurants/${restaurantId}/menu`);
+    const response = await client.get(`catalog/restaurants/${restaurantId}/menu`);
     const data = response.data;
     console.log('Full Menu Data:', data);
     

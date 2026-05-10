@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Order } from '../types';
 import { formatCurrency, formatRelativeTime } from '../utils/format';
 import { fetchOrderById, preparingOrder, readyOrder, rejectOrder } from '../api/dashboardApi';
@@ -9,7 +9,7 @@ import Toast from './Toast';
 
 interface OrderCardProps {
   order: Order;
-  onUpdate?: () => void;
+  onUpdate?: (updatedOrder: Order) => void;
 }
 
 const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
@@ -20,15 +20,76 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
   
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const fetchedIdsRef = React.useRef<Set<string>>(new Set());
+
+  const calculateTimeLeft = () => {
+    const createdAt = new Date(order.createdAt).getTime();
+    const now = Date.now();
+    const tenMinutes = 10 * 60 * 1000;
+    const diff = Math.max(0, Math.floor((createdAt + tenMinutes - now) / 1000));
+    return diff;
+  };
+
+  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
   useEffect(() => {
+    if (order.status !== 'PENDING') return;
+
+    // Initial sync
+    setTimeLeft(calculateTimeLeft());
+
+    const timer = setInterval(() => {
+      const remaining = calculateTimeLeft();
+      setTimeLeft(remaining);
+      
+      // Auto-reject if time is up and still pending
+      if (remaining <= 0 && order.status === 'PENDING' && !actionLoading) {
+        clearInterval(timer);
+        handleAutoReject();
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [order.status, order.createdAt, actionLoading]);
+
+  const handleAutoReject = async () => {
+    try {
+      const updatedOrder = await rejectOrder(order.id, 'No response from restaurant');
+      setOrder(updatedOrder);
+      if (onUpdate) onUpdate(updatedOrder);
+    } catch (err) {
+      console.error('Auto-rejection failed:', err);
+    }
+  };
+
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    // Sync local state with prop when it changes (especially status)
+    setOrder(prev => ({
+      ...initialOrder,
+      items: (initialOrder.items && initialOrder.items.length > 0) ? initialOrder.items : prev.items
+    }));
+
     const loadFullDetails = async () => {
-      // If items are missing, fetch the full order details
-      if (!order.items || order.items.length === 0) {
+      // If items are missing AND we haven't fetched them for this ID yet
+      const needsFetch = (!initialOrder.items || initialOrder.items.length === 0) && !fetchedIdsRef.current.has(initialOrder.id);
+      
+      if (needsFetch) {
+        // Add a small random delay to spread out requests when many cards mount at once
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 2000));
+        
+        // Check again after delay (in case it was fetched elsewhere or component unmounted)
+        if (fetchedIdsRef.current.has(initialOrder.id)) return;
+
         setLoading(true);
         try {
           const fullOrder = await fetchOrderById(initialOrder.id);
           setOrder(fullOrder);
+          fetchedIdsRef.current.add(initialOrder.id);
         } catch (err: any) {
           console.error(`Failed to fetch details for order ${initialOrder.id}`, err);
           setErrorMessage('Unable to load full order details');
@@ -39,26 +100,49 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     };
 
     loadFullDetails();
-  }, [initialOrder.id]);
+  }, [initialOrder.id, initialOrder.status]);
 
   const handleReady = async () => {
+    const originalOrder = { ...order };
+    const optimisticOrder = { ...order, status: 'READY' as const };
+    
+    // Optimistic update
+    setOrder(optimisticOrder);
+    if (onUpdate) onUpdate(optimisticOrder);
     setActionLoading(true);
+
     try {
-      await readyOrder(order.id);
-      if (onUpdate) onUpdate();
+      const updatedOrder = await readyOrder(order.id);
+      setOrder(updatedOrder);
+      if (onUpdate) onUpdate(updatedOrder);
     } catch (err: any) {
+      // Rollback
+      setOrder(originalOrder);
+      if (onUpdate) onUpdate(originalOrder);
       console.error('Failed to mark order as ready:', err);
       setErrorMessage(err.response?.data?.message || err.message || 'Failed to update order status');
+    } finally {
       setActionLoading(false);
     }
   };
 
   const handleAccept = async () => {
+    const originalOrder = { ...order };
+    const optimisticOrder = { ...order, status: 'PREPARING' as const };
+
+    // Optimistic update
+    setOrder(optimisticOrder);
+    if (onUpdate) onUpdate(optimisticOrder);
     setActionLoading(true);
+
     try {
-      await preparingOrder(order.id);
-      if (onUpdate) onUpdate();
+      const updatedOrder = await preparingOrder(order.id);
+      setOrder(updatedOrder);
+      if (onUpdate) onUpdate(updatedOrder);
     } catch (err: any) {
+      // Rollback
+      setOrder(originalOrder);
+      if (onUpdate) onUpdate(originalOrder);
       console.error('Failed to accept order:', err);
       setErrorMessage(err.response?.data?.message || err.message || 'Failed to accept order');
     } finally {
@@ -72,13 +156,24 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
 
   const handleConfirmReject = async () => {
     if (!rejectReason) return;
+    const originalOrder = { ...order };
+    const optimisticOrder = { ...order, status: 'REJECTED' as const };
+
+    // Optimistic update
+    setOrder(optimisticOrder);
+    if (onUpdate) onUpdate(optimisticOrder);
     setActionLoading(true);
+
     try {
-      await rejectOrder(order.id, rejectReason);
+      const updatedOrder = await rejectOrder(order.id, rejectReason);
+      setOrder(updatedOrder);
       setShowRejectReason(false);
       setRejectReason('');
-      if (onUpdate) onUpdate();
+      if (onUpdate) onUpdate(updatedOrder);
     } catch (err: any) {
+      // Rollback
+      setOrder(originalOrder);
+      if (onUpdate) onUpdate(originalOrder);
       console.error('Failed to reject order:', err);
       setErrorMessage(err.response?.data?.message || err.message || 'Failed to reject order');
     } finally {
@@ -375,7 +470,17 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                                </div>
                           </div>
                           <div className='text-start p-4'>
-                             <h4 className="text-xl font-black text-amber-600">Pending</h4>
+                             <div className="flex items-center justify-between gap-4">
+                               <h4 className="text-xl font-black text-amber-600">Pending</h4>
+                               <div className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-sm font-black tracking-tight ${
+                                 timeLeft < 120 ? 'bg-red-500 text-white animate-pulse' : 'bg-amber-100 text-amber-700'
+                               }`}>
+                                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                 </svg>
+                                 {formatTimer(timeLeft)}
+                               </div>
+                             </div>
                              <p className="mt-1 text-sm font-bold text-amber-600/60">Waiting for your acceptance</p>
                           </div>
                       </div>

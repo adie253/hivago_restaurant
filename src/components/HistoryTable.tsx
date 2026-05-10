@@ -61,6 +61,8 @@ const StatusBadge = ({ status }: { status: Order['status'] }) => {
         return 'bg-red-50 text-red-600 font-normal  border-red-100';
       case 'CANCELLED':
         return 'bg-red-50 text-red-600 font-normal border-red-100';
+      case 'REFUNDING':
+        return 'bg-orange-50 text-orange-600 font-semibold border-orange-100';
       default:
         return 'bg-slate-100 text-slate-600 font-normal border-slate-200';
     }
@@ -74,6 +76,8 @@ const StatusBadge = ({ status }: { status: Order['status'] }) => {
         return 'REJECTED';
       case 'CANCELLED':
         return 'CANCELLED';
+      case 'REFUNDING':
+        return 'REFUNDING';
       default:
         return status;
     }

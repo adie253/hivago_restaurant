@@ -15,7 +15,15 @@ interface NewOrderOverlayProps {
 const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: NewOrderOverlayProps) => {
   const [order, setOrder] = useState<Order>(initialOrder);
   const [loading, setLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
+  const calculateTimeLeft = () => {
+    const createdAt = new Date(order.createdAt).getTime();
+    const now = Date.now();
+    const tenMinutes = 10 * 60 * 1000;
+    const diff = Math.max(0, Math.floor((createdAt + tenMinutes - now) / 1000));
+    return diff;
+  };
+
+  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
   const [selectedPrepTime, setSelectedPrepTime] = useState(25);
   const [deliveryPartner, setDeliveryPartner] = useState<'HIVAGO' | 'RESTAURANT'>('HIVAGO');
 
@@ -42,11 +50,20 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
   }, [initialOrder.id]);
 
   useEffect(() => {
+    // Initial sync
+    setTimeLeft(calculateTimeLeft());
+    
     const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      const remaining = calculateTimeLeft();
+      setTimeLeft(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(timer);
+        onReject('No response from restaurant (Timed out)');
+      }
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [order.createdAt]);
 
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -258,9 +275,12 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                     </button>
                     <button
                       onClick={() => onAccept(selectedPrepTime)}
-                      className="flex-[1.5] rounded-2xl bg-emerald-500 text-md font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-600 active:scale-[0.98]"
+                      className={`flex-[1.5] rounded-2xl text-md font-bold text-white shadow-lg transition-all active:scale-[0.98] flex flex-col items-center justify-center py-2 ${
+                        timeLeft < 120 ? 'bg-red-500 shadow-red-200 animate-pulse' : 'bg-emerald-500 shadow-emerald-200 hover:bg-emerald-600'
+                      }`}
                     >
-                      Accept order ({formatTimer(timeLeft)})
+                      <span>Accept order</span>
+                      <span className="text-xs opacity-90 font-black">({formatTimer(timeLeft)} remaining)</span>
                     </button>
                   </div>
                 )}

@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 interface ToastProps {
   message: string;
   duration?: number;
-  type?: 'success' | 'error';
+  type?: 'success' | 'error' | 'info';
   onClose: () => void;
 }
 
-const Toast = ({ message, duration = 3000, type = 'success', onClose }: ToastProps) => {
+const Toast = ({ message, duration = 3000, type = 'info', onClose }: ToastProps) => {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
@@ -19,6 +19,15 @@ const Toast = ({ message, duration = 3000, type = 'success', onClose }: ToastPro
     return () => clearTimeout(timer);
   }, [duration, onClose]);
 
+  const getStyles = () => {
+    switch (type) {
+      case 'error': return 'bg-red-500';
+      case 'success': return 'bg-emerald-500';
+      case 'info': return 'bg-slate-900';
+      default: return 'bg-slate-900';
+    }
+  };
+
   return (
     <div
       className={`fixed bottom-8 right-8 z-[200] transform transition-all duration-300 ease-out ${
@@ -26,10 +35,14 @@ const Toast = ({ message, duration = 3000, type = 'success', onClose }: ToastPro
       }`}
     >
       <div className="flex items-center gap-3 rounded-2xl bg-white px-6 py-4 shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-slate-100">
-        <div className={`flex h-6 w-6 items-center justify-center rounded-full text-white ${type === 'error' ? 'bg-red-500' : 'bg-slate-900'}`}>
+        <div className={`flex h-6 w-6 items-center justify-center rounded-full text-white ${getStyles()}`}>
           {type === 'error' ? (
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : type === 'info' ? (
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           ) : (
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

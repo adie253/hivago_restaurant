@@ -60,9 +60,19 @@ export const useOrders = () => {
   useEffect(() => {
     if (lastOrderReceived) {
       console.log('Real-time order update received:', lastOrderReceived);
-      refreshOrders();
+      
+      // Debounce the refresh to avoid hammering the server if many updates arrive
+      const timer = setTimeout(() => {
+        refreshOrders();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
     }
   }, [lastOrderReceived]);
 
-  return { orders, newOrder, setNewOrder, refreshOrders, loading, error };
+  const updateLocalOrder = (updatedOrder: Order) => {
+    setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+  };
+
+  return { orders, newOrder, setNewOrder, refreshOrders, updateLocalOrder, loading, error };
 };

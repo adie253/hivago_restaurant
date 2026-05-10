@@ -1,4 +1,4 @@
-export type OrderStatus = 'PENDING' | 'PREPARING' | 'READY' | 'PICKED_UP' | 'DELIVERED' | 'CANCELLED' | 'REJECTED';
+export type OrderStatus = 'PENDING' | 'PREPARING' | 'READY' | 'PICKED_UP' | 'DELIVERED' | 'CANCELLED' | 'REJECTED' | 'REFUNDING';
 
 export type OrderSectionKey = 'PENDING' | 'PREPARING' | 'READY' | 'PICKED_UP' | 'HISTORY';
 
