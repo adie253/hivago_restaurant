@@ -31,7 +31,7 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      await login({ email, password }, role);
+      await login({ email, password }, role, remember);
       if (role === 'owner') {
         navigate('/owner/outlets');
       } else {

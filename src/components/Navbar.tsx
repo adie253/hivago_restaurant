@@ -71,7 +71,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
     };
 
     return (
-        <nav className="bg-gradient-to-r from-[#C2352B] to-[#AD221F] px-4 py-3.5 shadow-lg sm:px-8">
+        <nav className="bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-3.5 shadow-lg sm:px-8">
             <div className="mx-auto flex items-center justify-between">
                 <div className="flex items-center gap-6">
                     <button
@@ -93,7 +93,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                             <button
                                 type="button"
                                 onClick={handleSwitchOutletClick}
-                                className="group inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#AD221F] shadow-sm transition hover:bg-slate-50"
+                                className="group inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-brand-600 shadow-sm transition hover:bg-slate-50"
                             >
                                 <svg className="mr-2.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -109,7 +109,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                                     <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                                         {loadingOutlets ? (
                                             <div className="flex justify-center p-4">
-                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#AD221F]"></div>
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand-600"></div>
                                             </div>
                                         ) : outlets.length === 0 ? (
                                             <div className="text-center p-4 text-xs font-semibold text-slate-500">No outlets found</div>
@@ -132,7 +132,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                                                 setIsSwitchOutletOpen(false);
                                                 navigate('/owner/outlets');
                                             }}
-                                            className="w-full text-center px-3 py-2 rounded-lg text-xs font-bold text-[#AD221F] hover:bg-red-50 transition-colors"
+                                            className="w-full text-center px-3 py-2 rounded-lg text-xs font-bold text-brand-600 hover:bg-red-50 transition-colors"
                                         >
                                             Manage All Outlets
                                         </button>
@@ -145,7 +145,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                         <button
                             type="button"
                             onClick={() => setIsManageOutletOpen(true)}
-                            className="group inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#AD221F] shadow-sm transition hover:bg-slate-50"
+                            className="group inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-brand-600 shadow-sm transition hover:bg-slate-50"
                         >
                             <img src={manage_outlet_icon} className="mr-2.5 h-4 w-4" alt="" />
                             Manage Outlets

@@ -21,7 +21,7 @@ interface AuthContextValue {
   refreshToken: string | null;
   accessTokenExpiresAt: string | null;
   isAuthenticated: boolean;
-  login: (credentials: LoginCredentials, role: AuthRole) => Promise<void>;
+  login: (credentials: LoginCredentials, role: AuthRole, remember?: boolean) => Promise<void>;
   switchOutlet: (outletId: string) => Promise<void>;
   logout: () => void;
 }
@@ -41,13 +41,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    const savedAccessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-    const savedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-    const savedExpiresAt = localStorage.getItem(`${ACCESS_TOKEN_KEY}_expires_at`);
-    const savedUser = localStorage.getItem(USER_KEY);
+    // Check localStorage first, then sessionStorage
+    const storage = localStorage.getItem(ACCESS_TOKEN_KEY) ? localStorage : sessionStorage;
+    
+    const savedAccessToken = storage.getItem(ACCESS_TOKEN_KEY);
+    const savedRefreshToken = storage.getItem(REFRESH_TOKEN_KEY);
+    const savedExpiresAt = storage.getItem(`${ACCESS_TOKEN_KEY}_expires_at`);
+    const savedUser = storage.getItem(USER_KEY);
 
     if (savedAccessToken) {
-      console.log('[Auth] Restoring session from localStorage...');
+      console.log(`[Auth] Restoring session from ${storage === localStorage ? 'localStorage' : 'sessionStorage'}...`);
       setAccessToken(savedAccessToken);
       client.defaults.headers.common.Authorization = `Bearer ${savedAccessToken}`;
     }
@@ -109,8 +112,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(interval);
   }, [accessTokenExpiresAt]);
 
-  const login = async (credentials: LoginCredentials, role: AuthRole) => {
-    console.log(`[Auth] Attempting ${role} login for ${credentials.email}...`);
+  const login = async (credentials: LoginCredentials, role: AuthRole, remember: boolean = false) => {
+    console.log(`[Auth] Attempting ${role} login for ${credentials.email} (Remember: ${remember})...`);
     
     let response: LoginResponse;
     if (role === 'owner') {
@@ -145,12 +148,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     setUser(newUser);
 
-    localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
-    localStorage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
-    localStorage.setItem(USER_KEY, JSON.stringify(newUser));
+    const storage = remember ? localStorage : sessionStorage;
+    storage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
+    storage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
+    storage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
+    storage.setItem(USER_KEY, JSON.stringify(newUser));
 
-    if (role === 'owner') {
+    if (role === 'owner' && remember) {
       localStorage.setItem('hivago_owner_access_token', response.accessToken);
     }
   };
@@ -176,9 +180,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
     }
 
-    localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
-    localStorage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
+    const storage = localStorage.getItem(ACCESS_TOKEN_KEY) ? localStorage : sessionStorage;
+    storage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
+    storage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
+    storage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
 
     client.defaults.headers.common.Authorization = `Bearer ${response.accessToken}`;
   };
@@ -213,11 +218,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRefreshToken(null);
     setAccessTokenExpiresAt(null);
     setUser(null);
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(`${ACCESS_TOKEN_KEY}_expires_at`);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem('hivago_owner_access_token');
+    
+    // Clear both storages to be safe
+    [localStorage, sessionStorage].forEach(storage => {
+      storage.removeItem(ACCESS_TOKEN_KEY);
+      storage.removeItem(REFRESH_TOKEN_KEY);
+      storage.removeItem(`${ACCESS_TOKEN_KEY}_expires_at`);
+      storage.removeItem(USER_KEY);
+      storage.removeItem('hivago_owner_access_token');
+    });
+
     delete client.defaults.headers.common.Authorization;
   };
 

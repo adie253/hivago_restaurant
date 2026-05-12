@@ -56,15 +56,21 @@ const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
             className={({ isActive }) =>
               `group flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 ${
                 isActive
-                  ? 'bg-[#FFF5F4] text-[#AD221F] shadow-sm'
+                  ? 'bg-brand-50 text-brand-600 shadow-sm'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               }`
             }
           >
-            <img 
-                src={item.img} 
-                alt="" 
-                className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110`} 
+            <div 
+                className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110 bg-current`}
+                style={{ 
+                    maskImage: `url(${item.img})`, 
+                    WebkitMaskImage: `url(${item.img})`,
+                    maskSize: 'contain',
+                    WebkitMaskSize: 'contain',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskRepeat: 'no-repeat'
+                }} 
             />
             {item.label}
           </NavLink>
@@ -75,9 +81,19 @@ const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
         <button
           type="button"
           onClick={handleLogout}
-          className="group flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:text-slate-900"
+          className="group flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-600 transition-all hover:bg-brand-50 hover:text-brand-600"
         >
-          <img src={logout_icon} alt="" className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
+          <div 
+            className="h-5 w-5 transition-transform group-hover:-translate-x-0.5 bg-current"
+            style={{ 
+                maskImage: `url(${logout_icon})`, 
+                WebkitMaskImage: `url(${logout_icon})`,
+                maskSize: 'contain',
+                WebkitMaskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat'
+            }} 
+          />
           Logout
         </button>
       </div>

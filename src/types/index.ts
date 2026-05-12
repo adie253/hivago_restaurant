@@ -34,6 +34,8 @@ export interface Order {
   riderPhone?: string;
   riderStatus?: string;
   otp?: string;
+  paymentStatus?: string;
+  paymentStatusDisplay?: string;
 }
 
 

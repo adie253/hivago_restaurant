@@ -17,6 +17,7 @@ const HistoryTable = ({ orders }: HistoryTableProps) => {
               <th className="px-8 py-5 text-[14px] tracking-widest">Customer</th>
               <th className="px-8 py-5 text-[14px] tracking-widest">Items</th>
               <th className="px-8 py-5 text-[14px] tracking-widest">Total</th>
+              <th className="px-8 py-5 text-[14px] tracking-widest">Payment</th>
               <th className="px-8 py-5 text-[14px] tracking-widest">Status</th>
             </tr>
           </thead>
@@ -37,6 +38,9 @@ const HistoryTable = ({ orders }: HistoryTableProps) => {
                 </td>
                 <td className="px-8 py-3 text-sm font-semibold text-slate-900 border-b border-slate-200">
                   {formatCurrency(order.total)}
+                </td>
+                <td className="px-8 py-3 text-xs border-b border-slate-200">
+                  <PaymentBadge order={order} />
                 </td>
                 <td className="px-8 py-3 text-xs border-b border-slate-200">
                   <StatusBadge status={order.status} />
@@ -88,6 +92,22 @@ const StatusBadge = ({ status }: { status: Order['status'] }) => {
   return (
     <span className={`inline-flex items-center rounded-xl border px-3 py-1 text-[10px] font-black tracking-widest uppercase ${getStyles()}`}>
       {getLabel()}
+    </span>
+  );
+};
+
+
+
+const PaymentBadge = ({ order }: { order: Order }) => {
+  const isPaid = order.paymentStatus?.toUpperCase() === 'PAID';
+  
+  return (
+    <span className={`inline-flex items-center rounded-xl border px-3 py-1 text-[10px] font-black tracking-widest uppercase ${
+      isPaid 
+        ? 'bg-green-50 text-green-600 border-green-100' 
+        : 'bg-yellow-50 text-yellow-700 border-yellow-100'
+    }`}>
+      {isPaid ? 'PAID' : (order.paymentStatusDisplay?.toUpperCase() || order.paymentStatus?.toUpperCase() || 'UNPAID')}
     </span>
   );
 };

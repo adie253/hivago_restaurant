@@ -100,12 +100,18 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
             {/* Left Column: Order Intelligence */}
             <div className="border-r border-slate-100 p-8">
               <div className="flex gap-2.5">
-                <span className="rounded-lg bg-violet-100 px-3 py-1.5 text-[10px] font-semibold tracking-widest text-violet-700 uppercase">
-                  Hivago Delivery
-                </span>
-                <span className="rounded-lg bg-orange-100 px-3 py-1.5 text-[10px] font-semibold tracking-widest text-orange-700 uppercase">
-                  🍴 Cutlery Required
-                </span>
+                {loading ? (
+                  <div className="h-6 w-24 animate-pulse rounded bg-violet-50"></div>
+                ) : (
+                  <span className="rounded-lg bg-violet-100 px-3 py-1.5 text-[10px] font-semibold tracking-widest text-violet-700 uppercase">
+                    {order.pickupType === 'DELIVERY' ? 'Hivago Delivery' : 'Self Pickup'}
+                  </span>
+                )}
+                {!loading && order.customerNote?.toLowerCase().includes('cutlery') && (
+                  <span className="rounded-lg bg-orange-100 px-3 py-1.5 text-[10px] font-semibold tracking-widest text-orange-700 uppercase">
+                    🍴 Cutlery Required
+                  </span>
+                )}
               </div>
 
               <div className="mt-6">
@@ -161,7 +167,13 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                 <div className="flex items-center justify-between border-t border-slate-100 pt-4">
                   <span className="text-xl font-semibold text-slate-900">Total Bill</span>
                   <div className="flex items-center gap-3">
-                    <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">PAID</span>
+                    {loading ? (
+                      <div className="h-4 w-12 animate-pulse rounded bg-emerald-50"></div>
+                    ) : order.paymentStatus?.toUpperCase() === 'PAID' ? (
+                      <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 uppercase">PAID</span>
+                    ) : (
+                      <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-600 uppercase">{order.paymentStatusDisplay || 'UNPAID'}</span>
+                    )}
                     <span className="text-2xl font-semibold text-slate-900">{formatCurrency(order.total)}</span>
                   </div>
                 </div>

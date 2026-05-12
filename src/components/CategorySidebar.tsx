@@ -15,7 +15,7 @@ const CategorySidebar = ({ categories, activeCategoryId, onSelectCategory }: Cat
           onClick={() => onSelectCategory('all')}
           className={`w-full rounded-2xl px-5 py-4 text-left text-sm font-bold transition-all duration-200 ${
             activeCategoryId === 'all'
-              ? 'bg-[#FEF2F2] text-[#AD221F] shadow-sm'
+              ? 'bg-brand-50 text-brand-600 shadow-sm'
               : 'text-slate-500 hover:bg-slate-50'
           }`}
         >
@@ -27,7 +27,7 @@ const CategorySidebar = ({ categories, activeCategoryId, onSelectCategory }: Cat
             onClick={() => onSelectCategory(category.id)}
             className={`w-full rounded-2xl px-5 py-4 text-left text-sm font-bold transition-all duration-200 ${
               activeCategoryId === category.id
-                ? 'bg-[#FEF2F2] text-[#AD221F] shadow-sm'
+                ? 'bg-brand-50 text-brand-600 shadow-sm'
                 : 'text-slate-500 hover:bg-slate-50'
             }`}
           >

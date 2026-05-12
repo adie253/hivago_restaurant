@@ -107,7 +107,7 @@ const MenuPage = () => {
               {items.length} items in All Items
             </p>
           </div>
-          <button className="flex items-center justify-center gap-2 rounded-2xl bg-[#AD221F] px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-red-100 transition-all hover:bg-red-800 hover:shadow-2xl active:scale-95">
+          <button className="flex items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-red-100 transition-all hover:bg-brand-700 hover:shadow-2xl active:scale-95">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
             </svg>
@@ -118,7 +118,7 @@ const MenuPage = () => {
         {/* Search Bar */}
         <div className="relative group">
           <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
-            <svg className="h-5 w-5 text-slate-400 group-focus-within:text-[#AD221F] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="h-5 w-5 text-slate-400 group-focus-within:text-brand-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -127,7 +127,7 @@ const MenuPage = () => {
             placeholder="Search menu items..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-[24px] bg-white border border-transparent px-16 py-5 text-base font-bold text-slate-950 shadow-[0_8px_30px_rgb(0,0,0,0.04)] outline-none transition-all focus:border-[#AD221F]/10 focus:shadow-[0_8px_30px_rgb(173,34,31,0.05)] placeholder:text-slate-400"
+            className="w-full rounded-[24px] bg-white border border-transparent px-16 py-5 text-base font-bold text-slate-950 shadow-[0_8px_30px_rgb(0,0,0,0.04)] outline-none transition-all focus:border-brand-600/10 focus:shadow-[0_8px_30px_rgb(173,34,31,0.05)] placeholder:text-slate-400"
           />
         </div>
 

@@ -44,13 +44,14 @@ const normalizeStatus = (status?: string): Order['status'] => {
   return 'PENDING';
 };
 
-const normalizePickupType = (pickupType?: string): Order['pickupType'] => {
-  if (!pickupType) return 'PICKUP';
+const normalizePickupType = (type?: string): Order['pickupType'] => {
+  if (!type) return 'PICKUP';
 
-  const normalized = pickupType.toLowerCase();
+  const normalized = type.toLowerCase();
 
   if (normalized.includes('delivery')) return 'DELIVERY';
   if (normalized.includes('dine')) return 'DINE_IN';
+  if (normalized.includes('pickup')) return 'PICKUP';
 
   return 'PICKUP';
 };
@@ -106,7 +107,7 @@ const normalizeOrder = (raw: Record<string, unknown>): Order => {
     customerName: String(raw.customerName ?? raw.restaurantName ?? 'Guest'),
     customerPhone: String(raw.customerPhone ?? raw.restaurantPhone ?? ''),
     customerNote: String(raw.specialInstructions ?? raw.customerNote ?? '') || undefined,
-    pickupType: normalizePickupType(String(raw.pickupType ?? (deliveryInfo ? 'DELIVERY' : 'PICKUP'))),
+    pickupType: normalizePickupType(String(raw.fulfillmentType ?? raw.pickupType ?? (deliveryInfo ? 'DELIVERY' : 'PICKUP'))),
     createdAt: String(raw.createdAt ?? new Date().toISOString()),
     total: parseNumber(pricing.total ?? raw.total ?? raw.totalDisplay),
     subTotal: parseNumber(pricing.subTotal ?? pricing.itemsTotal ?? 0),
@@ -119,7 +120,9 @@ const normalizeOrder = (raw: Record<string, unknown>): Order => {
     riderName: String(deliveryInfo.riderName ?? ''),
     riderPhone: String(deliveryInfo.riderPhone ?? ''),
     riderStatus: deliveryInfo.riderId ? 'is on the way' : undefined,
-    otp: String(raw.paymentId).slice(-4) // Mock OTP from paymentId for now
+    otp: String(raw.paymentId).slice(-4), // Mock OTP from paymentId for now
+    paymentStatus: String(raw.paymentStatus ?? ''),
+    paymentStatusDisplay: String(raw.paymentStatusDisplay ?? raw.paymentStatus ?? '')
   };
 
 };
