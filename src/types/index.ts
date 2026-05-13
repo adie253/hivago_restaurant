@@ -51,6 +51,24 @@ export interface MenuCategory {
   name: string;
 }
 
+export interface MenuItemOption {
+  id?: string;
+  name: string;
+  type: 'AddOn' | 'Size' | 'Choice' | string;
+  additionalPrice: number;
+  isDefault: boolean;
+}
+
+export interface MenuItemOptionGroup {
+  id?: string;
+  groupName: string;
+  isRequired: boolean;
+  minSelections: number;
+  maxSelections: number;
+  displayOrder: number;
+  options: MenuItemOption[];
+}
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -61,6 +79,26 @@ export interface MenuItem {
   isVeg: boolean;
   isAvailable: boolean;
   menuId: string;
+  displayOrder?: number;
+  isVegetarian?: boolean;
+  preparationTimeMinutes?: number;
+  tags?: string[];
+  optionGroups?: MenuItemOptionGroup[];
+  options?: MenuItemOption[];
+}
+
+export interface CreateMenuItemPayload {
+  menuId: string;
+  name: string;
+  description?: string;
+  basePrice: number;
+  imageUrl?: string;
+  displayOrder?: number;
+  isVegetarian?: boolean;
+  preparationTimeMinutes?: number;
+  tags?: string[];
+  options?: MenuItemOption[];
+  optionGroups?: MenuItemOptionGroup[];
 }
 
 export type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";

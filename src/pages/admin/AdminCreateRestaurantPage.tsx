@@ -53,8 +53,8 @@ const AdminCreateRestaurantPage = () => {
       setSelectedOwnerId(ownerId);
       setToast({ message: 'Owner created successfully!', type: 'success' });
       setStep(2);
-    } catch (err) {
-      setToast({ message: 'Failed to create owner.', type: 'error' });
+    } catch (err: any) {
+      setToast({ message: err?.message || 'Failed to create owner.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -75,8 +75,8 @@ const AdminCreateRestaurantPage = () => {
       await createRestaurant({ ...restaurantForm, ownerId: selectedOwnerId });
       setToast({ message: 'Restaurant created successfully!', type: 'success' });
       setTimeout(() => navigate('/dashboard'), 2000);
-    } catch (err) {
-      setToast({ message: 'Failed to create restaurant.', type: 'error' });
+    } catch (err: any) {
+      setToast({ message: err?.message || 'Failed to create restaurant.', type: 'error' });
     } finally {
       setLoading(false);
     }

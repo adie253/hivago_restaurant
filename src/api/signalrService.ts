@@ -1,6 +1,7 @@
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 
-const HUB_URL = `${import.meta.env.VITE_API_BASE_URL || 'https://rally-production-2004.up.railway.app/api'}/hubs/notifications`.replace('/api/hubs', '/hubs');
+const HUB_URL = `${import.meta.env.VITE_API_URL || 'https://rally-production-2004.up.railway.app'}/hubs/notifications`;
+
 
 class SignalRService {
   private connection: HubConnection | null = null;

@@ -53,9 +53,10 @@ const AccountSettingsForm = ({ notifications: initialNotifications, onSavePasswo
     try {
       await onSavePassword(passwordData.currentPassword, passwordData.newPassword);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (err) {
-      setPasswordError('Failed to change password. Please check your current password.');
+    } catch (err: any) {
+      setPasswordError(err?.message || 'Failed to change password. Please check your current password.');
     }
+
   };
 
   const handleNotificationSubmit = async () => {

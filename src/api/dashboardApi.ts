@@ -1,4 +1,4 @@
-import { DashboardStats, MenuCategory, MenuItem, Order, RestaurantSettings, ProfileSettings, DietarySettings, OperationsSettings, HoursSettings, DeliverySettings, NotificationSettings } from '../types';
+import { DashboardStats, MenuCategory, MenuItem, Order, RestaurantSettings, ProfileSettings, DietarySettings, OperationsSettings, HoursSettings, DeliverySettings, NotificationSettings, CreateMenuItemPayload, MenuItemOption, MenuItemOptionGroup } from '../types';
 import client from './client';
 
 export const fetchDashboardStats = async (restaurantId: string): Promise<DashboardStats> => {
@@ -238,91 +238,6 @@ export const readyOrder = async (orderId: string): Promise<Order> => {
   return normalizeOrder(response.data.data || response.data);
 };
 
-// Menu Management APIs (Unified Catalog Endpoint)
-export const fetchFullMenu = async (restaurantId: string): Promise<{ categories: MenuCategory[], items: MenuItem[] }> => {
-  try {
-    const response = await client.get(`catalog/restaurants/${restaurantId}/menu`);
-    const data = response.data;
-    console.log('Full Menu Data:', data);
-    
-    // The endpoint is "Get full menu with items and options"
-    // Usually returns a list of menus (categories) each containing items
-    const rawMenus = Array.isArray(data) ? data : (data.menus ?? data.items ?? data.data ?? []);
-    
-    const categories: MenuCategory[] = [];
-    const items: MenuItem[] = [];
-    
-    rawMenus.forEach((menu: any) => {
-      const categoryId = String(menu.id ?? menu.menuId ?? '');
-      const categoryName = String(menu.name ?? menu.menuName ?? 'Other');
-      
-      categories.push({
-        id: categoryId,
-        name: categoryName
-      });
-      
-      if (Array.isArray(menu.items)) {
-        menu.items.forEach((item: any) => {
-          items.push({
-            id: String(item.id ?? item.menuItemId ?? ''),
-            name: String(item.name ?? item.itemName ?? 'Unknown Item'),
-            price: parseNumber(item.price ?? item.unitPrice ?? 0),
-            description: String(item.description ?? item.itemDescription ?? ''),
-            imageUrl: String(item.imageUrl ?? ''),
-            category: categoryName,
-            isVeg: parseBoolean(item.isVeg ?? item.isVegetarian ?? true),
-            isAvailable: parseBoolean(item.isAvailable ?? item.available ?? true),
-            menuId: categoryId
-          });
-        });
-      }
-    });
-
-    // If we got real data, return it
-    if (categories.length > 0) {
-      return { categories, items };
-    }
-    
-    // Fallback to empty defaults if successful but empty
-    throw new Error('Empty menu');
-  } catch (err) {
-    console.warn('Falling back to mock menu data', err);
-    // Return mock data if API fails
-    const mockCategories = [
-      { id: 'cat-1', name: 'Appetizers' },
-      { id: 'cat-2', name: 'Main Course' },
-      { id: 'cat-3', name: 'Breads' },
-      { id: 'cat-4', name: 'Desserts' },
-      { id: 'cat-5', name: 'Beverages' }
-    ];
-    
-    const mockItems = [
-      { id: 'm-1', name: 'Chicken Tikka Masala', price: 340, category: 'Main Course', isVeg: false, isAvailable: true, menuId: 'cat-2', imageUrl: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=400&h=400&fit=crop' },
-      { id: 'm-2', name: 'Paneer Tikka', price: 280, category: 'Appetizers', isVeg: true, isAvailable: true, menuId: 'cat-1', imageUrl: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=400&h=400&fit=crop' },
-      { id: 'm-3', name: 'Butter Chicken', price: 360, category: 'Main Course', isVeg: false, isAvailable: true, menuId: 'cat-2', imageUrl: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=400&h=400&fit=crop' },
-      { id: 'm-4', name: 'Garlic Naan', price: 60, category: 'Breads', isVeg: true, isAvailable: true, menuId: 'cat-3', imageUrl: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&h=400&fit=crop' },
-      { id: 'm-5', name: 'Mango Lassi', price: 120, category: 'Beverages', isVeg: true, isAvailable: true, menuId: 'cat-5', imageUrl: 'https://images.unsplash.com/photo-1546173159-315724a31696?w=400&h=400&fit=crop' }
-    ];
-    
-    return { categories: mockCategories, items: mockItems };
-  }
-};
-
-// Legacy compatibility or fallback helpers if needed separately
-export const fetchMenuCategories = async (restaurantId: string): Promise<MenuCategory[]> => {
-  const { categories } = await fetchFullMenu(restaurantId);
-  return categories;
-};
-
-export const fetchMenuItems = async (restaurantId: string): Promise<MenuItem[]> => {
-  const { items } = await fetchFullMenu(restaurantId);
-  return items;
-};
-
-export const toggleItemAvailability = async (itemId: string, isAvailable: boolean): Promise<void> => {
-  await client.patch(`/restaurant/items/${itemId}/availability`, { isAvailable });
-};
-
 // Settings & Profile APIs
 export const fetchRestaurantSettings = async (): Promise<RestaurantSettings> => {
   const response = await client.get('/restaurants/me/details');
@@ -375,11 +290,111 @@ export const changePassword = async (currentPassword: string, newPassword: strin
 export const uploadRestaurantLogo = async (file: File): Promise<{ logoUrl: string }> => {
   const formData = new FormData();
   formData.append('logo', file);
-  // Backend relies on JWT now
   const response = await client.post<{ logoUrl: string }>('/restaurants/me/logo', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
   return response.data;
+};
+
+// Menu Item Operations
+export const createMenuCategory = async (name: string): Promise<MenuCategory> => {
+  const response = await client.post('/restaurant/menus', { name });
+  return response.data.data || response.data;
+};
+
+export const deleteMenuCategory = async (menuId: string): Promise<void> => {
+  await client.delete(`/restaurant/menus/${menuId}`);
+};
+
+
+export const fetchMenuItemDetails = async (itemId: string): Promise<MenuItem> => {
+  const response = await client.get(`/restaurant/items/${itemId}`);
+  const item = response.data.data || response.data;
+  return {
+    ...item,
+    price: parseNumber(item.basePrice ?? item.price ?? 0),
+    isVeg: parseBoolean(item.isVegetarian ?? item.isVeg ?? true)
+  };
+};
+
+export const createMenuItem = async (payload: CreateMenuItemPayload): Promise<MenuItem> => {
+  const response = await client.post('/restaurant/items', payload);
+  const item = response.data.data || response.data;
+  return item;
+};
+
+export const updateMenuItem = async (itemId: string, payload: Partial<CreateMenuItemPayload>): Promise<void> => {
+  await client.put(`/restaurant/items/${itemId}`, payload);
+};
+
+export const createOptionGroup = async (itemId: string, payload: any): Promise<MenuItemOptionGroup> => {
+  const response = await client.post(`/restaurant/items/${itemId}/option-groups`, payload);
+  return response.data.data || response.data;
+};
+
+export const updateOptionGroup = async (itemId: string, groupId: string, payload: any): Promise<void> => {
+  await client.put(`/restaurant/items/${itemId}/option-groups/${groupId}`, payload);
+};
+
+export const deleteOptionGroup = async (itemId: string, groupId: string): Promise<void> => {
+  await client.delete(`/restaurant/items/${itemId}/option-groups/${groupId}`);
+};
+
+export const createOption = async (groupId: string, payload: any): Promise<MenuItemOption> => {
+  const response = await client.post(`/restaurant/option-groups/${groupId}/options`, payload);
+  return response.data.data || response.data;
+};
+
+export const updateOption = async (optionId: string, payload: any): Promise<void> => {
+  await client.put(`/restaurant/options/${optionId}`, payload);
+};
+
+export const deleteOption = async (optionId: string): Promise<void> => {
+  await client.delete(`/restaurant/options/${optionId}`);
+};
+
+export const getMenuItemImageUploadUrl = async (itemId: string, contentType: string): Promise<{ uploadUrl: string, fileKey: string }> => {
+  const response = await client.get(`/restaurant/items/${itemId}/upload-url`, {
+    params: { contentType }
+  });
+  return response.data.data || response.data;
+};
+
+export const confirmMenuItemImageUpload = async (itemId: string, fileKey: string): Promise<void> => {
+  await client.post(`/restaurant/items/${itemId}/confirm-upload`, { imageUrl: fileKey });
+};
+
+export const fetchFullMenu = async (restaurantId: string): Promise<{ categories: MenuCategory[], items: MenuItem[] }> => {
+  const response = await client.get(`catalog/restaurants/${restaurantId}/menu`);
+  const data = response.data.data || response.data;
+  const menus = Array.isArray(data.menus) ? data.menus : [];
+  
+  // Sort menus by displayOrder
+  const sortedMenus = [...menus].sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  
+  const categories: MenuCategory[] = sortedMenus.map((m: any) => ({
+    id: m.menuId || m.id,
+    name: m.name
+  }));
+  
+  const items: MenuItem[] = sortedMenus.flatMap((m: any) => 
+    (m.items || []).map((item: any) => ({
+      ...item,
+      menuId: m.menuId || m.id,
+      category: m.name,
+      price: parseNumber(item.basePrice ?? item.price ?? 0),
+      isVeg: parseBoolean(item.isVegetarian ?? item.isVeg ?? true)
+    }))
+  );
+  
+  return { categories, items };
+};
+
+
+
+
+export const toggleItemAvailability = async (itemId: string, isAvailable: boolean): Promise<void> => {
+  await client.patch(`/restaurant/items/${itemId}/availability`, { isAvailable });
 };
 
 

@@ -4,11 +4,12 @@ import { formatCurrency } from '../utils/format';
 interface MenuItemCardProps {
   item: MenuItem;
   onToggle: (id: string, available: boolean) => void;
+  onEdit: (item: MenuItem) => void;
 }
 
-const MenuItemCard = ({ item, onToggle }: MenuItemCardProps) => {
+const MenuItemCard = ({ item, onToggle, onEdit }: MenuItemCardProps) => {
   return (
-    <div className={`flex items-center justify-between rounded-[28px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] ${
+    <div className={`group flex items-center justify-between rounded-[28px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] ${
       item.isAvailable ? 'bg-white' : 'bg-slate-50/50 opacity-75'
     }`}>
       <div className="flex items-center gap-4">
@@ -43,19 +44,29 @@ const MenuItemCard = ({ item, onToggle }: MenuItemCardProps) => {
         </div>
       </div>
 
-      {/* Toggle Section */}
-      <div className="flex flex-col items-end gap-2">
+      {/* Action Section */}
+      <div className="flex flex-col items-end gap-3">
         <button
           onClick={() => onToggle(item.id, !item.isAvailable)}
-          className={`relative inline-flex h-7 w-12 flex-none items-center rounded-full transition-colors duration-200 focus:outline-none ${
-            item.isAvailable ? 'bg-emerald-500' : 'bg-slate-300'
+          className={`relative inline-flex h-6 w-11 flex-none items-center rounded-full transition-colors duration-200 focus:outline-none ${
+            item.isAvailable ? 'bg-emerald-500' : 'bg-slate-200'
           }`}
         >
           <span
-            className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-200 ${
-              item.isAvailable ? 'translate-x-6' : 'translate-x-1'
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+              item.isAvailable ? 'translate-x-[22px]' : 'translate-x-[2px]'
             }`}
           />
+        </button>
+        
+        <button 
+            onClick={() => onEdit(item)}
+            className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 hover:text-brand-600 transition-colors uppercase tracking-widest px-2"
+        >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            Edit
         </button>
       </div>
     </div>

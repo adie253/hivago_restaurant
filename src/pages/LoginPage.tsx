@@ -37,10 +37,11 @@ const LoginPage = () => {
       } else {
         navigate('/dashboard');
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to sign in. Please try again.';
+    } catch (err: any) {
+      const message = err?.message || (err instanceof Error ? err.message : 'Unable to sign in. Please try again.');
       setError(message);
     } finally {
+
       setLoading(false);
     }
   };
