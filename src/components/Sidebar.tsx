@@ -62,14 +62,10 @@ const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
             }
           >
             <div 
-                className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110 bg-current`}
+                className="h-5 w-5 flex-shrink-0 bg-current transition-transform duration-200 group-hover:scale-110"
                 style={{ 
-                    maskImage: `url(${item.img})`, 
-                    WebkitMaskImage: `url(${item.img})`,
-                    maskSize: 'contain',
-                    WebkitMaskSize: 'contain',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskRepeat: 'no-repeat'
+                    WebkitMask: `url("${item.img}") center/contain no-repeat`,
+                    mask: `url("${item.img}") center/contain no-repeat`,
                 }} 
             />
             {item.label}
@@ -84,16 +80,13 @@ const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
           className="group flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-600 transition-all hover:bg-brand-50 hover:text-brand-600"
         >
           <div 
-            className="h-5 w-5 transition-transform group-hover:-translate-x-0.5 bg-current"
+            className="h-5 w-5 flex-shrink-0 bg-current transition-transform group-hover:scale-110"
             style={{ 
-                maskImage: `url(${logout_icon})`, 
-                WebkitMaskImage: `url(${logout_icon})`,
-                maskSize: 'contain',
-                WebkitMaskSize: 'contain',
-                maskRepeat: 'no-repeat',
-                WebkitMaskRepeat: 'no-repeat'
+                WebkitMask: `url("${logout_icon}") center/contain no-repeat`,
+                mask: `url("${logout_icon}") center/contain no-repeat`,
             }} 
           />
+
           Logout
         </button>
       </div>
