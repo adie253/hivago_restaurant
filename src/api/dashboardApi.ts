@@ -1,5 +1,12 @@
-import { DashboardStats, MenuCategory, MenuItem, Order, RestaurantSettings, ProfileSettings, DietarySettings, OperationsSettings, HoursSettings, DeliverySettings, NotificationSettings, CreateMenuItemPayload, MenuItemOption, MenuItemOptionGroup } from '../types';
+import { DashboardStats, NewRestaurantStats, MenuCategory, MenuItem, Order, RestaurantSettings, ProfileSettings, DietarySettings, OperationsSettings, HoursSettings, DeliverySettings, NotificationSettings, CreateMenuItemPayload, MenuItemOption, MenuItemOptionGroup } from '../types';
 import client from './client';
+
+export const fetchRestaurantStats = async (range: string = 'today'): Promise<NewRestaurantStats> => {
+  const response = await client.get<NewRestaurantStats>('/restaurants/me/stats', {
+    params: { range }
+  });
+  return response.data;
+};
 
 export const fetchDashboardStats = async (restaurantId: string): Promise<DashboardStats> => {
   const orders = await fetchOrders(restaurantId, { activeOnly: false, pageSize: 100 });
@@ -174,6 +181,7 @@ export const fetchOrders = async (
     currentPage += 1;
   }
 
+  /*
   // Inject a demo order for testing "Picked up" section redesign
   const demoOrder: Order = {
     id: 'demo-pickup-id',
@@ -202,6 +210,7 @@ export const fetchOrders = async (
   };
 
   orders.unshift(demoOrder);
+  */
 
 
   return orders;

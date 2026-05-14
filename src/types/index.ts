@@ -46,6 +46,24 @@ export interface DashboardStats {
   rejectionRate: number;
 }
 
+export interface NewRestaurantStats {
+  range: string;
+  periodStartUtc: string;
+  ordersTotal: number;
+  ordersDelivered: number;
+  ordersCancelled: number;
+  ordersActive: number;
+  grossRevenue: number;
+  averageOrderValue: number;
+  activeByStatus: {
+    Paid?: number;
+    Confirmed?: number;
+    Preparing?: number;
+    ReadyForPickup?: number;
+    [key: string]: number | undefined;
+  };
+}
+
 export interface MenuCategory {
   id: string;
   name: string;

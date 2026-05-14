@@ -27,11 +27,12 @@ const orderSections = [
 ] as const;
 
 const DashboardPage = () => {
+  const [range, setRange] = useState('today');
   const [activeSection, setActiveSection] = useState<OrderSectionKey>('PENDING');
   const [newOrderModal, setNewOrderModal] = useState<Order | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const { showToast } = useToast();
-  const { stats, loading: loadingStats, error: statsError } = useDashboardStats();
+  const { stats, loading: loadingStats, error: statsError } = useDashboardStats(range);
   const { orders, newOrder, setNewOrder, refreshOrders, updateLocalOrder, loading: loadingOrders, error: ordersError } = useOrders();
 
   const handleOrderUpdate = (updatedOrder: Order) => {
@@ -119,6 +120,23 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-10">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-black text-slate-900">Dashboard</h1>
+        <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
+          {['today', '7d', '30d'].map((r) => (
+            <button
+              key={r}
+              onClick={() => setRange(r)}
+              className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                range === r ? 'bg-brand-500 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {r === 'today' ? 'Today' : r.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {loadingStats ? (
           <>
@@ -129,13 +147,13 @@ const DashboardPage = () => {
           </>
         ) : stats ? (
           <>
-            <StatCard label="Today's Orders" value={stats.liveOrders.toString()} icon={todays_orders_icon} />
-            <StatCard label="Today's Revenue" value={`₹${stats.todayRevenue.toLocaleString()}`} icon={todays_revenue_icon} />
-            <StatCard label="Avg Prep Time" value={stats.avgPrepTime} icon={prep_time_icon} />
-            <StatCard label="Rejection Rate" value={`${stats.rejectionRate.toFixed(1)}%`} icon={rejection_rate_icon} />
+            <StatCard label={`${range === 'today' ? 'Today' : range.toUpperCase()} Orders`} value={stats.ordersTotal.toString()} icon={todays_orders_icon} />
+            <StatCard label={`${range === 'today' ? 'Today' : range.toUpperCase()} Revenue`} value={`₹${stats.grossRevenue.toLocaleString()}`} icon={todays_revenue_icon} />
+            <StatCard label="Avg Order Value" value={`₹${stats.averageOrderValue.toFixed(0)}`} icon={prep_time_icon} />
+            <StatCard label="Live Orders" value={stats.ordersActive.toString()} icon={rejection_rate_icon} />
           </>
         ) : (
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 text-slate-500 shadow-sm">{statsError ?? 'Unable to load metrics.'}</div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 text-slate-500 shadow-sm col-span-4">{statsError ?? 'Unable to load metrics.'}</div>
         )}
       </section>
 
