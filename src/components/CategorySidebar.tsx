@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useToast } from '../context/ToastContext';
 import { MenuCategory } from '../types';
+
 
 interface CategorySidebarProps {
   categories: MenuCategory[];
@@ -14,6 +16,7 @@ const CategorySidebar = ({ categories, activeCategoryId, onSelectCategory, onDel
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
+  const { showToast } = useToast();
 
   const handleCreate = async () => {
     if (!newName.trim() || !onCreateCategory) return;
@@ -22,8 +25,10 @@ const CategorySidebar = ({ categories, activeCategoryId, onSelectCategory, onDel
       await onCreateCategory(newName);
       setNewName('');
       setIsAdding(false);
-    } catch (err) {
+      showToast('Category created successfully', 'success');
+    } catch (err: any) {
       console.error(err);
+      showToast(err?.message || 'Failed to create category', 'error');
     } finally {
       setCreating(false);
     }

@@ -5,18 +5,19 @@ import { fetchFullMenu, toggleItemAvailability, deleteMenuCategory, createMenuCa
 import CategorySidebar from '../components/CategorySidebar';
 import MenuItemCard from '../components/MenuItemCard';
 import { MenuPageSkeleton } from '../components/Skeletons';
-import Toast from '../components/Toast';
+import { useToast } from '../context/ToastContext';
 import AddItemModal from '../components/AddItemModal';
 
 const MenuPage = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
@@ -50,7 +51,7 @@ const MenuPage = () => {
 
     const targetItem = items.find(i => i.id === itemId);
     if (targetItem) {
-      setToastMessage(`${targetItem.name} is now ${isAvailable ? 'available' : 'unavailable'}`);
+      showToast(`${targetItem.name} is now ${isAvailable ? 'available' : 'unavailable'}`, 'info');
     }
 
     try {
@@ -80,7 +81,7 @@ const MenuPage = () => {
     setIsDeletingCategory(true);
     try {
       await deleteMenuCategory(categoryToDelete);
-      setToastMessage('Category deleted successfully');
+      showToast('Category deleted successfully', 'success');
       if (activeCategoryId === categoryToDelete) {
         setActiveCategoryId('all');
       }
@@ -97,7 +98,7 @@ const MenuPage = () => {
   const handleCreateCategory = async (name: string) => {
     try {
       await createMenuCategory(name);
-      setToastMessage('Category created successfully');
+      showToast('Category created successfully', 'success');
       await loadMenuData();
     } catch (err: any) {
       console.error('Failed to create category', err);
@@ -208,12 +209,7 @@ const MenuPage = () => {
         )}
       </div>
 
-      {toastMessage && (
-        <Toast 
-          message={toastMessage} 
-          onClose={() => setToastMessage(null)} 
-        />
-      )}
+
 
       {/* Delete Category Confirmation Modal */}
       {categoryToDelete && (
@@ -259,7 +255,7 @@ const MenuPage = () => {
         categories={categories}
         editItemId={editItemId}
         onItemAdded={() => {
-            setToastMessage(editItemId ? 'Item updated successfully' : 'Item added successfully');
+            showToast(editItemId ? 'Item updated successfully' : 'Item added successfully', 'success');
             loadMenuData();
         }}
       />

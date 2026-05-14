@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
+import { useToast } from '../context/ToastContext';
 import { MenuCategory, CreateMenuItemPayload, MenuItemOption, MenuItemOptionGroup } from '../types';
+
 import { 
   createMenuItem, 
   getMenuItemImageUploadUrl, 
@@ -27,7 +29,7 @@ interface AddItemModalProps {
 const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories, onItemAdded, editItemId }) => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const [localCategories, setLocalCategories] = useState<MenuCategory[]>(categories);
   const [menuId, setMenuId] = useState(categories[0]?.id || '');
@@ -64,7 +66,6 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
     if (isOpen && editItemId) {
       const loadItem = async () => {
         setInitialLoading(true);
-        setError(null);
         try {
           const data = await fetchMenuItemDetails(editItemId);
           setMenuId(data.menuId || categories[0]?.id || '');
@@ -94,7 +95,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
           setDeletedOptionIds([]);
         } catch (err: any) {
           console.error(err);
-          setError(err?.response?.data?.message || err.message || 'Failed to load item details');
+          showToast(err?.response?.data?.message || err.message || 'Failed to load item details', 'error');
         } finally {
 
           setInitialLoading(false);
@@ -117,8 +118,8 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
       setDeletedOptionIds([]);
       setSelectedFile(null);
       setImagePreview(null);
-      setError(null);
     }
+
   }, [isOpen, editItemId, categories]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,7 +137,6 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
     setLoading(true);
-    setError(null);
     try {
       const newCat = await createMenuCategory(newCategoryName);
       setLocalCategories([...localCategories, newCat]);
@@ -145,7 +145,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
       setNewCategoryName('');
     } catch (err: any) {
       console.error(err);
-      setError(err?.response?.data?.message || err.message || 'Failed to create category');
+      showToast(err?.response?.data?.message || err.message || 'Failed to create category', 'error');
     } finally {
       setLoading(false);
     }
@@ -216,12 +216,11 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!menuId) {
-      setError('Please select a menu category');
+      showToast('Please select a menu category', 'error');
       return;
     }
     
     setLoading(true);
-    setError(null);
 
     try {
       const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
@@ -346,11 +345,12 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
         await confirmMenuItemImageUpload(itemId, fileKey);
       }
       
+      showToast(`Item ${editItemId ? 'updated' : 'added'} successfully`, 'success');
       onItemAdded();
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err?.response?.data?.message || err.message || 'Failed to save item');
+      showToast(err?.response?.data?.message || err.message || 'Failed to save item', 'error');
     } finally {
       setLoading(false);
     }
@@ -387,11 +387,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="overflow-y-auto px-8 py-8 custom-scrollbar">
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-sm font-bold text-red-600 animate-in slide-in-from-top-2">
-                {error}
-              </div>
-            )}
+
 
             <div className="grid gap-8 lg:grid-cols-2">
               {/* Left Column: Basic Info */}

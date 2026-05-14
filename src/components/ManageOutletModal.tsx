@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import Toast from './Toast';
+import { useToast } from '../context/ToastContext';
 import { getOwnerOutlets } from '../api/ownerApi';
+
 
 interface Outlet {
   id: string;
@@ -46,6 +47,7 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
@@ -81,7 +83,7 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
   const [customDate, setCustomDate] = useState<string>('');
   const [customTime, setCustomTime] = useState<string>('');
 
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
 
   if (!isOpen) return null;
 
@@ -105,7 +107,7 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
       setOutlets(prev => prev.map(o => o.id === selectedOfflineOutlet.id ? { ...o, status: 'Offline' } : o));
       
       const durationStr = offlineDuration === 'Specific date & time' ? `${customDate} ${customTime}` : offlineDuration;
-      setToastMsg(`Offline: ${offlineReason}. Return: ${durationStr}`);
+      showToast(`Offline: ${offlineReason}. Return: ${durationStr}`, 'info');
       
       setFlowStep('success');
     }
@@ -534,14 +536,7 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
         </div>
       </div>
       
-      {toastMsg && (
-        <Toast 
-          message={toastMsg}
-          type="error"
-          duration={5000}
-          onClose={() => setToastMsg(null)}
-        />
-      )}
+
     </>
   );
 };

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import hivago_logo from '../assets/hivago_logo.svg';
 import notification_icon from '../assets/notification_icon.svg';
 import logout_icon from '../assets/logout_icon.svg';
@@ -15,6 +16,7 @@ interface NavbarProps {
 
 const Navbar = ({ onToggleSidebar }: NavbarProps) => {
     const { logout, user, switchOutlet } = useAuth();
+    const { showToast } = useToast();
     const navigate = useNavigate();
     const [isManageOutletOpen, setIsManageOutletOpen] = useState(false);
     
@@ -46,6 +48,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                     setOutlets(data);
                 } catch (error) {
                     console.error("Failed to fetch outlets:", error);
+                    showToast("Failed to load outlets", "error");
                 } finally {
                     setLoadingOutlets(false);
                 }
@@ -56,17 +59,21 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
     };
 
     const handleSelectOutlet = async (outletId: string) => {
+        const selectedOutlet = outlets.find(o => o.id === outletId);
         try {
             await switchOutlet(outletId);
             setIsSwitchOutletOpen(false);
+            showToast(`Switched to ${selectedOutlet?.name || 'outlet'}`, 'success');
             navigate('/dashboard');
         } catch (error) {
             console.error("Failed to switch outlet:", error);
+            showToast("Failed to switch outlet", "error");
         }
     };
 
     const handleLogout = () => {
         logout();
+        showToast("Successfully logged out", "info");
         navigate('/login');
     };
 
@@ -187,6 +194,5 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
         </nav>
     );
 };
-
 
 export default Navbar;

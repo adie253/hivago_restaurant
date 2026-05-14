@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createOwner, createRestaurant, getAllOwners, CreateOwnerPayload, CreateRestaurantPayload } from '../../api/adminApi';
 import { Owner } from '../../types';
-import Toast from '../../components/Toast';
+import { useToast } from '../../context/ToastContext';
 
 const AdminCreateRestaurantPage = () => {
   const [step, setStep] = useState(1);
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchingOwners, setFetchingOwners] = useState(true);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const { showToast } = useToast();
+
   
   const [selectedOwnerId, setSelectedOwnerId] = useState<string>('');
   const [ownerForm, setOwnerForm] = useState<CreateOwnerPayload>({
@@ -51,10 +52,10 @@ const AdminCreateRestaurantPage = () => {
     try {
       const { ownerId } = await createOwner(ownerForm);
       setSelectedOwnerId(ownerId);
-      setToast({ message: 'Owner created successfully!', type: 'success' });
+      showToast('Owner created successfully!', 'success');
       setStep(2);
     } catch (err: any) {
-      setToast({ message: err?.message || 'Failed to create owner.', type: 'error' });
+      showToast(err?.message || 'Failed to create owner.', 'error');
     } finally {
       setLoading(false);
     }
@@ -64,7 +65,7 @@ const AdminCreateRestaurantPage = () => {
     if (selectedOwnerId) {
       setStep(2);
     } else {
-      setToast({ message: 'Please select an owner first.', type: 'error' });
+      showToast('Please select an owner first.', 'error');
     }
   };
 
@@ -73,10 +74,10 @@ const AdminCreateRestaurantPage = () => {
     setLoading(true);
     try {
       await createRestaurant({ ...restaurantForm, ownerId: selectedOwnerId });
-      setToast({ message: 'Restaurant created successfully!', type: 'success' });
+      showToast('Restaurant created successfully!', 'success');
       setTimeout(() => navigate('/dashboard'), 2000);
     } catch (err: any) {
-      setToast({ message: err?.message || 'Failed to create restaurant.', type: 'error' });
+      showToast(err?.message || 'Failed to create restaurant.', 'error');
     } finally {
       setLoading(false);
     }
@@ -245,13 +246,7 @@ const AdminCreateRestaurantPage = () => {
         )}
       </div>
 
-      {toast && (
-        <Toast 
-          message={toast.message}
-          type={toast.type === 'success' ? 'success' : 'error'}
-          onClose={() => setToast(null)}
-        />
-      )}
+
     </div>
   );
 };

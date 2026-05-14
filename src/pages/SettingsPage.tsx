@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { SettingsPageSkeleton } from '../components/Skeletons';
-import Toast from '../components/Toast';
+import { useToast } from '../context/ToastContext';
 import BusinessHoursForm from '../components/BusinessHoursForm';
 import DeliverySettingsForm from '../components/DeliverySettingsForm';
 import AccountSettingsForm from '../components/AccountSettingsForm';
 import RestaurantLogoForm from '../components/RestaurantLogoForm';
-import { RestaurantSettings, ProfileSettings, DietarySettings, OperationsSettings, HoursSettings, DeliverySettings, NotificationSettings } from '../types';
+import { RestaurantSettings } from '../types';
 import { 
   fetchRestaurantSettings, 
   updateProfile, 
@@ -29,13 +29,13 @@ const tabs = [
 
 const SettingsPage = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState('business');
   
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   
   const [loading, setLoading] = useState(true);
   const [savingSections, setSavingSections] = useState<Record<string, boolean>>({});
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -45,17 +45,13 @@ const SettingsPage = () => {
         setSettings(data);
       } catch (err) {
         console.error('Failed to load settings', err);
-        setToastMessage({ text: 'Error loading settings from server.', type: 'error' });
+        showToast('Error loading settings from server.', 'error');
       } finally {
         setLoading(false);
       }
     };
     loadSettings();
-  }, []);
-
-  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
-    setToastMessage({ text, type });
-  };
+  }, [showToast]);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -405,7 +401,7 @@ const SettingsPage = () => {
                 setSettings({ ...settings, profile: { ...settings.profile, logoUrl }});
                 showToast('Logo updated successfully!', 'success');
               }}
-              uploading={false} // Would need discrete state for Logo
+              uploading={false}
             />
           )}
         </div>
@@ -413,14 +409,6 @@ const SettingsPage = () => {
         <div className="flex h-[400px] items-center justify-center rounded-[32px] border-2 border-dashed border-slate-100 bg-white">
           <p className="text-lg font-bold text-slate-400">Unable to load settings data.</p>
         </div>
-      )}
-
-      {toastMessage && (
-        <Toast 
-          message={toastMessage.text} 
-          type={toastMessage.type}
-          onClose={() => setToastMessage(null)} 
-        />
       )}
     </div>
   );

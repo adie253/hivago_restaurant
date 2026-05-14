@@ -2,28 +2,28 @@ import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import login_page_logo from '../assets/login_page_logo.svg';
 import { useAuth } from '../context/AuthContext';
-import Toast from '../components/Toast';
+import { useToast } from '../context/ToastContext';
 import { useEffect } from 'react';
 import { AuthRole } from '../types';
 
 const LoginPage = () => {
   const { login } = useAuth();
+  const { showToast } = useToast();
   const [email, setEmail] = useState('vohuman@rally.in');
   const [password, setPassword] = useState('Test@123');
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [role, setRole] = useState<AuthRole>('restaurant');
   const navigate = useNavigate();
 
   useEffect(() => {
     const expired = sessionStorage.getItem('hivago_session_expired');
     if (expired === 'true') {
-      setToastMessage('Your session has expired. Please log in again.');
+      showToast('Your session has expired. Please log in again.', 'warning');
       sessionStorage.removeItem('hivago_session_expired');
     }
-  }, []);
+  }, [showToast]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -32,6 +32,7 @@ const LoginPage = () => {
 
     try {
       await login({ email, password }, role, remember);
+      showToast('Successfully signed in!', 'success');
       if (role === 'owner') {
         navigate('/owner/outlets');
       } else {
@@ -40,8 +41,8 @@ const LoginPage = () => {
     } catch (err: any) {
       const message = err?.message || (err instanceof Error ? err.message : 'Unable to sign in. Please try again.');
       setError(message);
+      showToast(message, 'error');
     } finally {
-
       setLoading(false);
     }
   };
@@ -129,12 +130,6 @@ const LoginPage = () => {
           </button>
         </form>
       </div>
-      {toastMessage && (
-        <Toast 
-          message={toastMessage} 
-          onClose={() => setToastMessage(null)} 
-        />
-      )}
     </div>
   );
 };

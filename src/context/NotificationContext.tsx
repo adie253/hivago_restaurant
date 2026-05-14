@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 import { signalRService } from '../api/signalrService';
 
 interface NotificationContextType {
@@ -11,7 +12,9 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
+  const { showToast } = useToast();
   const [lastOrderReceived, setLastOrderReceived] = useState<any | null>(null);
+
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
@@ -27,6 +30,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       const unsubscribe = signalRService.onNewOrder((data) => {
         console.log('[Notification] New order received via SignalR:', data);
         setLastOrderReceived(data);
+        showToast(`New Order #${data.orderNumber} received!`, 'info');
         playNotification();
       });
 

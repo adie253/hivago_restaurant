@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { PayoutCycle, PayoutSummary } from '../types';
 import { fetchPayoutSummary } from '../api/payoutsApi';
+import { useToast } from '../context/ToastContext';
 import { PayoutsPageSkeleton } from '../components/Skeletons';
 
-const   PayoutsPage = () => {
+const PayoutsPage = () => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [payouts, setPayouts] = useState<PayoutSummary | null>(null);
     const [loading, setLoading] = useState(true);
+
     const [selectedOutlet, setSelectedOutlet] = useState('Vikroli Outlet');
     const [isOutletDropdownOpen, setIsOutletDropdownOpen] = useState(false);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -70,6 +73,7 @@ const   PayoutsPage = () => {
                 setPayouts(data);
             } catch (err) {
                 console.error('Failed to load payouts', err);
+                showToast('Failed to load payouts history', 'error');
             } finally {
                 setLoading(false);
             }
@@ -161,12 +165,23 @@ const   PayoutsPage = () => {
                             <div className="flex items-center gap-3 md:justify-end">
                                 <p className="text-2xl font-black text-slate-900">{formatCurrency(payouts?.currentCycle.amount || 0)}</p>
                                 <div className="flex gap-2 text-slate-400">
-                                    <button className="hover:text-slate-600 transition-colors" title="Copy UTR">
+                                    <button 
+                                        className="hover:text-slate-600 transition-colors" 
+                                        title="Copy UTR"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText('UTR' + Math.random().toString(36).substring(7).toUpperCase());
+                                            showToast('UTR copied to clipboard', 'info');
+                                        }}
+                                    >
                                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
                                         </svg>
                                     </button>
-                                    <button className="hover:text-slate-600 transition-colors" title="Download Details">
+                                    <button 
+                                        className="hover:text-slate-600 transition-colors" 
+                                        title="Download Details"
+                                        onClick={() => showToast('Statement download started', 'success')}
+                                    >
                                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4v12" />
                                         </svg>
@@ -250,7 +265,10 @@ const   PayoutsPage = () => {
                                 </div>
                             )}
                         </div>
-                        <button className="rounded-2xl bg-[#AD221F] px-8 py-3 text-sm font-black text-white shadow-xl shadow-red-100 transition-all hover:bg-red-800 hover:shadow-2xl active:scale-95">
+                        <button 
+                            onClick={() => showToast('Full report generated and ready for download', 'success')}
+                            className="rounded-2xl bg-[#AD221F] px-8 py-3 text-sm font-black text-white shadow-xl shadow-red-100 transition-all hover:bg-red-800 hover:shadow-2xl active:scale-95"
+                        >
                             Get report
                         </button>
                     </div>

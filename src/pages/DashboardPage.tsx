@@ -7,7 +7,7 @@ import NewOrderOverlay from '../components/NewOrderOverlay';
 import HistoryTable from '../components/HistoryTable';
 import StatCard from '../components/StatCard';
 import { StatCardSkeleton, OrderCardSkeleton } from '../components/Skeletons';
-import Toast from '../components/Toast';
+import { useToast } from '../context/ToastContext';
 import { Order, OrderSectionKey } from '../types';
 
 import todays_orders_icon from '../assets/todays_orders_icon.svg';
@@ -17,7 +17,6 @@ import rejection_rate_icon from '../assets/rejection_rate_icon.svg';
 
 import preparing_icon from '../assets/preparing_icon.svg';
 import ready_ordres_icon from '../assets/ready_ordres_icon.svg';
-import pickup_icon from '../assets/pickup_icon.svg';
 import order_history_icon from '../assets/order_history_icon.svg';
 
 const orderSections = [
@@ -31,8 +30,7 @@ const DashboardPage = () => {
   const [activeSection, setActiveSection] = useState<OrderSectionKey>('PENDING');
   const [newOrderModal, setNewOrderModal] = useState<Order | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
+  const { showToast } = useToast();
   const { stats, loading: loadingStats, error: statsError } = useDashboardStats();
   const { orders, newOrder, setNewOrder, refreshOrders, updateLocalOrder, loading: loadingOrders, error: ordersError } = useOrders();
 
@@ -50,7 +48,7 @@ const DashboardPage = () => {
       msg = `Refund initiated for Order #${updatedOrder.orderNumber}`;
     }
     
-    setToast({ message: msg, type });
+    showToast(msg, type);
   };
 
   useEffect(() => {
@@ -69,7 +67,7 @@ const DashboardPage = () => {
       setNewOrder(null);
     } catch (err: any) {
       console.error('Failed to mark order as preparing:', err);
-      setErrorMessage(err.response?.data?.message || err.message || 'Failed to accept order');
+      showToast(err.response?.data?.message || err.message || 'Failed to accept order', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -85,7 +83,7 @@ const DashboardPage = () => {
       setNewOrder(null);
     } catch (err: any) {
       console.error('Failed to reject order:', err);
-      setErrorMessage(err.response?.data?.message || err.message || 'Failed to reject order');
+      showToast(err.response?.data?.message || err.message || 'Failed to reject order', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -141,7 +139,6 @@ const DashboardPage = () => {
       </section>
 
       {newOrderModal ? (
-
         <NewOrderOverlay
           order={newOrderModal}
           onAccept={handleConfirm}
@@ -211,20 +208,6 @@ const DashboardPage = () => {
           </div>
         )}
       </section>
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-      {errorMessage && (
-        <Toast
-          message={errorMessage}
-          type="error"
-          onClose={() => setErrorMessage(null)}
-        />
-      )}
     </div>
   );
 };

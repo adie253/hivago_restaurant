@@ -5,7 +5,7 @@ import { fetchOrderById, preparingOrder, readyOrder, rejectOrder } from '../api/
 import pickup_icon from '../assets/pickup_icon.svg';
 import order_preparing_man from '../assets/order_preparing_man.svg';
 import ready_to_pickup from '../assets/ready_to_pickup.svg';
-import Toast from './Toast';
+import { useToast } from '../context/ToastContext';
 
 interface OrderCardProps {
   order: Order;
@@ -16,7 +16,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
   const [order, setOrder] = useState<Order>(initialOrder);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { showToast } = useToast();
   
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -55,6 +55,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     try {
       const updatedOrder = await rejectOrder(order.id, 'No response from restaurant');
       setOrder(updatedOrder);
+      showToast(`Order #${order.orderNumber} auto-rejected due to inactivity`, 'info');
       if (onUpdate) onUpdate(updatedOrder);
     } catch (err) {
       console.error('Auto-rejection failed:', err);
@@ -92,7 +93,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
           fetchedIdsRef.current.add(initialOrder.id);
         } catch (err: any) {
           console.error(`Failed to fetch details for order ${initialOrder.id}`, err);
-          setErrorMessage('Unable to load full order details');
+          showToast('Unable to load full order details', 'error');
         } finally {
           setLoading(false);
         }
@@ -100,7 +101,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     };
 
     loadFullDetails();
-  }, [initialOrder.id, initialOrder.status]);
+  }, [initialOrder.id, initialOrder.status, showToast]);
 
   const handleReady = async () => {
     const originalOrder = { ...order };
@@ -114,13 +115,14 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     try {
       const updatedOrder = await readyOrder(order.id);
       setOrder(updatedOrder);
+      showToast(`Order #${order.orderNumber} marked as ready`, 'success');
       if (onUpdate) onUpdate(updatedOrder);
     } catch (err: any) {
       // Rollback
       setOrder(originalOrder);
       if (onUpdate) onUpdate(originalOrder);
       console.error('Failed to mark order as ready:', err);
-      setErrorMessage(err.response?.data?.message || err.message || 'Failed to update order status');
+      showToast(err.response?.data?.message || err.message || 'Failed to update order status', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -138,13 +140,14 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     try {
       const updatedOrder = await preparingOrder(order.id);
       setOrder(updatedOrder);
+      showToast(`Order #${order.orderNumber} accepted`, 'success');
       if (onUpdate) onUpdate(updatedOrder);
     } catch (err: any) {
       // Rollback
       setOrder(originalOrder);
       if (onUpdate) onUpdate(originalOrder);
       console.error('Failed to accept order:', err);
-      setErrorMessage(err.response?.data?.message || err.message || 'Failed to accept order');
+      showToast(err.response?.data?.message || err.message || 'Failed to accept order', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -169,13 +172,14 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
       setOrder(updatedOrder);
       setShowRejectReason(false);
       setRejectReason('');
+      showToast(`Order #${order.orderNumber} rejected`, 'info');
       if (onUpdate) onUpdate(updatedOrder);
     } catch (err: any) {
       // Rollback
       setOrder(originalOrder);
       if (onUpdate) onUpdate(originalOrder);
       console.error('Failed to reject order:', err);
-      setErrorMessage(err.response?.data?.message || err.message || 'Failed to reject order');
+      showToast(err.response?.data?.message || err.message || 'Failed to reject order', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -281,14 +285,10 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                         <span className="text-sm font-inter text-slate-900">{item.quantity} x</span>
                         <span className="text-sm font-inter text-slate-700">{item.name}</span>
                     </div>
-                    {/* {item.description && (
-                        <p className="mt-0.5 text-sm font-semibold text-slate-400">{item.description}</p>
-                    )} */}
                   </div>
                 </div>
               ))
             ) : (
-
               <p className="text-sm font-bold text-slate-400 italic">No items available</p>
             )}
           </div>
@@ -385,7 +385,6 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                 <div className="space-y-8">
                     <div className="flex overflow-hidden rounded-[32px] p-2 text-center ring-1 ring-violet-100">
                         <div className="h-22 rounded-[32px] bg-[#F5F3FF] p-4 flex items-center justify-center">
-                             {/* Ready Illustration - Waiter Placeholder */}
                              <div className="relative">
                                 <img src={ready_to_pickup} className="h-20 w-auto object-contain" alt="Ready" />
                              </div>
@@ -460,7 +459,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                         </div>
                     </div>
                 </div>
-              ) : order.status === 'PENDING' ? (
+             ) : order.status === 'PENDING' ? (
                 showRejectReason ? (
                   <div className="space-y-5 rounded-3xl border border-red-100 bg-red-50/30 p-6">
                     <div>
@@ -621,18 +620,8 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
           </div>
         </div>
       </div>
-      {errorMessage && (
-        <Toast
-          message={errorMessage}
-          type="error"
-          onClose={() => setErrorMessage(null)}
-        />
-      )}
     </article>
   );
 };
 
 export default OrderCard;
-
-
-

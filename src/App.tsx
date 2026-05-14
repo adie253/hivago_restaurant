@@ -11,6 +11,7 @@ import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { ToastProvider } from './context/ToastContext';
 
 const RequireAuth = ({ children, allowedRoles }: { children: JSX.Element; allowedRoles?: string[] }) => {
   const { isAuthenticated, user } = useAuth();
@@ -28,7 +29,6 @@ const RequireAuth = ({ children, allowedRoles }: { children: JSX.Element; allowe
       return <Navigate to="/dashboard" replace />;
     }
   }
-
 
   return children;
 };
@@ -53,114 +53,114 @@ const App = () => {
 
   return (
     <AuthProvider>
-      <NotificationProvider>
-        <div className="flex h-screen flex-col overflow-hidden bg-slate-50">
+      <ToastProvider>
+        <NotificationProvider>
+          <div className="flex h-screen flex-col overflow-hidden bg-slate-50">
+            {/* 🔥 Navbar (fixed on top) */}
+            {showSidebar && (
+              <header className="sticky top-0 z-50 flex-none">
+                <Navbar onToggleSidebar={() => setSidebarOpen(prev => !prev)} />
+              </header>
+            )}
 
-        {/* 🔥 Navbar (fixed on top) */}
-        {showSidebar && (
-          <header className="sticky top-0 z-50 flex-none">
-            <Navbar onToggleSidebar={() => setSidebarOpen(prev => !prev)} />
-          </header>
-        )}
+            {/* 🔽 Bottom Section (Sidebar + Content) */}
+            <div className="flex flex-1 overflow-hidden">
+              {/* Sidebar */}
+              {showSidebar && (
+                <aside className={`fixed inset-y-0 left-0 z-40 w-72 flex-none bg-white lg:static lg:block ${
+                  sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                } transition-transform duration-300 ease-in-out`}>
+                  <Sidebar
+                    isOpen={sidebarOpen}
+                    onDismiss={() => setSidebarOpen(false)}
+                  />
+                </aside>
+              )}
 
-        {/* 🔽 Bottom Section (Sidebar + Content) */}
-        <div className="flex flex-1 overflow-hidden">
+              {/* Overlay for mobile */}
+              {showSidebar && sidebarOpen && (
+                <div
+                  className="fixed inset-0 z-30 bg-slate-950/50 lg:hidden"
+                  onClick={() => setSidebarOpen(false)}
+                />
+              )}
 
-          {/* Sidebar */}
-          {showSidebar && (
-            <aside className={`fixed inset-y-0 left-0 z-40 w-72 flex-none bg-white lg:static lg:block ${
-              sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-            } transition-transform duration-300 ease-in-out`}>
-              <Sidebar
-                isOpen={sidebarOpen}
-                onDismiss={() => setSidebarOpen(false)}
-              />
-            </aside>
-          )}
+              {/* Main Content */}
+              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10">
+                <Routes>
+                  <Route
+                    path="/login"
+                    element={
+                      <RedirectIfAuthenticated>
+                        <LoginPage />
+                      </RedirectIfAuthenticated>
+                    }
+                  />
 
-          {/* Overlay for mobile */}
-          {showSidebar && sidebarOpen && (
-            <div
-              className="fixed inset-0 z-30 bg-slate-950/50 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <RequireAuth allowedRoles={['restaurant']}>
+                        <DashboardPage />
+                      </RequireAuth>
+                    }
+                  />
 
-          {/* Main Content */}
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10">
-            <Routes>
-              <Route
-                path="/login"
-                element={
-                  <RedirectIfAuthenticated>
-                    <LoginPage />
-                  </RedirectIfAuthenticated>
-                }
-              />
+                  <Route
+                    path="/owner/outlets"
+                    element={
+                      <RequireAuth allowedRoles={['owner']}>
+                        <OwnerOutletsPage />
+                      </RequireAuth>
+                    }
+                  />
 
-              <Route
-                path="/dashboard"
-                element={
-                  <RequireAuth allowedRoles={['restaurant']}>
-                    <DashboardPage />
-                  </RequireAuth>
-                }
-              />
+                  <Route
+                    path="/admin/create-restaurant"
+                    element={
+                      <RequireAuth allowedRoles={['admin', 'restaurant']}>
+                        <AdminCreateRestaurantPage />
+                      </RequireAuth>
+                    }
+                  />
 
-              <Route
-                path="/owner/outlets"
-                element={
-                  <RequireAuth allowedRoles={['owner']}>
-                    <OwnerOutletsPage />
-                  </RequireAuth>
-                }
-              />
+                  <Route
+                    path="/menu"
+                    element={
+                      <RequireAuth allowedRoles={['restaurant']}>
+                        <MenuPage />
+                      </RequireAuth>
+                    }
+                  />
 
-              <Route
-                path="/admin/create-restaurant"
-                element={
-                  <RequireAuth allowedRoles={['admin', 'restaurant']}>
-                    <AdminCreateRestaurantPage />
-                  </RequireAuth>
-                }
-              />
+                  <Route
+                    path="/payouts"
+                    element={
+                      <RequireAuth allowedRoles={['restaurant']}>
+                        <PayoutsPage />
+                      </RequireAuth>
+                    }
+                  />
 
-              <Route
-                path="/menu"
-                element={
-                  <RequireAuth allowedRoles={['restaurant']}>
-                    <MenuPage />
-                  </RequireAuth>
-                }
-              />
+                  <Route
+                    path="/settings"
+                    element={
+                      <RequireAuth allowedRoles={['restaurant']}>
+                        <SettingsPage />
+                      </RequireAuth>
+                    }
+                  />
 
-              <Route
-                path="/payouts"
-                element={
-                  <RequireAuth allowedRoles={['restaurant']}>
-                    <PayoutsPage />
-                  </RequireAuth>
-                }
-              />
-
-              <Route
-                path="/settings"
-                element={
-                  <RequireAuth allowedRoles={['restaurant']}>
-                    <SettingsPage />
-                  </RequireAuth>
-                }
-              />
-
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-          </main>
-        </div>
-      </div>
-      </NotificationProvider>
+                  <Route path="/" element={<Navigate to="/login" replace />} />
+                  <Route path="*" element={<Navigate to="/login" replace />} />
+                </Routes>
+              </main>
+            </div>
+          </div>
+        </NotificationProvider>
+      </ToastProvider>
     </AuthProvider>
   );
 }
-export default App;
 
+export default App;
