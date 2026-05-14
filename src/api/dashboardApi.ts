@@ -445,4 +445,12 @@ export const updateRestaurantAvailability = async (status: boolean): Promise<any
   return response.data;
 };
 
-
+export const fetchDeliveryCodes = async (orderId: string): Promise<{ pickupCode: string | null, dropCode: string | null } | null> => {
+  try {
+    const response = await client.get(`/delivery/orders/${orderId}/codes`);
+    return response.data;
+  } catch (error: any) {
+    if (error?.response?.status === 404) return null;
+    throw error;
+  }
+};
