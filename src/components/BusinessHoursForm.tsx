@@ -188,10 +188,10 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
             <div 
               className="relative group cursor-pointer"
               onClick={(e) => {
-                const input = e.currentTarget.querySelector('input');
+                const input = e.currentTarget.querySelector('input') as HTMLInputElement;
                 if (input) {
-                  if ('showPicker' in input) {
-                    (input as any).showPicker();
+                  if (input.showPicker) {
+                    input.showPicker();
                   } else {
                     input.focus();
                     input.click();
@@ -216,10 +216,10 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
             <div 
               className="relative group cursor-pointer"
               onClick={(e) => {
-                const input = e.currentTarget.querySelector('input');
+                const input = e.currentTarget.querySelector('input') as HTMLInputElement;
                 if (input) {
-                  if ('showPicker' in input) {
-                    (input as any).showPicker();
+                  if (input.showPicker) {
+                    input.showPicker();
                   } else {
                     input.focus();
                     input.click();
@@ -291,10 +291,10 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
                             <div 
                               className="relative group cursor-pointer"
                               onClick={(e) => {
-                                const input = e.currentTarget.querySelector('input');
+                                const input = e.currentTarget.querySelector('input') as HTMLInputElement;
                                 if (input) {
-                                  if ('showPicker' in input) {
-                                    (input as any).showPicker();
+                                  if (input.showPicker) {
+                                    input.showPicker();
                                   } else {
                                     input.focus();
                                     input.click();
@@ -323,10 +323,10 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
                             <div 
                               className="relative group cursor-pointer"
                               onClick={(e) => {
-                                const input = e.currentTarget.querySelector('input');
+                                const input = e.currentTarget.querySelector('input') as HTMLInputElement;
                                 if (input) {
-                                  if ('showPicker' in input) {
-                                    (input as any).showPicker();
+                                  if (input.showPicker) {
+                                    input.showPicker();
                                   } else {
                                     input.focus();
                                     input.click();
