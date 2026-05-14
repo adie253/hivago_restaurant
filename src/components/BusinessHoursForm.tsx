@@ -11,11 +11,18 @@ const DAYS_OF_WEEK: DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday",
 
 // Helper to convert 24h string to 12h display string for input placeholder/look
 const to12h = (time: string) => {
-  if (!time) return '10:00 AM';
-  const [h, m] = time.split(':').map(Number);
+  if (!time || typeof time !== 'string') return '10:00 AM';
+  const parts = time.split(':');
+  if (parts.length < 2) return '10:00 AM';
+  
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  
+  if (isNaN(h) || isNaN(m)) return '10:00 AM';
+  
   const period = h >= 12 ? 'PM' : 'AM';
-  const hours = h % 12 || 12;
-  return `${hours}:${(m || 0).toString().padStart(2, '0')} ${period}`;
+  const displayHours = h % 12 || 12;
+  return `${displayHours}:${m.toString().padStart(2, '0')} ${period}`;
 };
 
 // Ensure all 7 days exist in local state
@@ -35,16 +42,38 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
   });
 
   useEffect(() => {
-    setHours({
-      useCustomSchedule: initialHours.useCustomSchedule,
-      openingTime: initialHours.openingTime || '09:00:00',
-      closingTime: initialHours.closingTime || '22:00:00',
-      weeklySchedule: buildFullSchedule(initialHours.weeklySchedule)
-    });
-  }, [initialHours]);
+    // Only sync if we're not currently saving (which means a fresh load or successful save)
+    if (!saving) {
+      setHours({
+        useCustomSchedule: initialHours.useCustomSchedule,
+        openingTime: initialHours.openingTime || '09:00:00',
+        closingTime: initialHours.closingTime || '22:00:00',
+        weeklySchedule: buildFullSchedule(initialHours.weeklySchedule)
+      });
+    }
+  }, [initialHours, saving]);
 
   const handleToggleCustom = () => {
-    setHours(prev => ({ ...prev, useCustomSchedule: !prev.useCustomSchedule }));
+    setHours(prev => {
+      const nextMode = !prev.useCustomSchedule;
+      
+      // If we're enabling custom schedule and all days are empty, pre-populate them with the standard hours
+      let nextSchedule = prev.weeklySchedule;
+      const isEntirelyEmpty = prev.weeklySchedule.every(day => day.slots.length === 0);
+      
+      if (nextMode && isEntirelyEmpty) {
+        nextSchedule = prev.weeklySchedule.map(day => ({
+          ...day,
+          slots: [{ opensAt: prev.openingTime, closesAt: prev.closingTime }]
+        }));
+      }
+
+      return { 
+        ...prev, 
+        useCustomSchedule: nextMode,
+        weeklySchedule: nextSchedule 
+      };
+    });
   };
 
   const handleSimpleTimeChange = (field: 'openingTime' | 'closingTime', val: string) => {
@@ -58,7 +87,7 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
           const isClosed = day.slots.length === 0;
           return {
             ...day,
-            slots: isClosed ? [{ opensAt: '09:00:00', closesAt: '22:00:00' }] : []
+            slots: isClosed ? [{ opensAt: prev.openingTime, closesAt: prev.closingTime }] : []
           };
         }
         return day;
@@ -89,9 +118,11 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
       const schedule = prev.weeklySchedule.map(day => {
         if (day.dayOfWeek === dayName) {
           if (day.slots.length >= 3) return day; // Max 3 slots per day based on spec
+          
+          // Use the restaurant's closing time or a reasonable evening window for the new slot
           return {
             ...day,
-            slots: [...day.slots, { opensAt: '12:00:00', closesAt: '16:00:00' }]
+            slots: [...day.slots, { opensAt: '12:00:00', closesAt: prev.closingTime }]
           };
         }
         return day;
@@ -154,27 +185,59 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
             <p className="text-sm text-slate-500">You are open every day during these hours.</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            <div className="relative group">
+            <div 
+              className="relative group cursor-pointer"
+              onClick={(e) => {
+                const input = e.currentTarget.querySelector('input');
+                if (input) {
+                  if ('showPicker' in input) {
+                    (input as any).showPicker();
+                  } else {
+                    input.focus();
+                    input.click();
+                  }
+                }
+              }}
+            >
               <input
                 type="time"
                 value={hours.openingTime?.substring(0, 5) || '09:00'}
                 onChange={(e) => handleSimpleTimeChange('openingTime', e.target.value)}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer z-20"
               />
-              <div className="min-w-[140px] rounded-2xl px-5 py-4 text-base font-bold bg-slate-50 border-2 border-transparent text-slate-900 group-hover:border-slate-200 group-hover:bg-white transition-all text-center">
-                {to12h(hours.openingTime)}
+              <div className="min-w-[140px] rounded-2xl px-5 py-4 text-base font-bold bg-slate-50 border-2 border-transparent text-slate-900 group-hover:border-slate-200 group-hover:bg-white transition-all text-center flex items-center justify-center gap-2">
+                <span>{to12h(hours.openingTime)}</span>
+                <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
             </div>
             <span className="text-sm font-black text-slate-300 uppercase letter-spacing-widest">to</span>
-            <div className="relative group">
+            <div 
+              className="relative group cursor-pointer"
+              onClick={(e) => {
+                const input = e.currentTarget.querySelector('input');
+                if (input) {
+                  if ('showPicker' in input) {
+                    (input as any).showPicker();
+                  } else {
+                    input.focus();
+                    input.click();
+                  }
+                }
+              }}
+            >
               <input
                 type="time"
                 value={hours.closingTime?.substring(0, 5) || '22:00'}
                 onChange={(e) => handleSimpleTimeChange('closingTime', e.target.value)}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer z-20"
               />
-              <div className="min-w-[140px] rounded-2xl px-5 py-4 text-base font-bold bg-slate-50 border-2 border-transparent text-slate-900 group-hover:border-slate-200 group-hover:bg-white transition-all text-center">
-                {to12h(hours.closingTime)}
+              <div className="min-w-[140px] rounded-2xl px-5 py-4 text-base font-bold bg-slate-50 border-2 border-transparent text-slate-900 group-hover:border-slate-200 group-hover:bg-white transition-all text-center flex items-center justify-center gap-2">
+                <span>{to12h(hours.closingTime)}</span>
+                <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
             </div>
           </div>
@@ -225,33 +288,65 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
                       return (
                         <div key={index} className="flex flex-wrap items-center gap-4">
                           <div className="flex flex-wrap items-center gap-3">
-                            <div className="relative group">
+                            <div 
+                              className="relative group cursor-pointer"
+                              onClick={(e) => {
+                                const input = e.currentTarget.querySelector('input');
+                                if (input) {
+                                  if ('showPicker' in input) {
+                                    (input as any).showPicker();
+                                  } else {
+                                    input.focus();
+                                    input.click();
+                                  }
+                                }
+                              }}
+                            >
                               <input
                                 type="time"
                                 value={slot.opensAt.substring(0, 5)}
                                 onChange={(e) => handleSlotChange(dayName, index, 'opensAt', e.target.value)}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer z-20"
                               />
-                              <div className={`min-w-[130px] rounded-2xl px-5 py-3.5 text-sm font-bold border-2 transition-all text-center
+                              <div className={`min-w-[130px] rounded-2xl px-5 py-3.5 text-sm font-bold border-2 transition-all text-center flex items-center justify-center gap-2
                                 ${isInvalid ? 'bg-red-50 border-red-100 text-red-500' : 'bg-slate-50 border-transparent text-slate-900 group-hover:border-slate-200 group-hover:bg-white'}
                               `}>
-                                {to12h(slot.opensAt)}
+                                <span>{to12h(slot.opensAt)}</span>
+                                <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
                               </div>
                             </div>
 
                             <span className="text-[10px] font-black text-slate-300 uppercase letter-spacing-widest">to</span>
 
-                            <div className="relative group">
+                            <div 
+                              className="relative group cursor-pointer"
+                              onClick={(e) => {
+                                const input = e.currentTarget.querySelector('input');
+                                if (input) {
+                                  if ('showPicker' in input) {
+                                    (input as any).showPicker();
+                                  } else {
+                                    input.focus();
+                                    input.click();
+                                  }
+                                }
+                              }}
+                            >
                               <input
                                 type="time"
                                 value={slot.closesAt.substring(0, 5)}
                                 onChange={(e) => handleSlotChange(dayName, index, 'closesAt', e.target.value)}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer z-20"
                               />
-                              <div className={`min-w-[130px] rounded-2xl px-5 py-3.5 text-sm font-bold border-2 transition-all text-center
+                              <div className={`min-w-[130px] rounded-2xl px-5 py-3.5 text-sm font-bold border-2 transition-all text-center flex items-center justify-center gap-2
                                 ${isInvalid ? 'bg-red-50 border-red-100 text-red-500' : 'bg-slate-50 border-transparent text-slate-900 group-hover:border-slate-200 group-hover:bg-white'}
                               `}>
-                                {to12h(slot.closesAt)}
+                                <span>{to12h(slot.closesAt)}</span>
+                                <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
                               </div>
                             </div>
                           </div>
