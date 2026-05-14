@@ -397,11 +397,20 @@ const SettingsPage = () => {
             <RestaurantLogoForm 
               currentLogoUrl={settings.profile.logoUrl || ''}
               onUpload={async (file) => {
-                const { logoUrl } = await uploadRestaurantLogo(file);
-                setSettings({ ...settings, profile: { ...settings.profile, logoUrl }});
-                showToast('Logo updated successfully!', 'success');
+                if (!user?.id) return;
+                setSavingSections(prev => ({ ...prev, logo: true }));
+                try {
+                    const { logoUrl } = await uploadRestaurantLogo(user.id, file);
+                    setSettings(prev => prev ? { ...prev, profile: { ...prev.profile, logoUrl } } : null);
+                    showToast('Logo updated successfully!', 'success');
+                } catch (err) {
+                    console.error('Logo upload failed:', err);
+                    showToast('Failed to upload logo. Please try again.', 'error');
+                } finally {
+                    setSavingSections(prev => ({ ...prev, logo: false }));
+                }
               }}
-              uploading={false}
+              uploading={savingSections['logo'] || false}
             />
           )}
         </div>

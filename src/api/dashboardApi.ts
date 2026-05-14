@@ -305,13 +305,34 @@ export const changePassword = async (currentPassword: string, newPassword: strin
 // Logo upload might be kept or changed. Based on spec, it's not strictly mentioned in the 7 PATCH.
 // We'll leave the old one but point to /restaurants/me/logo just in case, or drop it if not needed.
 // Actually, I'll keep the legacy path until requested otherwise, but spec didn't mention logo.
-export const uploadRestaurantLogo = async (file: File): Promise<{ logoUrl: string }> => {
-  const formData = new FormData();
-  formData.append('logo', file);
-  const response = await client.post<{ logoUrl: string }>('/restaurants/me/logo', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+export const uploadRestaurantLogo = async (restaurantId: string, file: File): Promise<{ logoUrl: string }> => {
+  // 1. Get upload URL
+  const urlRes = await client.post<{ uploadUrl: string, fileKey: string }>(
+    `/users/restaurants/${restaurantId}/logo/upload-url`, 
+    { contentType: file.type }
+  );
+  const { uploadUrl, fileKey } = urlRes.data;
+
+  // 2. Upload to S3/R2 (Use fetch to ensure NO extra headers are sent, as S3 signatures are strict)
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: {
+      'Content-Type': file.type
+    }
   });
-  return response.data;
+
+  if (!uploadResponse.ok) {
+    throw new Error('Failed to upload image to storage');
+  }
+
+  // 3. Confirm upload
+  const confirmRes = await client.patch<{ logoUrl: string }>(
+    `/users/restaurants/${restaurantId}/logo/confirm`,
+    { fileKey }
+  );
+
+  return confirmRes.data;
 };
 
 // Menu Item Operations
