@@ -11,15 +11,15 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { showToast } = useToast();
   const [lastOrderReceived, setLastOrderReceived] = useState<any | null>(null);
 
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      console.log('[Notification] Starting SignalR connection...');
+    if (isAuthenticated && user?.id) {
+      console.log('[Notification] Starting SignalR connection for restaurant:', user.id);
       signalRService.start().then(() => {
         console.log('[Notification] SignalR connected successfully.');
         setIsConnected(true);
@@ -39,8 +39,11 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         signalRService.stop();
         setIsConnected(false);
       };
+    } else {
+      signalRService.stop();
+      setIsConnected(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.id]);
 
   const playNotification = () => {
     try {

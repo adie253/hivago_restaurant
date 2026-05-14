@@ -4,7 +4,7 @@ import { PayoutCycle, PayoutSummary } from '../types';
 /**
  * Normalizes a raw payout object from the API to the PayoutCycle interface.
  */
-const normalizePayout = (raw: any): PayoutCycle => {
+const normalizePayout = (raw: any, restaurantName?: string): PayoutCycle => {
   return {
     id: String(raw.id || raw.payoutId || ''),
     cycleRange: String(raw.cycleRange || raw.period || ''),
@@ -12,7 +12,8 @@ const normalizePayout = (raw: any): PayoutCycle => {
     ordersCount: Number(raw.ordersCount || raw.totalOrders || 0),
     amount: Number(raw.amount || raw.netAmount || 0),
     status: (raw.status?.toUpperCase() || 'PENDING') as PayoutCycle['status'],
-    utr: raw.utr || raw.transactionReference || undefined
+    utr: raw.utr || raw.transactionReference || undefined,
+    restaurantName
   };
 };
 

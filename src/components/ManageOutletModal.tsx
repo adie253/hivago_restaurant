@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
 import { getOwnerOutlets } from '../api/ownerApi';
+import { updateRestaurantAvailability } from '../api/dashboardApi';
+import { useAuth } from '../context/AuthContext';
 
 
 interface Outlet {
@@ -48,6 +50,7 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { showToast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
@@ -61,7 +64,7 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
             area: d.addressLine || 'Address not provided',
             initials: d.name.substring(0, 2).toUpperCase(),
             color: COLORS[index % COLORS.length],
-            status: 'Online'
+            status: d.isAcceptingOrders ? 'Online' : 'Offline'
           }));
           setOutlets(formattedOutlets);
         } catch (error) {
@@ -87,14 +90,27 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
 
   if (!isOpen) return null;
 
-  const handleToggle = (outlet: Outlet) => {
+  const handleToggle = async (outlet: Outlet) => {
+    // Restriction: Since we only have /me/availability, we can only toggle the CURRENT outlet
+    // This also prevents owners from calling it with an owner token (which causes 403)
+    if (user?.role !== 'restaurant' || user.id !== outlet.id) {
+        showToast(`Please switch to ${outlet.name} first to manage its availability`, 'info');
+        return;
+    }
+
     if (outlet.status === 'Online') {
       setSelectedOfflineOutlet(outlet);
       setOfflineReason('');
       setOfflineDuration('');
       setFlowStep('reason');
     } else {
-      setOutlets(prev => prev.map(o => o.id === outlet.id ? { ...o, status: 'Online' } : o));
+      try {
+        await updateRestaurantAvailability(true);
+        setOutlets(prev => prev.map(o => o.id === outlet.id ? { ...o, status: 'Online' } : o));
+        showToast(`${outlet.name} is now online`, 'success');
+      } catch (error) {
+        showToast(`Failed to update status for ${outlet.name}`, 'error');
+      }
     }
   };
 
@@ -102,14 +118,19 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
     setFlowStep('duration');
   };
 
-  const handleConfirmOffline = () => {
+  const handleConfirmOffline = async () => {
     if (selectedOfflineOutlet) {
-      setOutlets(prev => prev.map(o => o.id === selectedOfflineOutlet.id ? { ...o, status: 'Offline' } : o));
-      
-      const durationStr = offlineDuration === 'Specific date & time' ? `${customDate} ${customTime}` : offlineDuration;
-      showToast(`Offline: ${offlineReason}. Return: ${durationStr}`, 'info');
-      
-      setFlowStep('success');
+      try {
+        await updateRestaurantAvailability(false);
+        setOutlets(prev => prev.map(o => o.id === selectedOfflineOutlet.id ? { ...o, status: 'Offline' } : o));
+        
+        const durationStr = offlineDuration === 'Specific date & time' ? `${customDate} ${customTime}` : offlineDuration;
+        showToast(`Offline: ${offlineReason}. Return: ${durationStr}`, 'info');
+        
+        setFlowStep('success');
+      } catch (error) {
+        showToast(`Failed to set ${selectedOfflineOutlet.name} offline`, 'error');
+      }
     }
   };
 

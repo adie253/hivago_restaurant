@@ -179,6 +179,7 @@ export interface PayoutCycle {
   amount: number;
   status: 'PAID' | 'PENDING' | 'UPCOMING';
   utr?: string;
+  restaurantName?: string;
 }
 
 export interface PayoutSummary {
@@ -205,5 +206,7 @@ export interface RestaurantMinimal {
   name: string;
   rstCode: string;
   addressLine?: string;
+  isActive?: boolean;
+  isAcceptingOrders?: boolean;
 }
 

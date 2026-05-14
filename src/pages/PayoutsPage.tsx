@@ -10,15 +10,14 @@ const PayoutsPage = () => {
     const { showToast } = useToast();
     const [payouts, setPayouts] = useState<PayoutSummary | null>(null);
     const [loading, setLoading] = useState(true);
-
-    const [selectedOutlet, setSelectedOutlet] = useState('Vikroli Outlet');
+    const [availableOutlets, setAvailableOutlets] = useState<any[]>([]);
+    const [selectedOutletId, setSelectedOutletId] = useState<'all' | string>(user?.id || 'all');
+    const [selectedOutletName, setSelectedOutletName] = useState('All Restaurants');
     const [isOutletDropdownOpen, setIsOutletDropdownOpen] = useState(false);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [dateRange, setDateRange] = useState({ start: '22 Feb, 2026', end: '22 Mar, 2026' });
     const [viewDate, setViewDate] = useState(new Date(2026, 1, 1)); // Feb 2026
     const [selection, setSelection] = useState<{ start: Date | null, end: Date | null }>({ start: null, end: null });
-
-    const outlets = ['Vikroli Outlet', 'Andheri Outlet', 'Bandra Outlet', 'Powai Outlet', 'Dadar Outlet'];
 
     // Calendar Helpers 
     const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -65,12 +64,54 @@ const PayoutsPage = () => {
     };
 
     useEffect(() => {
-        if (!user?.id) return;
+        if (user?.role === 'owner') {
+            const fetchOutlets = async () => {
+                const { getOwnerOutlets } = await import('../api/ownerApi');
+                try {
+                    const data = await getOwnerOutlets();
+                    setAvailableOutlets(data);
+                    // Default to 'all' if owner
+                    setSelectedOutletId('all');
+                    setSelectedOutletName('All Restaurants');
+                } catch (error) {
+                    console.error("Failed to fetch outlets:", error);
+                }
+            };
+            fetchOutlets();
+        }
+    }, [user?.role]);
+
+    useEffect(() => {
+        if (!user?.id && selectedOutletId !== 'all') return;
         
         const loadPayouts = async () => {
+            setLoading(true);
             try {
-                const data = await fetchPayoutSummary(user.id);
-                setPayouts(data);
+                if (selectedOutletId === 'all' && availableOutlets.length > 0) {
+                    const allData = await Promise.all(availableOutlets.map(o => 
+                        fetchPayoutSummary(o.id).then(data => ({
+                            currentCycle: { ...data.currentCycle, restaurantName: o.name },
+                            pastCycles: data.pastCycles.map(pc => ({ ...pc, restaurantName: o.name }))
+                        }))
+                    ));
+                    
+                    const consolidated: PayoutSummary = {
+                        currentCycle: {
+                            id: 'consolidated-current',
+                            cycleRange: allData[0]?.currentCycle.cycleRange || "23 - 29 Mar'26",
+                            payoutDate: allData[0]?.currentCycle.payoutDate || "01 Apr'26",
+                            ordersCount: allData.reduce((sum, d) => sum + d.currentCycle.ordersCount, 0),
+                            amount: allData.reduce((sum, d) => sum + d.currentCycle.amount, 0),
+                            status: 'UPCOMING',
+                            restaurantName: 'All Restaurants'
+                        },
+                        pastCycles: allData.flatMap(d => d.pastCycles)
+                    };
+                    setPayouts(consolidated);
+                } else if (selectedOutletId !== 'all') {
+                    const data = await fetchPayoutSummary(selectedOutletId);
+                    setPayouts(data);
+                }
             } catch (err) {
                 console.error('Failed to load payouts', err);
                 showToast('Failed to load payouts history', 'error');
@@ -80,7 +121,7 @@ const PayoutsPage = () => {
         };
 
         loadPayouts();
-    }, [user?.id]);
+    }, [user?.id, selectedOutletId, availableOutlets]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-IN', {
@@ -101,39 +142,52 @@ const PayoutsPage = () => {
                     <p className="text-sm font-bold text-slate-400">Track your earnings and payout history</p>
                 </div>
 
-                <div className="relative">
-                    <button 
-                        onClick={() => setIsOutletDropdownOpen(!isOutletDropdownOpen)}
-                        className="flex items-center gap-2.5 rounded-2xl border border-slate-100 bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-sm transition-all hover:border-[#AD221F]/20 hover:shadow-md"
-                    >
-                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                        </div>
-                        {selectedOutlet}
-                        <svg className={`h-4 w-4 text-slate-400 transition-transform ${isOutletDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
+                {user?.role === 'owner' && (
+                  <div className="relative">
+                      <button 
+                          onClick={() => setIsOutletDropdownOpen(!isOutletDropdownOpen)}
+                          className="flex items-center gap-2.5 rounded-2xl border border-slate-100 bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-sm transition-all hover:border-[#AD221F]/20 hover:shadow-md"
+                      >
+                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                          </div>
+                          {selectedOutletName}
+                          <svg className={`h-4 w-4 text-slate-400 transition-transform ${isOutletDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                          </svg>
+                      </button>
 
-                    {isOutletDropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-56 transform overflow-hidden rounded-2xl border border-slate-50 bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all z-10">
-                            {outlets.map((outlet) => (
+                      {isOutletDropdownOpen && (
+                          <div className="absolute right-0 mt-2 w-56 transform overflow-hidden rounded-2xl border border-slate-50 bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all z-10">
                                 <button
-                                    key={outlet}
                                     className="block w-full px-5 py-3.5 text-left text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-[#AD221F]"
                                     onClick={() => {
-                                        setSelectedOutlet(outlet);
+                                        setSelectedOutletId('all');
+                                        setSelectedOutletName('All Restaurants');
                                         setIsOutletDropdownOpen(false);
                                     }}
                                 >
-                                    {outlet}
+                                    All Restaurants
                                 </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                              {availableOutlets.map((outlet) => (
+                                  <button
+                                      key={outlet.id}
+                                      className="block w-full px-5 py-3.5 text-left text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-[#AD221F]"
+                                      onClick={() => {
+                                          setSelectedOutletId(outlet.id);
+                                          setSelectedOutletName(outlet.name);
+                                          setIsOutletDropdownOpen(false);
+                                      }}
+                                  >
+                                      {outlet.name}
+                                  </button>
+                              ))}
+                          </div>
+                      )}
+                  </div>
+                )}
             </div>
 
             {/* Current Cycle Card */}
@@ -274,10 +328,13 @@ const PayoutsPage = () => {
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-[32px] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50">
+                <div className="overflow-x-auto overflow-y-hidden rounded-[32px] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-50">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-slate-50 bg-slate-50/30">
+                                {selectedOutletId === 'all' && (
+                                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Restaurant</th>
+                                )}
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Payout Cycle</th>
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Payout Date</th>
                                 <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
@@ -290,6 +347,11 @@ const PayoutsPage = () => {
                         <tbody className="divide-y divide-slate-50">
                             {payouts?.pastCycles.map((cycle) => (
                                 <tr key={cycle.id} className="group hover:bg-slate-50/50 transition-all">
+                                    {selectedOutletId === 'all' && (
+                                        <td className="px-8 py-6">
+                                            <p className="text-sm font-bold text-slate-900">{cycle.restaurantName || '-'}</p>
+                                        </td>
+                                    )}
                                     <td className="px-8 py-6">
                                         <p className="text-sm font-bold text-slate-900 group-hover:text-[#AD221F] transition-colors">{cycle.cycleRange}</p>
                                     </td>

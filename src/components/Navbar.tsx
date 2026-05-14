@@ -8,7 +8,9 @@ import manage_outlet_icon from '../assets/manage_outlet_icon.svg';
 import { useState, useEffect, useRef } from 'react';
 import ManageOutletModal from './ManageOutletModal';
 import { getOwnerOutlets } from '../api/ownerApi';
+import { updateRestaurantAvailability } from '../api/dashboardApi';
 import { RestaurantMinimal } from '../types';
+import { fetchRestaurantSettings } from '../api/dashboardApi';
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -19,6 +21,8 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
     const { showToast } = useToast();
     const navigate = useNavigate();
     const [isManageOutletOpen, setIsManageOutletOpen] = useState(false);
+    const [isOnline, setIsOnline] = useState<boolean | null>(null);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
     
     // Switch Outlet Dropdown State
     const [isSwitchOutletOpen, setIsSwitchOutletOpen] = useState(false);
@@ -37,6 +41,29 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Fetch initial status if user is in restaurant context
+    useEffect(() => {
+        let isMounted = true;
+        
+        if (user && (user.role === 'restaurant' || user.outletId)) {
+            const getStatus = async () => {
+                try {
+                    const settings = await fetchRestaurantSettings();
+                    if (isMounted) setIsOnline(settings.operations.isAcceptingOrders);
+                } catch (error) {
+                    console.error("Failed to fetch restaurant status:", error);
+                    // On error, default to offline instead of infinite loading
+                    if (isMounted) setIsOnline(false);
+                }
+            };
+            getStatus();
+        } else {
+            setIsOnline(null);
+        }
+
+        return () => { isMounted = false; };
+    }, [user?.id, user?.role, user?.outletId]);
 
     const handleSwitchOutletClick = async () => {
         if (!isSwitchOutletOpen) {
@@ -75,6 +102,23 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
         logout();
         showToast("Successfully logged out", "info");
         navigate('/login');
+    };
+
+    const handleToggleStatus = async () => {
+        if (isUpdatingStatus || isOnline === null) return;
+        
+        setIsUpdatingStatus(true);
+        try {
+            const newStatus = !isOnline;
+            await updateRestaurantAvailability(newStatus);
+            setIsOnline(newStatus);
+            showToast(`Store is now ${newStatus ? 'Online' : 'Offline'}`, 'info');
+        } catch (error) {
+            console.error("Failed to update status:", error);
+            showToast("Failed to update availability", "error");
+        } finally {
+            setIsUpdatingStatus(false);
+        }
     };
 
     return (
@@ -163,12 +207,42 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                     )}
 
                     <div className="flex items-center gap-1 sm:gap-3">
+                        {(user && (user.role === 'restaurant' || user.outletId)) && (
+                            <button
+                                type="button"
+                                onClick={handleToggleStatus}
+                                disabled={isUpdatingStatus || isOnline === null}
+                                className={`group flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all shadow-sm active:scale-95 ${
+                                    isOnline === null 
+                                        ? 'bg-white/10 text-white/50 border border-white/10'
+                                        : isOnline 
+                                            ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-500/20' 
+                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                            >
+                                {isOnline === null ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                                        <span>...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className={`h-2 w-2 rounded-full ${isOnline ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
+                                        {isOnline ? 'ONLINE' : 'OFFLINE'}
+                                    </>
+                                )}
+                                {isUpdatingStatus && (
+                                    <div className="ml-1 h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                )}
+                            </button>
+                        )}
+
                         <button
                             type="button"
                             className="relative inline-flex h-11 w-11 items-center justify-center rounded-full text-white transition hover:bg-white/10"
                             aria-label="Notifications"
                         >
-                            <img src={notification_icon} className="h-6 w-6" alt="" />
+                            <img src={notification_icon} className="h-8 w-8" alt="" />
                             <span className="absolute right-2.5 top-2.5 flex h-2.5 w-2.5">
                                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
                                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange-500"></span>
@@ -181,7 +255,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                             className="inline-flex h-11 w-11 items-center justify-center rounded-full text-white transition hover:bg-white/10"
                             aria-label="Logout"
                         >
-                            <img src={logout_icon} className="h-6 w-6" alt="" />
+                            <img src={logout_icon} className="h-8 w-8" alt="" />
                         </button>
                     </div>
                 </div>

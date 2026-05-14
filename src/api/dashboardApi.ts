@@ -263,6 +263,11 @@ export const updateDietary = async (data: Partial<DietarySettings>): Promise<str
   return res.data?.message || 'Dietary settings updated successfully';
 };
 
+export const fetchOperations = async (): Promise<OperationsSettings> => {
+  const res = await client.get('/restaurants/me/operations');
+  return res.data?.data || res.data;
+};
+
 export const updateOperations = async (data: Partial<OperationsSettings>): Promise<string> => {
   const res = await client.patch('/restaurants/me/operations', data);
   return res.data?.message || 'Operations updated successfully';
@@ -399,6 +404,15 @@ export const fetchFullMenu = async (restaurantId: string): Promise<{ categories:
 
 export const toggleItemAvailability = async (itemId: string, isAvailable: boolean): Promise<void> => {
   await client.patch(`/restaurant/items/${itemId}/availability`, { isAvailable });
+};
+
+export const updateRestaurantAvailability = async (status: boolean): Promise<any> => {
+  const response = await client.put('/restaurants/me/availability', { 
+    isAcceptingOrders: status,
+    isAvailable: status,
+    isActive: status 
+  });
+  return response.data;
 };
 
 

@@ -12,14 +12,19 @@ class SignalRService {
   }
 
   public async start(): Promise<void> {
-    if (this.connection) return;
+    if (this.connection && this.connection.state !== 'Disconnected') return;
+
+    const token = localStorage.getItem('hivago_access_token') || sessionStorage.getItem('hivago_access_token');
+    if (!token) {
+      console.warn('No access token found, skipping SignalR start.');
+      return;
+    }
 
     this.connection = new HubConnectionBuilder()
       .withUrl(HUB_URL, {
         accessTokenFactory: () => localStorage.getItem('hivago_access_token') || sessionStorage.getItem('hivago_access_token') || '',
       })
-
-      .withAutomaticReconnect()
+      .withAutomaticReconnect([2000, 5000, 10000, 30000])
       .configureLogging(LogLevel.Information)
       .build();
 

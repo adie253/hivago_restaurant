@@ -10,12 +10,10 @@ import logout_icon from '../assets/logout_icon.svg';
 const menuItems = [
   { label: 'Live Orders', path: '/dashboard', img: live_orders_icon, roles: ['restaurant'] },
   { label: 'Menu', path: '/menu', img: menu_icon, roles: ['restaurant'] },
-  { label: 'Payouts', path: '/payouts', img: payout_icon, roles: ['restaurant'] },
-  { label: 'Settings', path: '/settings', img: settings_icon, roles: ['restaurant'] },
-  // { label: 'My Outlets', path: '/owner/outlets', img: settings_icon, roles: ['owner'] },
-  // { label: 'Add Restaurant', path: '/admin/create-restaurant', img: settings_icon, roles: ['owner'] },
-
-
+  { label: 'Payouts', path: '/payouts', img: payout_icon, roles: ['restaurant', 'owner'] },
+  { label: 'Settings', path: '/settings', img: settings_icon, roles: ['restaurant', 'owner'] },
+  { label: 'My Outlets', path: '/owner/outlets', img: settings_icon, roles: ['owner'] },
+  { label: 'Add Restaurant', path: '/admin/create-restaurant', img: settings_icon, roles: ['admin', 'owner'] },
 ];
 
 interface SidebarProps {
@@ -75,7 +73,21 @@ const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
         ))}
       </nav>
 
-      <div className="p-4">
+      <div className="mt-auto border-t border-slate-50 p-4 space-y-2">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-50/50 border border-slate-50 shadow-sm">
+          <div className="h-10 w-10 flex-shrink-0 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+            {(user?.ownerName || user?.name || '?').charAt(0)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-slate-900 truncate">
+              {user?.ownerName || user?.name}
+            </p>
+            <p className="text-[10px] font-semibold text-slate-400 truncate">
+              {user?.ownerEmail || user?.email}
+            </p>
+          </div>
+        </div>
+
         <button
           type="button"
           onClick={handleLogout}

@@ -13,6 +13,8 @@ interface AuthUser {
   role: AuthRole;
   originalRole?: AuthRole;
   outletId?: string;
+  ownerName?: string;
+  ownerEmail?: string;
 }
 
 interface AuthContextValue {
@@ -36,6 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [accessTokenExpiresAt, setAccessTokenExpiresAt] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [isRemembered, setIsRemembered] = useState(false);
 
   const [showSessionWarning, setShowSessionWarning] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -53,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log(`[Auth] Restoring session from ${storage === localStorage ? 'localStorage' : 'sessionStorage'}...`);
       setAccessToken(savedAccessToken);
       client.defaults.headers.common.Authorization = `Bearer ${savedAccessToken}`;
+      setIsRemembered(storage === localStorage);
     }
     if (savedRefreshToken) {
       setRefreshToken(savedRefreshToken);
@@ -100,7 +104,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         sessionStorage.setItem('hivago_session_expired', 'true');
       } else if (timeRemaining <= WARNING_THRESHOLD) {
         // Soon to expire
-        setShowSessionWarning(true);
+        if (isRemembered) {
+          // If remembered, refresh automatically without showing popup
+          if (!isRefreshing) {
+            refreshSession();
+          }
+        } else {
+          setShowSessionWarning(true);
+        }
       } else {
         setShowSessionWarning(false);
       }
@@ -144,9 +155,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       name: role === 'owner' ? (profileData?.name || response.name || 'Owner') : response.name,
       email: role === 'owner' ? (profileData?.email || credentials.email) : credentials.email,
       role,
-      originalRole: role
+      originalRole: role,
+      ownerName: role === 'owner' ? (profileData?.name || response.name || 'Owner') : undefined,
+      ownerEmail: role === 'owner' ? (profileData?.email || credentials.email) : undefined
     };
     setUser(newUser);
+    setIsRemembered(remember);
 
     const storage = remember ? localStorage : sessionStorage;
     storage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
@@ -169,16 +183,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRefreshToken(response.refreshToken);
     setAccessTokenExpiresAt(response.accessTokenExpiresAt);
     
-    // Update user role to restaurant for the dashboard
+    // Update user role and ID to restaurant for the dashboard
     if (user) {
       const updatedUser: AuthUser = {
         ...user,
+        id: response.restaurantId,
+        name: response.name || user.name,
         role: 'restaurant',
         originalRole: user.originalRole || user.role,
         outletId: response.restaurantId
       };
       setUser(updatedUser);
-      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+      const storage = localStorage.getItem(ACCESS_TOKEN_KEY) ? localStorage : sessionStorage;
+      storage.setItem(USER_KEY, JSON.stringify(updatedUser));
     }
 
     const storage = localStorage.getItem(ACCESS_TOKEN_KEY) ? localStorage : sessionStorage;
@@ -199,9 +216,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRefreshToken(response.refreshToken);
       setAccessTokenExpiresAt(response.accessTokenExpiresAt);
       
-      localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
-      localStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
-      localStorage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
+      const storage = isRemembered ? localStorage : sessionStorage;
+      storage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
+      storage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
+      storage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
       
       client.defaults.headers.common.Authorization = `Bearer ${response.accessToken}`;
       setShowSessionWarning(false);
@@ -219,6 +237,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRefreshToken(null);
     setAccessTokenExpiresAt(null);
     setUser(null);
+    setIsRemembered(false);
     
     // Clear both storages to be safe
     [localStorage, sessionStorage].forEach(storage => {
