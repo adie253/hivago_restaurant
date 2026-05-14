@@ -228,10 +228,14 @@ export const rejectOrder = async (orderId: string, reason: string): Promise<Orde
   return normalizeOrder(response.data.data || response.data);
 };
 
-export const preparingOrder = async (orderId: string): Promise<Order> => {
-  const response = await client.put(`orders/${orderId}/preparing`, {});
+export const preparingOrder = async (orderId: string, prepTime?: number, deliveryPartner?: 'HIVAGO' | 'RESTAURANT'): Promise<Order> => {
+  const response = await client.put(`orders/${orderId}/preparing`, { 
+    prepTime, 
+    deliveryPartner 
+  });
   return normalizeOrder(response.data.data || response.data);
 };
+
 
 export const readyOrder = async (orderId: string): Promise<Order> => {
   const response = await client.put(`orders/${orderId}/ready`, {});

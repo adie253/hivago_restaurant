@@ -20,6 +20,8 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
   
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [selectedPrepTime, setSelectedPrepTime] = useState(25);
+  const [deliveryPartner, setDeliveryPartner] = useState<'HIVAGO' | 'RESTAURANT'>('HIVAGO');
   const fetchedIdsRef = React.useRef<Set<string>>(new Set());
 
   const calculateTimeLeft = () => {
@@ -138,7 +140,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     setActionLoading(true);
 
     try {
-      const updatedOrder = await preparingOrder(order.id);
+      const updatedOrder = await preparingOrder(order.id, selectedPrepTime, deliveryPartner);
       setOrder(updatedOrder);
       showToast(`Order #${order.orderNumber} accepted`, 'success');
       if (onUpdate) onUpdate(updatedOrder);
@@ -377,11 +379,11 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                                 <button className="flex-1 rounded-2xl bg-[#1D915F] py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-100 transition-all hover:bg-emerald-700 active:scale-95">
                                     Yes
                                 </button>
-                            </div>
                         </div>
                     </div>
-                </div>
-             ) : order.status === 'READY' ? (
+                 </div>
+              </div>
+              ) : order.status === 'READY' ? (
                 <div className="space-y-8">
                     <div className="flex overflow-hidden rounded-[32px] p-2 text-center ring-1 ring-violet-100">
                         <div className="h-22 rounded-[32px] bg-[#F5F3FF] p-4 flex items-center justify-center">
@@ -459,111 +461,161 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                         </div>
                     </div>
                 </div>
-             ) : order.status === 'PENDING' ? (
-                showRejectReason ? (
-                  <div className="space-y-5 rounded-3xl border border-red-100 bg-red-50/30 p-6">
-                    <div>
-                      <h4 className="text-base font-bold text-red-600">Why are you rejecting this order?</h4>
-                      <p className="mt-1 text-xs font-semibold text-red-400">This will be shared with the customer.</p>
-                    </div>
-                    <select
-                      value={rejectReason}
-                      onChange={e => setRejectReason(e.target.value)}
-                      className="w-full rounded-xl border border-red-100 bg-white p-3.5 text-sm font-semibold text-slate-700 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
-                    >
-                      <option value="">Select a reason...</option>
-                      <option value="Items out of stock">Items out of stock</option>
-                      <option value="Kitchen is too busy">Kitchen is too busy</option>
-                      <option value="Closing soon">Closing soon</option>
-                      <option value="Delivery area too far">Delivery area too far</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    <div className="flex gap-3">
-                      <button 
-                        onClick={() => {
-                          setShowRejectReason(false);
-                          setRejectReason('');
-                        }}
-                        disabled={actionLoading}
-                        className="flex-1 rounded-[16px] border border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50"
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        onClick={handleConfirmReject}
-                        disabled={!rejectReason || actionLoading}
-                        className="flex-1 rounded-[16px] bg-red-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-200 hover:bg-red-600 transition-all active:scale-[0.98] disabled:opacity-50"
-                      >
-                        {actionLoading ? 'Rejecting...' : 'Confirm Reject'}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                      <div className="flex overflow-hidden rounded-[32px] p-2 text-center ring-1 ring-amber-100">
-                          <div className="h-22 rounded-[32px] bg-amber-50 p-4 flex items-center justify-center">
-                               <div className="relative">
-                                  <span className="text-4xl">⏳</span>
-                               </div>
-                          </div>
-                          <div className='text-start p-4'>
-                             <div className="flex items-center justify-between gap-4">
-                               <h4 className="text-xl font-black text-amber-600">Pending</h4>
-                               <div className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-sm font-black tracking-tight ${
-                                 timeLeft < 120 ? 'bg-red-500 text-white animate-pulse' : 'bg-amber-100 text-amber-700'
-                               }`}>
-                                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                 </svg>
-                                 {formatTimer(timeLeft)}
-                               </div>
-                             </div>
-                             <p className="mt-1 text-sm font-bold text-amber-600/60">Waiting for your acceptance</p>
-                          </div>
+              ) : order.status === 'PENDING' ? (
+                <div className="space-y-6">
+                  {showRejectReason ? (
+                    <div className="space-y-5 rounded-3xl border border-red-100 bg-red-50/30 p-6">
+                      <div>
+                        <h4 className="text-base font-bold text-red-600">Why are you rejecting this order?</h4>
+                        <p className="mt-1 text-xs font-semibold text-red-400">This will be shared with the customer.</p>
                       </div>
-
-                      <div className="flex items-center justify-between px-2">
-                          <div className="flex items-center gap-2">
-                             <p className="text-sm font-bold text-slate-600">Total Bill</p>
-                             {loading ? (
-                               <div className="h-4 w-12 animate-pulse rounded bg-slate-100"></div>
-                             ) : order.paymentStatus?.toUpperCase() === 'PAID' ? (
-                               <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-500">
-                                  <span className="h-3.5 w-3.5 rounded-full border border-emerald-500 flex items-center justify-center text-[8px]">✓</span>
-                                  Paid
-                               </span>
-                             ) : (
-                               <span className="text-[10px] font-black uppercase text-amber-600">{order.paymentStatusDisplay || 'Unpaid'}</span>
-                             )}
-                          </div>
-                          <p className="text-2xl font-black text-slate-900">{formatCurrency(order.total)}</p>
-                      </div>
-
+                      <select
+                        value={rejectReason}
+                        onChange={e => setRejectReason(e.target.value)}
+                        className="w-full rounded-xl border border-red-100 bg-white p-3.5 text-sm font-semibold text-slate-700 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                      >
+                        <option value="">Select a reason...</option>
+                        <option value="Items out of stock">Items out of stock</option>
+                        <option value="Kitchen is too busy">Kitchen is too busy</option>
+                        <option value="Closing soon">Closing soon</option>
+                        <option value="Delivery area too far">Delivery area too far</option>
+                        <option value="Other">Other</option>
+                      </select>
                       <div className="flex gap-3">
-                          <button 
-                            onClick={handleRejectClick}
-                            disabled={actionLoading}
-                            className={`flex-1 rounded-[20px] border-2 py-4 text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-50 flex flex-col items-center justify-center ${
-                              timeLeft < 120 
-                                ? 'border-red-500 bg-red-50 text-red-600 animate-pulse' 
-                                : 'border-red-100 bg-white text-red-500 hover:bg-red-50'
-                            }`}
-                          >
-                            <span>Reject</span>
-                            <span className="text-[10px] opacity-70">({formatTimer(timeLeft)})</span>
-                          </button>
-                          <button 
-                            onClick={handleAccept}
-                            disabled={actionLoading}
-                            className="flex-[1.5] rounded-[20px] bg-emerald-500 py-4 text-sm font-bold text-white shadow-xl shadow-emerald-100 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-                          >
-                            {actionLoading ? 'Accepting...' : 'Accept Order'}
-                          </button>
+                        <button 
+                          onClick={() => {
+                            setShowRejectReason(false);
+                            setRejectReason('');
+                          }}
+                          disabled={actionLoading}
+                          className="flex-1 rounded-[16px] border border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          onClick={handleConfirmReject}
+                          disabled={!rejectReason || actionLoading}
+                          className="flex-1 rounded-[16px] bg-red-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-red-200 hover:bg-red-600 transition-all active:scale-[0.98] disabled:opacity-50"
+                        >
+                          {actionLoading ? 'Rejecting...' : 'Confirm Reject'}
+                        </button>
                       </div>
-                  </div>
-                )
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                        <div className="flex overflow-hidden rounded-[32px] p-2 text-center ring-1 ring-amber-100">
+                            <div className="h-22 rounded-[32px] bg-amber-50 p-4 flex items-center justify-center">
+                                 <div className="relative">
+                                    <span className="text-4xl">⏳</span>
+                                 </div>
+                            </div>
+                            <div className='text-start p-4'>
+                               <div className="flex items-center justify-between gap-4">
+                                 <h4 className="text-xl font-black text-amber-600">Pending</h4>
+                                 <div className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-sm font-black tracking-tight ${
+                                   timeLeft < 120 ? 'bg-red-500 text-white animate-pulse' : 'bg-amber-100 text-amber-700'
+                                 }`}>
+                                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                   </svg>
+                                   {formatTimer(timeLeft)}
+                                 </div>
+                               </div>
+                               <p className="mt-1 text-sm font-bold text-amber-600/60">Waiting for your acceptance</p>
+                            </div>
+                        </div>
+
+                        {/* Prep Time Selection */}
+                        <div>
+                          <p className="text-sm font-bold text-slate-500 mb-3">Set preparation time:</p>
+                          <div className="grid grid-cols-4 gap-2">
+                            {[15, 20, 25, 30, 35, 40, 45, 60].map((time) => (
+                              <button
+                                key={time}
+                                onClick={() => setSelectedPrepTime(time)}
+                                className={`rounded-xl py-2.5 text-xs font-bold transition-all ${
+                                  selectedPrepTime === time
+                                    ? 'bg-emerald-500 text-white shadow-md shadow-emerald-100'
+                                    : 'bg-white border border-slate-100 text-slate-500 hover:bg-slate-50'
+                                }`}
+                              >
+                                {time}m
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Delivery Partner Selection */}
+                        <div className="space-y-3">
+                          <p className="text-sm font-bold text-slate-500">Delivery Partner:</p>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => setDeliveryPartner('HIVAGO')}
+                              className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 py-3 transition-all ${
+                                deliveryPartner === 'HIVAGO'
+                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                  : 'border-slate-50 bg-white text-slate-400 hover:border-slate-100'
+                              }`}
+                            >
+                              <span className="text-sm font-bold">Hivago</span>
+                            </button>
+                            <button
+                              onClick={() => setDeliveryPartner('RESTAURANT')}
+                              className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 py-3 transition-all ${
+                                deliveryPartner === 'RESTAURANT'
+                                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                  : 'border-slate-50 bg-white text-slate-400 hover:border-slate-100'
+                              }`}
+                            >
+                              <span className="text-sm font-bold">Self Delivery</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between px-2">
+                            <div className="flex items-center gap-2">
+                               <p className="text-sm font-bold text-slate-600">Total Bill</p>
+                               {loading ? (
+                                 <div className="h-4 w-12 animate-pulse rounded bg-slate-100"></div>
+                               ) : order.paymentStatus?.toUpperCase() === 'PAID' ? (
+                                 <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-500">
+                                    <span className="h-3.5 w-3.5 rounded-full border border-emerald-500 flex items-center justify-center text-[8px]">✓</span>
+                                    Paid
+                                 </span>
+                               ) : (
+                                 <span className="text-[10px] font-black uppercase text-amber-600">{order.paymentStatusDisplay || 'Unpaid'}</span>
+                               )}
+                            </div>
+                            <p className="text-2xl font-black text-slate-900">{formatCurrency(order.total)}</p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button 
+                              onClick={handleRejectClick}
+                              disabled={actionLoading}
+                              className={`flex-1 rounded-[20px] border-2 py-4 text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-50 flex flex-col items-center justify-center ${
+                                timeLeft < 120 
+                                  ? 'border-red-500 bg-red-50 text-red-600 animate-pulse' 
+                                  : 'border-red-100 bg-white text-red-500 hover:bg-red-50'
+                              }`}
+                            >
+                              <span>Reject</span>
+                              <span className="text-[10px] opacity-70">({formatTimer(timeLeft)})</span>
+                            </button>
+                            <button 
+                              onClick={handleAccept}
+                              disabled={actionLoading}
+                              className="flex-[1.5] rounded-[20px] bg-emerald-500 py-4 text-sm font-bold text-white shadow-xl shadow-emerald-100 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                            >
+                              {actionLoading ? 'Accepting...' : 'Accept Order'}
+                            </button>
+                        </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="space-y-5">
+
                     <div className="flex overflow-hidden rounded-[32px]  p-2 text-center ring-1 ring-[#DEE5FF]">
                         <div className="h-22  rounded-[32px] bg-[#EEF2FF] p-4">
                            <img src={order_preparing_man} className="h-25 object-contain" alt="Preparing" />
@@ -609,6 +661,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                 </div>
               )}
           </div>
+
 
           <div className="mt-8 flex">
              <button className="flex-1 rounded-2xl border border-slate-100 bg-white py-4 text-[10px] font-black uppercase tracking-tight text-slate-500 transition-colors hover:bg-slate-50">

@@ -7,10 +7,11 @@ import restaurant_delivery_popup from '../assets/restaurant_delivery_popup.svg';
 
 interface NewOrderOverlayProps {
   order: Order;
-  onAccept: (prepTime: number) => void;
+  onAccept: (prepTime: number, deliveryPartner: 'HIVAGO' | 'RESTAURANT') => void;
   onReject: (reason: string) => void;
   onClose: () => void;
 }
+
 
 const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: NewOrderOverlayProps) => {
   const [order, setOrder] = useState<Order>(initialOrder);
@@ -291,11 +292,12 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                       <span className="text-[10px] opacity-70">({formatTimer(timeLeft)})</span>
                     </button>
                     <button
-                      onClick={() => onAccept(selectedPrepTime)}
+                      onClick={() => onAccept(selectedPrepTime, deliveryPartner)}
                       className="flex-[1.5] rounded-2xl bg-emerald-500 text-md font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-600 active:scale-[0.98] py-3"
                     >
                       Accept order
                     </button>
+
                   </div>
                 )}
               </div>

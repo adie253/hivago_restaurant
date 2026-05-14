@@ -57,11 +57,12 @@ const DashboardPage = () => {
     }
   }, [newOrder]);
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (prepTime: number, deliveryPartner: 'HIVAGO' | 'RESTAURANT') => {
     if (!newOrderModal) return;
     setActionLoading(true);
     try {
-      const updatedOrder = await preparingOrder(newOrderModal.id);
+      const updatedOrder = await preparingOrder(newOrderModal.id, prepTime, deliveryPartner);
+
       handleOrderUpdate(updatedOrder);
       setNewOrderModal(null);
       setNewOrder(null);
