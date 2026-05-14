@@ -151,7 +151,9 @@ export interface HoursSettings {
 
 export interface DeliverySettings {
   deliveryMode: "Hivago" | "SelfDelivery";
+  acceptsPickup: boolean;
 }
+
 
 export interface NotificationSettings {
   emailAlerts: boolean;

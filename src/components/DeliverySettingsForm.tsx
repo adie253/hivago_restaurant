@@ -8,7 +8,8 @@ interface DeliverySettingsFormProps {
 }
 
 const DeliverySettingsForm = ({ settings: initialSettings, onSave, saving }: DeliverySettingsFormProps) => {
-  const [settings, setSettings] = useState<DeliverySettings>(initialSettings || { deliveryMode: 'Hivago' });
+  const [settings, setSettings] = useState<DeliverySettings>(initialSettings || { deliveryMode: 'Hivago', acceptsPickup: false });
+
 
   return (
     <div className="space-y-10">
@@ -27,7 +28,7 @@ const DeliverySettingsForm = ({ settings: initialSettings, onSave, saving }: Del
                 name="deliveryMode" 
                 value="Hivago"
                 checked={settings.deliveryMode === 'Hivago'}
-                onChange={() => setSettings({ deliveryMode: 'Hivago' })} 
+                onChange={() => setSettings(prev => ({ ...prev, deliveryMode: 'Hivago' }))} 
                 className="hidden" 
               />
               <div>
@@ -45,7 +46,7 @@ const DeliverySettingsForm = ({ settings: initialSettings, onSave, saving }: Del
                 name="deliveryMode" 
                 value="SelfDelivery"
                 checked={settings.deliveryMode === 'SelfDelivery'}
-                onChange={() => setSettings({ deliveryMode: 'SelfDelivery' })} 
+                onChange={() => setSettings(prev => ({ ...prev, deliveryMode: 'SelfDelivery' }))} 
                 className="hidden" 
               />
               <div>
@@ -55,6 +56,17 @@ const DeliverySettingsForm = ({ settings: initialSettings, onSave, saving }: Del
             </label>
           </div>
         </div>
+        
+        <div className="pt-8 border-t border-slate-50 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-slate-900">Pickup orders</p>
+            <p className="text-xs font-bold text-slate-400">Contact Hivago support to change this setting.</p>
+          </div>
+          <div className={`px-5 py-2.5 rounded-2xl text-sm font-black transition-all ${settings.acceptsPickup ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+            {settings.acceptsPickup ? 'ENABLED' : 'DISABLED'}
+          </div>
+        </div>
+
 
         <button
           onClick={() => onSave(settings)}

@@ -14,12 +14,11 @@ class SignalRService {
   public async start(): Promise<void> {
     if (this.connection) return;
 
-    const token = localStorage.getItem('hivago_access_token');
-    
     this.connection = new HubConnectionBuilder()
       .withUrl(HUB_URL, {
-        accessTokenFactory: () => token || '',
+        accessTokenFactory: () => localStorage.getItem('hivago_access_token') || sessionStorage.getItem('hivago_access_token') || '',
       })
+
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Information)
       .build();

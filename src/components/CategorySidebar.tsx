@@ -77,8 +77,7 @@ const CategorySidebar = ({ categories, activeCategoryId, onSelectCategory, onDel
         )}
 
         <button
-      <div className="space-y-2">
-        <button
+
           onClick={() => onSelectCategory('all')}
           className={`w-full rounded-2xl px-5 py-4 text-left text-sm font-bold transition-all duration-200 ${
             activeCategoryId === 'all'
