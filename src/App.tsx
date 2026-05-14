@@ -20,11 +20,15 @@ const RequireAuth = ({ children, allowedRoles }: { children: JSX.Element; allowe
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    // If owner tries to access restaurant dashboard without switching, redirect to outlets
-    if (user.role === 'owner') return <Navigate to="/owner/outlets" replace />;
-    return <Navigate to="/dashboard" replace />;
+  if (allowedRoles && user) {
+    const hasRequiredRole = allowedRoles.includes(user.role) || (user.originalRole && allowedRoles.includes(user.originalRole));
+    
+    if (!hasRequiredRole) {
+      if (user.role === 'owner') return <Navigate to="/owner/outlets" replace />;
+      return <Navigate to="/dashboard" replace />;
+    }
   }
+
 
   return children;
 };

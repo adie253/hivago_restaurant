@@ -154,9 +154,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     storage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
     storage.setItem(USER_KEY, JSON.stringify(newUser));
 
-    if (role === 'owner' && remember) {
-      localStorage.setItem('hivago_owner_access_token', response.accessToken);
+    if (role === 'owner') {
+      storage.setItem('hivago_owner_access_token', response.accessToken);
     }
+
   };
 
   const switchOutlet = async (outletId: string) => {

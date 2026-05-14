@@ -12,18 +12,32 @@ export const loginOwner = async (credentials: LoginCredentials): Promise<OwnerLo
   return response.data;
 };
 
+const getOwnerToken = () => {
+  return localStorage.getItem('hivago_owner_access_token') || sessionStorage.getItem('hivago_owner_access_token');
+};
+
 export const getOwnerOutlets = async (): Promise<RestaurantMinimal[]> => {
-  const response = await client.get<RestaurantMinimal[]>('/owners/me/outlets');
+  const token = getOwnerToken();
+  const response = await client.get<RestaurantMinimal[]>('/owners/me/outlets', {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
   return response.data;
 };
 
 export const getOwnerProfile = async (): Promise<any> => {
-  const response = await client.get<any>('/owners/me');
+  const token = getOwnerToken();
+  const response = await client.get<any>('/owners/me', {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
   return response.data;
 };
 
 export const switchOutlet = async (restaurantId: string): Promise<LoginResponse> => {
-  const response = await client.post<LoginResponse>(`/owners/outlets/${restaurantId}/switch`, {});
+  const token = getOwnerToken();
+  const response = await client.post<LoginResponse>(`/owners/outlets/${restaurantId}/switch`, {}, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
   return response.data;
 };
+
 

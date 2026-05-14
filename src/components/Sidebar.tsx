@@ -12,8 +12,10 @@ const menuItems = [
   { label: 'Menu', path: '/menu', img: menu_icon, roles: ['restaurant'] },
   { label: 'Payouts', path: '/payouts', img: payout_icon, roles: ['restaurant'] },
   { label: 'Settings', path: '/settings', img: settings_icon, roles: ['restaurant'] },
-  { label: 'My Outlets', path: '/owner/outlets', img: settings_icon, roles: ['owner'] },
-  { label: 'Add Restaurant', path: '/admin/create-restaurant', img: settings_icon, roles: ['owner'] },
+  // { label: 'My Outlets', path: '/owner/outlets', img: settings_icon, roles: ['owner'] },
+  // { label: 'Add Restaurant', path: '/admin/create-restaurant', img: settings_icon, roles: ['owner'] },
+
+
 ];
 
 interface SidebarProps {
