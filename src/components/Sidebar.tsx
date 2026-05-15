@@ -5,15 +5,16 @@ import menu_icon from '../assets/menu_icon.svg';
 import payout_icon from '../assets/payout_icon.svg';
 import settings_icon from '../assets/settings_icon.svg';
 import logout_icon from '../assets/logout_icon.svg';
+import manage_outlet_icon from '../assets/manage_outlet_icon.svg';
 
 
 const menuItems = [
   { label: 'Live Orders', path: '/dashboard', img: live_orders_icon, roles: ['restaurant'] },
   { label: 'Menu', path: '/menu', img: menu_icon, roles: ['restaurant'] },
-  { label: 'Payouts', path: '/payouts', img: payout_icon, roles: ['restaurant', 'owner'] },
-  { label: 'Settings', path: '/settings', img: settings_icon, roles: ['restaurant', 'owner'] },
-  { label: 'My Outlets', path: '/owner/outlets', img: settings_icon, roles: ['owner'] },
-  { label: 'Add Restaurant', path: '/admin/create-restaurant', img: settings_icon, roles: ['admin', 'owner'] },
+  { label: 'Payouts', path: '/payouts', img: payout_icon, roles: ['restaurant'] },
+  { label: 'Settings', path: '/settings', img: settings_icon, roles: ['restaurant'] },
+  { label: 'My Outlets', path: '/owner/outlets', img: manage_outlet_icon, roles: ['owner'] },
+  // { label: 'Add Restaurant', path: '/admin/create-restaurant', img: settings_icon, roles: ['admin', 'owner'] },
 ];
 
 interface SidebarProps {
@@ -48,7 +49,15 @@ const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
 
       <nav className="flex-1 space-y-1 px-4 py-6">
         {menuItems
-          .filter(item => !item.roles || (user && (item.roles.includes(user.role) || (user.originalRole && item.roles.includes(user.originalRole)))))
+          .filter(item => {
+            if (!user) return false;
+            if (!item.roles) return true;
+            
+            // Strictly hide 'Add Restaurant' if we are currently in a restaurant context
+            if (item.label === 'Add Restaurant' && user.role === 'restaurant') return false;
+            
+            return item.roles.includes(user.role) || (user.originalRole && item.roles.includes(user.originalRole));
+          })
           .map(item => (
           <NavLink
             key={item.path}

@@ -30,7 +30,7 @@ const PayoutsPage = () => {
 
     const handleDateClick = (day: number) => {
         const clickedDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-        
+
         if (!selection.start || (selection.start && selection.end)) {
             setSelection({ start: clickedDate, end: null });
         } else {
@@ -39,7 +39,7 @@ const PayoutsPage = () => {
             } else {
                 setSelection({ ...selection, end: clickedDate });
             }
-            
+
             // Format and update main range
             const startStr = clickedDate < selection.start ? formatDate(clickedDate) : formatDate(selection.start);
             const endStr = clickedDate < selection.start ? formatDate(selection.start) : formatDate(clickedDate);
@@ -83,18 +83,18 @@ const PayoutsPage = () => {
 
     useEffect(() => {
         if (!user?.id && selectedOutletId !== 'all') return;
-        
+
         const loadPayouts = async () => {
             setLoading(true);
             try {
                 if (selectedOutletId === 'all' && availableOutlets.length > 0) {
-                    const allData = await Promise.all(availableOutlets.map(o => 
+                    const allData = await Promise.all(availableOutlets.map(o =>
                         fetchPayoutSummary(o.id).then(data => ({
                             currentCycle: { ...data.currentCycle, restaurantName: o.name },
                             pastCycles: data.pastCycles.map(pc => ({ ...pc, restaurantName: o.name }))
                         }))
                     ));
-                    
+
                     const consolidated: PayoutSummary = {
                         currentCycle: {
                             id: 'consolidated-current',
@@ -143,24 +143,24 @@ const PayoutsPage = () => {
                 </div>
 
                 {user?.role === 'owner' && (
-                  <div className="relative">
-                      <button 
-                          onClick={() => setIsOutletDropdownOpen(!isOutletDropdownOpen)}
-                          className="flex items-center gap-2.5 rounded-2xl border border-slate-100 bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-sm transition-all hover:border-[#AD221F]/20 hover:shadow-md"
-                      >
-                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                              </svg>
-                          </div>
-                          {selectedOutletName}
-                          <svg className={`h-4 w-4 text-slate-400 transition-transform ${isOutletDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                          </svg>
-                      </button>
+                    <div className="relative">
+                        <button
+                            onClick={() => setIsOutletDropdownOpen(!isOutletDropdownOpen)}
+                            className="flex items-center gap-2.5 rounded-2xl border border-slate-100 bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-sm transition-all hover:border-[#AD221F]/20 hover:shadow-md"
+                        >
+                            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                            </div>
+                            {selectedOutletName}
+                            <svg className={`h-4 w-4 text-slate-400 transition-transform ${isOutletDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
 
-                      {isOutletDropdownOpen && (
-                          <div className="absolute right-0 mt-2 w-56 transform overflow-hidden rounded-2xl border border-slate-50 bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all z-10">
+                        {isOutletDropdownOpen && (
+                            <div className="absolute right-0 mt-2 w-56 transform overflow-hidden rounded-2xl border border-slate-50 bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all z-10">
                                 <button
                                     className="block w-full px-5 py-3.5 text-left text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-[#AD221F]"
                                     onClick={() => {
@@ -171,22 +171,22 @@ const PayoutsPage = () => {
                                 >
                                     All Restaurants
                                 </button>
-                              {availableOutlets.map((outlet) => (
-                                  <button
-                                      key={outlet.id}
-                                      className="block w-full px-5 py-3.5 text-left text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-[#AD221F]"
-                                      onClick={() => {
-                                          setSelectedOutletId(outlet.id);
-                                          setSelectedOutletName(outlet.name);
-                                          setIsOutletDropdownOpen(false);
-                                      }}
-                                  >
-                                      {outlet.name}
-                                  </button>
-                              ))}
-                          </div>
-                      )}
-                  </div>
+                                {availableOutlets.map((outlet) => (
+                                    <button
+                                        key={outlet.id}
+                                        className="block w-full px-5 py-3.5 text-left text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-[#AD221F]"
+                                        onClick={() => {
+                                            setSelectedOutletId(outlet.id);
+                                            setSelectedOutletName(outlet.name);
+                                            setIsOutletDropdownOpen(false);
+                                        }}
+                                    >
+                                        {outlet.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
 
@@ -219,8 +219,8 @@ const PayoutsPage = () => {
                             <div className="flex items-center gap-3 md:justify-end">
                                 <p className="text-2xl font-black text-slate-900">{formatCurrency(payouts?.currentCycle.amount || 0)}</p>
                                 <div className="flex gap-2 text-slate-400">
-                                    <button 
-                                        className="hover:text-slate-600 transition-colors" 
+                                    <button
+                                        className="hover:text-slate-600 transition-colors"
                                         title="Copy UTR"
                                         onClick={() => {
                                             navigator.clipboard.writeText('UTR' + Math.random().toString(36).substring(7).toUpperCase());
@@ -231,8 +231,8 @@ const PayoutsPage = () => {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
                                         </svg>
                                     </button>
-                                    <button 
-                                        className="hover:text-slate-600 transition-colors" 
+                                    <button
+                                        className="hover:text-slate-600 transition-colors"
                                         title="Download Details"
                                         onClick={() => showToast('Statement download started', 'success')}
                                     >
@@ -253,7 +253,7 @@ const PayoutsPage = () => {
                     <h2 className="text-xl font-bold tracking-tight text-slate-900">Past cycles</h2>
                     <div className="flex items-center gap-4">
                         <div className="relative">
-                            <button 
+                            <button
                                 onClick={() => setIsCalendarOpen(!isCalendarOpen)}
                                 className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white px-5 py-2.5 text-sm font-bold text-slate-400 shadow-sm transition-all hover:bg-slate-50 cursor-pointer"
                             >
@@ -268,13 +268,13 @@ const PayoutsPage = () => {
                                     <div className="flex items-center justify-between mb-6">
                                         <h3 className="text-sm font-black text-slate-900">{monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}</h3>
                                         <div className="flex gap-2">
-                                            <button 
+                                            <button
                                                 onClick={() => handleMonthChange(-1)}
                                                 className="p-1 hover:bg-slate-50 rounded-lg text-slate-400 transition-colors"
                                             >
                                                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleMonthChange(1)}
                                                 className="p-1 hover:bg-slate-50 rounded-lg text-slate-400 transition-colors"
                                             >
@@ -294,15 +294,15 @@ const PayoutsPage = () => {
                                         {Array.from({ length: getFirstDayOfMonth(viewDate) }).map((_, i) => (
                                             <div key={`empty-${i}`} />
                                         ))}
-                                        
+
                                         {/* Days in month */}
                                         {Array.from({ length: getDaysInMonth(viewDate) }).map((_, i) => {
                                             const day = i + 1;
                                             const selected = isDateSelected(day);
                                             const inRange = isDateInRange(day);
                                             return (
-                                                <button 
-                                                    key={day} 
+                                                <button
+                                                    key={day}
                                                     onClick={() => handleDateClick(day)}
                                                     className={`h-9 w-9 flex items-center justify-center rounded-full text-xs font-bold transition-all relative
                                                         ${selected ? 'bg-[#008080] text-white shadow-lg shadow-teal-100 z-10' : 'text-slate-600 hover:bg-slate-50'}
@@ -319,7 +319,7 @@ const PayoutsPage = () => {
                                 </div>
                             )}
                         </div>
-                        <button 
+                        <button
                             onClick={() => showToast('Full report generated and ready for download', 'success')}
                             className="rounded-2xl bg-[#AD221F] px-8 py-3 text-sm font-black text-white shadow-xl shadow-red-100 transition-all hover:bg-red-800 hover:shadow-2xl active:scale-95"
                         >

@@ -29,8 +29,8 @@ export const fetchPayoutSummary = async (restaurantId: string): Promise<PayoutSu
     const historyResponse = await client.get(`/restaurants/payouts`, {
       params: { restaurantId }
     });
-    const historyRaw = Array.isArray(historyResponse.data.data) 
-      ? historyResponse.data.data 
+    const historyRaw = Array.isArray(historyResponse.data.data)
+      ? historyResponse.data.data
       : (Array.isArray(historyResponse.data) ? historyResponse.data : []);
 
     return {
@@ -39,7 +39,7 @@ export const fetchPayoutSummary = async (restaurantId: string): Promise<PayoutSu
     };
   } catch (err) {
     console.error('Failed to fetch real payouts, falling back to mock data', err);
-    
+
     // Fallback Mock Data
     return {
       currentCycle: {

@@ -16,9 +16,41 @@ const getOwnerToken = () => {
   return localStorage.getItem('hivago_owner_access_token') || sessionStorage.getItem('hivago_owner_access_token');
 };
 
-export const getOwnerOutlets = async (): Promise<RestaurantMinimal[]> => {
+export interface Outlet {
+  id: string;
+  name: string;
+  rstCode: string;
+  email: string;
+  addressLine: string;
+  isActive: boolean;
+  isAcceptingOrders: boolean;
+  logoUrl: string | null;
+}
+
+export interface BulkAvailabilityResult {
+  updatedCount: number;
+  skippedCount: number;
+}
+
+export const getOwnerOutlets = async (): Promise<Outlet[]> => {
   const token = getOwnerToken();
-  const response = await client.get<RestaurantMinimal[]>('/owners/me/outlets', {
+  const response = await client.get<Outlet[]>('/owners/me/outlets', {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  return response.data;
+};
+
+export const updateOutletAvailability = async (outletId: string, isAcceptingOrders: boolean): Promise<any> => {
+  const token = getOwnerToken();
+  const response = await client.put(`/owners/me/outlets/${outletId}/availability`, { isAcceptingOrders }, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  return response.data;
+};
+
+export const updateAllOutletsAvailability = async (isAcceptingOrders: boolean): Promise<BulkAvailabilityResult> => {
+  const token = getOwnerToken();
+  const response = await client.put<BulkAvailabilityResult>('/owners/me/outlets/availability', { isAcceptingOrders }, {
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
   return response.data;

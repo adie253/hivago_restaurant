@@ -13,6 +13,7 @@ interface AuthUser {
   role: AuthRole;
   originalRole?: AuthRole;
   outletId?: string;
+  ownerId?: string;
   ownerName?: string;
   ownerEmail?: string;
 }
@@ -25,6 +26,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (credentials: LoginCredentials, role: AuthRole, remember?: boolean) => Promise<void>;
   switchOutlet: (outletId: string) => Promise<void>;
+  resetToOwner: () => Promise<void>;
   logout: () => void;
 }
 
@@ -52,11 +54,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const savedExpiresAt = storage.getItem(`${ACCESS_TOKEN_KEY}_expires_at`);
     const savedUser = storage.getItem(USER_KEY);
 
-    if (savedAccessToken) {
+    const isExpired = savedExpiresAt && new Date(savedExpiresAt).getTime() <= Date.now();
+
+    if (savedAccessToken && !isExpired) {
       console.log(`[Auth] Restoring session from ${storage === localStorage ? 'localStorage' : 'sessionStorage'}...`);
       setAccessToken(savedAccessToken);
       client.defaults.headers.common.Authorization = `Bearer ${savedAccessToken}`;
       setIsRemembered(storage === localStorage);
+    } else if (isExpired) {
+      console.log('[Auth] Saved session has expired, clearing...');
+      [localStorage, sessionStorage].forEach(s => {
+        s.removeItem(ACCESS_TOKEN_KEY);
+        s.removeItem(REFRESH_TOKEN_KEY);
+        s.removeItem(`${ACCESS_TOKEN_KEY}_expires_at`);
+        s.removeItem(USER_KEY);
+      });
     }
     if (savedRefreshToken) {
       setRefreshToken(savedRefreshToken);
@@ -156,6 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email: role === 'owner' ? (profileData?.email || credentials.email) : credentials.email,
       role,
       originalRole: role,
+      ownerId: role === 'owner' ? (profileData?.id || (response as any).ownerId) : undefined,
       ownerName: role === 'owner' ? (profileData?.name || response.name || 'Owner') : undefined,
       ownerEmail: role === 'owner' ? (profileData?.email || credentials.email) : undefined
     };
@@ -204,6 +217,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     storage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
 
     client.defaults.headers.common.Authorization = `Bearer ${response.accessToken}`;
+  };
+
+  const resetToOwner = async () => {
+    console.log('[Auth] Resetting to owner context...');
+    if (!user || user.originalRole !== 'owner') return;
+
+    const ownerToken = localStorage.getItem('hivago_owner_access_token') || sessionStorage.getItem('hivago_owner_access_token');
+    if (!ownerToken) return;
+
+    setAccessToken(ownerToken);
+    client.defaults.headers.common.Authorization = `Bearer ${ownerToken}`;
+
+    const updatedUser: AuthUser = {
+      ...user,
+      id: user.ownerId || user.id,
+      name: user.ownerName || user.name,
+      email: user.ownerEmail || user.email,
+      role: 'owner',
+      outletId: undefined
+    };
+    setUser(updatedUser);
+
+    const storage = localStorage.getItem(ACCESS_TOKEN_KEY) ? localStorage : sessionStorage;
+    storage.setItem(ACCESS_TOKEN_KEY, ownerToken);
+    storage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, '2099-01-01T00:00:00Z'); // Extend or re-fetch properly
+    storage.setItem(USER_KEY, JSON.stringify(updatedUser));
   };
 
   const refreshSession = async () => {
@@ -260,6 +299,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAuthenticated: Boolean(accessToken),
       login,
       switchOutlet,
+      resetToOwner,
       logout
     }),
     [user, accessToken, refreshToken, accessTokenExpiresAt]

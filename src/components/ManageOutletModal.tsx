@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
-import { getOwnerOutlets } from '../api/ownerApi';
 import { updateRestaurantAvailability } from '../api/dashboardApi';
+import { getOwnerOutlets, switchOutlet, updateOutletAvailability } from '../api/ownerApi';
 import { useAuth } from '../context/AuthContext';
 
 
@@ -38,6 +38,18 @@ const OFFLINE_DURATIONS = [
   "Specific date & time",
   "I will turn it on myself"
 ];
+
+const to12h = (time: string) => {
+  if (!time || typeof time !== 'string') return '12:00 PM';
+  const parts = time.split(':');
+  if (parts.length < 2) return '12:00 PM';
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (isNaN(h) || isNaN(m)) return '12:00 PM';
+  const period = h >= 12 ? 'PM' : 'AM';
+  const displayHours = h % 12 || 12;
+  return `${displayHours}:${m.toString().padStart(2, '0')} ${period}`;
+};
 
 interface ManageOutletModalProps {
   isOpen: boolean;
@@ -86,31 +98,57 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
   const [customDate, setCustomDate] = useState<string>('');
   const [customTime, setCustomTime] = useState<string>('');
 
+  // Schedule time-off states
+  const [scheduleOutletId, setScheduleOutletId] = useState<string>('');
+  const [scheduleStartDate, setScheduleStartDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [scheduleStartTime, setScheduleStartTime] = useState<string>('00:00');
+  const [scheduleEndDate, setScheduleEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [scheduleEndTime, setScheduleEndTime] = useState<string>('23:59');
+
+  const formatScheduleAlert = () => {
+    if (!scheduleStartDate || !scheduleStartTime || !scheduleEndDate || !scheduleEndTime) {
+      return "Please select a valid date and time range";
+    }
+
+    try {
+      const start = new Date(`${scheduleStartDate}T${scheduleStartTime}`);
+      const end = new Date(`${scheduleEndDate}T${scheduleEndTime}`);
+      
+      const options: Intl.DateTimeFormatOptions = { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      };
+
+      return (
+        <>
+          Your restaurant will be closed from <span className="font-bold text-[#c2410c]">{start.toLocaleString('en-US', options)}</span> to <span className="font-bold text-[#c2410c]">{end.toLocaleString('en-US', options)}</span>
+        </>
+      );
+    } catch (e) {
+      return "Invalid date or time range selected";
+    }
+  };
+
 
 
   if (!isOpen) return null;
 
   const handleToggle = async (outlet: Outlet) => {
-    // Restriction: Since we only have /me/availability, we can only toggle the CURRENT outlet
-    // This also prevents owners from calling it with an owner token (which causes 403)
-    if (user?.role !== 'restaurant' || user.id !== outlet.id) {
-        showToast(`Please switch to ${outlet.name} first to manage its availability`, 'info');
-        return;
-    }
+    const isAcceptingOrders = outlet.status !== 'Online';
 
-    if (outlet.status === 'Online') {
-      setSelectedOfflineOutlet(outlet);
-      setOfflineReason('');
-      setOfflineDuration('');
-      setFlowStep('reason');
-    } else {
-      try {
-        await updateRestaurantAvailability(true);
-        setOutlets(prev => prev.map(o => o.id === outlet.id ? { ...o, status: 'Online' } : o));
-        showToast(`${outlet.name} is now online`, 'success');
-      } catch (error) {
-        showToast(`Failed to update status for ${outlet.name}`, 'error');
-      }
+    try {
+      setIsLoading(true);
+      await updateOutletAvailability(outlet.id, isAcceptingOrders);
+      setOutlets(prev => prev.map(o => o.id === outlet.id ? { ...o, status: isAcceptingOrders ? 'Online' : 'Offline' } : o));
+      showToast(`${outlet.name} is now ${isAcceptingOrders ? 'online' : 'offline'}`, 'success');
+    } catch (error) {
+      showToast(`Failed to update status for ${outlet.name}`, 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -121,7 +159,8 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
   const handleConfirmOffline = async () => {
     if (selectedOfflineOutlet) {
       try {
-        await updateRestaurantAvailability(false);
+        setIsLoading(true);
+        await updateOutletAvailability(selectedOfflineOutlet.id, false);
         setOutlets(prev => prev.map(o => o.id === selectedOfflineOutlet.id ? { ...o, status: 'Offline' } : o));
         
         const durationStr = offlineDuration === 'Specific date & time' ? `${customDate} ${customTime}` : offlineDuration;
@@ -130,6 +169,8 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
         setFlowStep('success');
       } catch (error) {
         showToast(`Failed to set ${selectedOfflineOutlet.name} offline`, 'error');
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -226,57 +267,152 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
   );
 
   const renderScheduleViewContent = () => (
-    <div className="px-8 pb-8 flex-1 overflow-y-auto custom-scrollbar">
-      <div className="bg-[#fff7ed] border border-[#ffedd5] rounded-[16px] p-4 mt-5 mb-6">
-        <p className="text-[12px] font-semibold text-[#c2410c] leading-relaxed">
-          Your restaurant will be closed from <span className="font-bold">X undefined ()</span> to <span className="font-bold">Y undefined ()</span>
-        </p>
+    <div className="px-8 pb-8 flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+      <div className="bg-[#fff7ed] border border-[#ffedd5] rounded-[20px] p-5 mt-5 mb-6 shadow-sm">
+        <div className="flex gap-3">
+          <div className="mt-0.5">
+            <svg className="w-5 h-5 text-[#f97316]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-[13px] font-semibold text-[#c2410c] leading-relaxed">
+            {formatScheduleAlert()}
+          </p>
+        </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 flex-1">
         <div className="space-y-2">
-          <label className="text-[13px] font-semibold text-slate-700">Select a restaurant</label>
-          <div className="relative">
-            <select className="w-full bg-[#f8fafc] border border-slate-100 focus:border-[#008940] rounded-xl pl-11 pr-10 py-3.5 text-[13px] font-semibold text-slate-700 outline-none appearance-none transition-colors">
+          <label className="text-[13px] font-bold text-slate-700 ml-1">Select a restaurant</label>
+          <div className="relative group">
+            <select 
+              value={scheduleOutletId}
+              onChange={(e) => setScheduleOutletId(e.target.value)}
+              className="w-full bg-[#f8fafc] border border-slate-100 group-hover:border-slate-200 focus:border-[#008940] focus:bg-white rounded-[18px] pl-11 pr-10 py-4 text-sm font-bold text-slate-700 outline-none appearance-none transition-all shadow-sm"
+            >
               <option value="">Select a restaurant</option>
               {outlets.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
             <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-6">
           <div className="space-y-2">
-            <label className="text-[13px] font-semibold text-slate-700">Start date</label>
-            <input type="date" className="w-full bg-[#f8fafc] border border-slate-100 rounded-xl px-4 py-3.5 text-[13px] font-semibold text-slate-700 outline-none focus:border-[#008940] transition-colors" />
+            <label className="text-[13px] font-bold text-slate-700 ml-1">Start date</label>
+            <input 
+              type="date" 
+              value={scheduleStartDate}
+              onChange={(e) => setScheduleStartDate(e.target.value)}
+              className="w-full bg-[#f8fafc] border border-slate-100 hover:border-slate-200 focus:border-[#008940] focus:bg-white rounded-[18px] px-4 py-4 text-sm font-bold text-slate-700 outline-none transition-all shadow-sm" 
+            />
           </div>
           <div className="space-y-2">
-            <label className="text-[13px] font-semibold text-slate-700">Start time</label>
-            <input type="time" className="w-full bg-[#f8fafc] border border-slate-100 rounded-xl px-4 py-3.5 text-[13px] font-semibold text-slate-700 outline-none focus:border-[#008940] transition-colors" />
+            <label className="text-[13px] font-bold text-slate-700 ml-1">Start time</label>
+            <div 
+              className="relative group cursor-pointer"
+              onClick={(e) => {
+                const input = e.currentTarget.querySelector('input') as HTMLInputElement;
+                if (input) input.showPicker ? input.showPicker() : input.click();
+              }}
+            >
+              <input 
+                type="time" 
+                value={scheduleStartTime}
+                onChange={(e) => setScheduleStartTime(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer z-20" 
+              />
+              <div className="w-full bg-[#f8fafc] border border-slate-100 group-hover:border-slate-200 focus-within:border-[#008940] rounded-[18px] px-4 py-4 text-sm font-bold text-slate-700 flex items-center justify-between shadow-sm">
+                <span>{to12h(scheduleStartTime)}</span>
+                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[13px] font-semibold text-slate-700">End date</label>
-            <input type="date" className="w-full bg-[#f8fafc] border border-slate-100 rounded-xl px-4 py-3.5 text-[13px] font-semibold text-slate-700 outline-none focus:border-[#008940] transition-colors" />
+            <label className="text-[13px] font-bold text-slate-700 ml-1">End date</label>
+            <input 
+              type="date" 
+              value={scheduleEndDate}
+              onChange={(e) => setScheduleEndDate(e.target.value)}
+              className="w-full bg-[#f8fafc] border border-slate-100 hover:border-slate-200 focus:border-[#008940] focus:bg-white rounded-[18px] px-4 py-4 text-sm font-bold text-slate-700 outline-none transition-all shadow-sm" 
+            />
           </div>
           <div className="space-y-2">
-            <label className="text-[13px] font-semibold text-slate-700">End time</label>
-            <input type="time" className="w-full bg-[#f8fafc] border border-slate-100 rounded-xl px-4 py-3.5 text-[13px] font-semibold text-slate-700 outline-none focus:border-[#008940] transition-colors" />
+            <label className="text-[13px] font-bold text-slate-700 ml-1">End time</label>
+            <div 
+              className="relative group cursor-pointer"
+              onClick={(e) => {
+                const input = e.currentTarget.querySelector('input') as HTMLInputElement;
+                if (input) input.showPicker ? input.showPicker() : input.click();
+              }}
+            >
+              <input 
+                type="time" 
+                value={scheduleEndTime}
+                onChange={(e) => setScheduleEndTime(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer z-20" 
+              />
+              <div className="w-full bg-[#f8fafc] border border-slate-100 group-hover:border-slate-200 focus-within:border-[#008940] rounded-[18px] px-4 py-4 text-sm font-bold text-slate-700 flex items-center justify-between shadow-sm">
+                <span>{to12h(scheduleEndTime)}</span>
+                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <button className="w-full mt-8 bg-[#008940] hover:bg-[#007033] text-white font-semibold py-3.5 rounded-2xl transition-all shadow-lg shadow-green-100/50 hover:shadow-xl active:scale-[0.98]">
-        Update
+      <button 
+        onClick={async () => {
+          if (!scheduleOutletId) {
+            showToast('Please select a restaurant', 'info');
+            return;
+          }
+          
+          setIsLoading(true);
+          try {
+            const start = new Date(`${scheduleStartDate}T${scheduleStartTime}`);
+            const end = new Date(`${scheduleEndDate}T${scheduleEndTime}`);
+
+            // Use the new Time-Off API
+            const { useScheduleTimeOff } = await import('../hooks/useTimeOff');
+            // We can't use the hook here easily because it's inside a handler, 
+            // so we'll use a direct API call or just tell them to use the new modal.
+            // Actually, I'll just import the client and call it directly.
+            const client = (await import('../api/client')).default;
+            
+            await client.post(`/owners/me/outlets/${scheduleOutletId}/time-off`, {
+              startsAtUtc: start.toISOString(),
+              endsAtUtc: end.toISOString(),
+              reason: 'Scheduled via dashboard'
+            });
+            
+            showToast('Schedule updated successfully', 'success');
+            handleCloseModal();
+          } catch (error: any) {
+            console.error('Schedule update failed:', error);
+            showToast(error.response?.data?.message || 'Failed to update outlet schedule', 'error');
+          } finally {
+            setIsLoading(false);
+          }
+        }}
+        disabled={isLoading}
+        className="w-full mt-8 bg-[#008940] hover:bg-[#007033] text-white font-bold py-4 rounded-[20px] transition-all shadow-lg shadow-green-100 hover:shadow-xl active:scale-[0.98] shrink-0 disabled:opacity-50"
+      >
+        {isLoading ? 'Updating...' : 'Update Schedule'}
       </button>
     </div>
   );

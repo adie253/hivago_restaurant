@@ -7,9 +7,8 @@ import logout_icon from '../assets/logout_icon.svg';
 import manage_outlet_icon from '../assets/manage_outlet_icon.svg';
 import { useState, useEffect, useRef } from 'react';
 import ManageOutletModal from './ManageOutletModal';
-import { getOwnerOutlets } from '../api/ownerApi';
+import { getOwnerOutlets, Outlet } from '../api/ownerApi';
 import { updateRestaurantAvailability } from '../api/dashboardApi';
-import { RestaurantMinimal } from '../types';
 import { fetchRestaurantSettings } from '../api/dashboardApi';
 
 interface NavbarProps {
@@ -17,7 +16,7 @@ interface NavbarProps {
 }
 
 const Navbar = ({ onToggleSidebar }: NavbarProps) => {
-    const { logout, user, switchOutlet } = useAuth();
+    const { logout, user, switchOutlet, resetToOwner } = useAuth();
     const { showToast } = useToast();
     const navigate = useNavigate();
     const [isManageOutletOpen, setIsManageOutletOpen] = useState(false);
@@ -26,7 +25,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
     
     // Switch Outlet Dropdown State
     const [isSwitchOutletOpen, setIsSwitchOutletOpen] = useState(false);
-    const [outlets, setOutlets] = useState<RestaurantMinimal[]>([]);
+    const [outlets, setOutlets] = useState<Outlet[]>([]);
     const [loadingOutlets, setLoadingOutlets] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     
@@ -179,8 +178,9 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
                                     </div>
                                     <div className="px-2 pt-2 mt-1 border-t border-slate-100">
                                         <button
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 setIsSwitchOutletOpen(false);
+                                                await resetToOwner();
                                                 navigate('/owner/outlets');
                                             }}
                                             className="w-full text-center px-3 py-2 rounded-lg text-xs font-bold text-brand-600 hover:bg-red-50 transition-colors"
