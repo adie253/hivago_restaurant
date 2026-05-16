@@ -44,6 +44,7 @@ const OutletCard = ({ outlet, onSwitch, onPause }: { outlet: any; onSwitch: (id:
   const isOffline = !outlet.isAcceptingOrders || isPaused;
 
   const handleReopen = async () => {
+    if (!activeTimeOff) return;
     try {
       await cancelTimeOff.mutateAsync(activeTimeOff.id);
       showToast('Restaurant reopened successfully', 'success');
