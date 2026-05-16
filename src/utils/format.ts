@@ -1,9 +1,9 @@
 export const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0
-  }).format(value);
+  const formattedValue = value.toLocaleString('en-IN', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2
+  });
+  return `₹${formattedValue}`;
 };
 
 export const formatRelativeTime = (dateString: string) => {

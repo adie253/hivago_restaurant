@@ -25,7 +25,12 @@ export const useOrders = () => {
     setError(null);
     try {
       const response = await fetchOrders(user.id, { activeOnly: false, pageSize: 100 });
-      const latestOrders = Array.isArray(response) ? response : [];
+      const allOrders = Array.isArray(response) ? response : [];
+      
+      // Filter out orders with pending payment status
+      const latestOrders = allOrders.filter(order => 
+        order.paymentStatus?.toUpperCase() !== 'PENDING'
+      );
 
       if (initialLoadRef.current) {
         const previousIds = new Set(previousOrderIdsRef.current);

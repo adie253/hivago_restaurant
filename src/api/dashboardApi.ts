@@ -1,4 +1,5 @@
 import { DashboardStats, NewRestaurantStats, MenuCategory, MenuItem, Order, RestaurantSettings, ProfileSettings, DietarySettings, OperationsSettings, HoursSettings, DeliverySettings, NotificationSettings, CreateMenuItemPayload, MenuItemOption, MenuItemOptionGroup } from '../types';
+import axios from 'axios';
 import client from './client';
 
 export const fetchRestaurantStats = async (range: string = 'today'): Promise<NewRestaurantStats> => {
@@ -45,7 +46,7 @@ const normalizeStatus = (status?: string): Order['status'] => {
   if (normalized === 'rejected') return 'REJECTED';
   if (normalized === 'cancelled') return 'CANCELLED';
   if (normalized === 'refunding' || normalized.includes('refund')) return 'REFUNDING';
-  
+
   if (normalized === 'preparing') return 'PREPARING';
 
   return 'PENDING';
@@ -129,7 +130,12 @@ const normalizeOrder = (raw: Record<string, unknown>): Order => {
     riderStatus: deliveryInfo.riderId ? 'is on the way' : undefined,
     otp: String(raw.paymentId).slice(-4), // Mock OTP from paymentId for now
     paymentStatus: String(raw.paymentStatus ?? ''),
-    paymentStatusDisplay: String(raw.paymentStatusDisplay ?? raw.paymentStatus ?? '')
+    paymentStatusDisplay: String(raw.paymentStatusDisplay ?? raw.paymentStatus ?? ''),
+    confirmedAt: raw.confirmedAt ? String(raw.confirmedAt) : undefined,
+    preparingAt: raw.preparingAt ? String(raw.preparingAt) : undefined,
+    readyAt: raw.readyAt ? String(raw.readyAt) : undefined,
+    pickedUpAt: raw.pickedUpAt ? String(raw.pickedUpAt) : undefined,
+    deliveredAt: raw.deliveredAt ? String(raw.deliveredAt) : undefined,
   };
 
 };
@@ -220,10 +226,10 @@ export const fetchOrders = async (
 
 export const fetchOrderById = async (orderId: string): Promise<Order> => {
   const response = await client.get<Record<string, unknown>>(`orders/${orderId}`);
-  
+
   // If the response data is an object with a 'data' property (common wrapper)
   const rawData = response.data.data ? (response.data.data as Record<string, unknown>) : response.data;
-  
+
   return normalizeOrder(rawData);
 };
 
@@ -238,9 +244,9 @@ export const rejectOrder = async (orderId: string, reason: string): Promise<Orde
 };
 
 export const preparingOrder = async (orderId: string, prepTime?: number, deliveryPartner?: 'HIVAGO' | 'RESTAURANT'): Promise<Order> => {
-  const response = await client.put(`orders/${orderId}/preparing`, { 
-    prepTime, 
-    deliveryPartner 
+  const response = await client.put(`orders/${orderId}/preparing`, {
+    prepTime,
+    deliveryPartner
   });
   return normalizeOrder(response.data.data || response.data);
 };
@@ -308,21 +314,19 @@ export const changePassword = async (currentPassword: string, newPassword: strin
 export const uploadRestaurantLogo = async (restaurantId: string, file: File): Promise<{ logoUrl: string }> => {
   // 1. Get upload URL
   const urlRes = await client.post<{ uploadUrl: string, fileKey: string }>(
-    `/users/restaurants/${restaurantId}/logo/upload-url`, 
+    `/users/restaurants/${restaurantId}/logo/upload-url`,
     { contentType: file.type }
   );
   const { uploadUrl, fileKey } = urlRes.data;
 
-  // 2. Upload to S3/R2 (Use fetch to ensure NO extra headers are sent, as S3 signatures are strict)
-  const uploadResponse = await fetch(uploadUrl, {
-    method: 'PUT',
-    body: file,
+  // 2. Upload to S3/R2 (Use a clean axios call to avoid global interceptors/headers)
+  const uploadResponse = await axios.put(uploadUrl, file, {
     headers: {
       'Content-Type': file.type
     }
   });
 
-  if (!uploadResponse.ok) {
+  if (uploadResponse.status < 200 || uploadResponse.status >= 300) {
     throw new Error('Failed to upload image to storage');
   }
 
@@ -407,16 +411,16 @@ export const fetchFullMenu = async (restaurantId: string): Promise<{ categories:
   const response = await client.get(`catalog/restaurants/${restaurantId}/menu`);
   const data = response.data.data || response.data;
   const menus = Array.isArray(data.menus) ? data.menus : [];
-  
+
   // Sort menus by displayOrder
   const sortedMenus = [...menus].sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0));
-  
+
   const categories: MenuCategory[] = sortedMenus.map((m: any) => ({
     id: m.menuId || m.id,
     name: m.name
   }));
-  
-  const items: MenuItem[] = sortedMenus.flatMap((m: any) => 
+
+  const items: MenuItem[] = sortedMenus.flatMap((m: any) =>
     (m.items || []).map((item: any) => ({
       ...item,
       menuId: m.menuId || m.id,
@@ -425,7 +429,7 @@ export const fetchFullMenu = async (restaurantId: string): Promise<{ categories:
       isVeg: parseBoolean(item.isVegetarian ?? item.isVeg ?? true)
     }))
   );
-  
+
   return { categories, items };
 };
 
@@ -437,10 +441,10 @@ export const toggleItemAvailability = async (itemId: string, isAvailable: boolea
 };
 
 export const updateRestaurantAvailability = async (status: boolean): Promise<any> => {
-  const response = await client.put('/restaurants/me/availability', { 
+  const response = await client.put('/restaurants/me/availability', {
     isAcceptingOrders: status,
     isAvailable: status,
-    isActive: status 
+    isActive: status
   });
   return response.data;
 };

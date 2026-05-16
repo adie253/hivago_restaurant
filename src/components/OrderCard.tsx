@@ -6,6 +6,7 @@ import pickup_icon from '../assets/pickup_icon.svg';
 import order_preparing_man from '../assets/order_preparing_man.svg';
 import ready_to_pickup from '../assets/ready_to_pickup.svg';
 import { useToast } from '../context/ToastContext';
+import TimelineModal from './TimelineModal';
 
 interface OrderCardProps {
   order: Order;
@@ -23,6 +24,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
   const [selectedPrepTime, setSelectedPrepTime] = useState(25);
   const [deliveryPartner, setDeliveryPartner] = useState<'HIVAGO' | 'RESTAURANT'>('HIVAGO');
   const [deliveryCodes, setDeliveryCodes] = useState<{ pickupCode: string | null, dropCode: string | null } | null>(null);
+  const [showTimeline, setShowTimeline] = useState(false);
   const fetchedIdsRef = React.useRef<Set<string>>(new Set());
 
   const calculateTimeLeft = () => {
@@ -323,7 +325,12 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                 <p className="mt-1.5 text-sm font-bold text-slate-500">{order.address} (&lt;1 km, 1 mins away)</p>
                 <p className="mt-6 text-[11px] font-bold uppercase tracking-widest text-slate-300">Placed: {formatRelativeTime(order.createdAt)}</p>
                 
-                <button className="mt-8 text-sm font-bold text-blue-600 hover:underline">Timeline</button>
+                <button 
+                  onClick={() => setShowTimeline(true)}
+                  className="mt-8 text-sm font-bold text-blue-600 hover:underline"
+                >
+                  Timeline
+                </button>
               </div>
             </div>
           </div>
@@ -411,7 +418,9 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                         </div>
                         <div className='text-start p-4'>
                            <h4 className="text-xl font-black text-[#6366F1]">Ready to Pickup</h4>
-                           <p className="mt-1 text-sm font-bold text-[#6366F1]/60">Nawaal is on the way.</p>
+                           <p className="mt-1 text-sm font-bold text-[#6366F1]/60">
+                             {order.riderName ? `${order.riderName} is on the way.` : 'A rider will be assigned soon.'}
+                           </p>
                         </div>
                     </div>
 
@@ -423,38 +432,32 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                                   {order.riderName?.split(' ').map(n => n[0]).join('') || 'RD'}
                               </div>
                               <div className="flex-1">
-                                  <p className="text-sm font-black text-slate-900">{order.riderName || 'Rider Assigned'}</p>
-                                  <p className="text-xs font-bold text-emerald-500">is on the way</p>
+                                  <p className="text-sm font-black text-slate-900">{order.riderName || 'Rider assignment in progress'}</p>
+                                  {order.riderName && <p className="text-xs font-bold text-emerald-500">is on the way</p>}
                               </div>
                           </div>
                           <div className="mt-5 flex flex-col gap-4">
-                              <div className="flex items-center justify-between">
-                                  <div className="flex gap-2">
-                                      <button className="flex items-center gap-1.5 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-black uppercase tracking-tight text-[#AD221F] hover:bg-slate-100">
-                                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" strokeWidth="2.5"/></svg>
-                                          Call
-                                      </button>
-                                      <div className="flex items-center gap-1.5 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-black uppercase tracking-tight text-slate-600">
-                                          OTP: {order.otp || '5997'}
-                                      </div>
-                                  </div>
-                                  <button className="flex items-center gap-1.5 text-xs font-bold text-[#6366F1] hover:underline px-2 py-1">
-                                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" strokeWidth="2"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" strokeWidth="2"/></svg>
-                                      Track location
-                                  </button>
-                              </div>
+                            {order.riderName && (
+                              <button className="flex items-center gap-1.5 text-xs font-bold text-[#6366F1] hover:underline px-2 py-1">
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" strokeWidth="2" />
+                                  <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" strokeWidth="2" />
+                                </svg>
+                                Track location
+                              </button>
+                            )}
 
-                              {deliveryCodes?.pickupCode && (
-                                <div className="rounded-2xl border border-violet-100 bg-violet-50/50 p-4 text-center">
-                                  <p className="text-[9px] font-black uppercase tracking-widest text-violet-500 mb-1">Rider Verification Code</p>
-                                  <p className="text-3xl font-black tracking-[0.2em] text-violet-700">
-                                    {deliveryCodes.pickupCode}
-                                  </p>
-                                  <p className="mt-2 text-[9px] font-bold text-violet-600/60 leading-relaxed">
-                                    Confirm this code with the rider before handing over.
-                                  </p>
-                                </div>
-                              )}
+                            {deliveryCodes?.pickupCode && (
+                              <div className="rounded-2xl border border-violet-100 bg-violet-50/50 p-4 text-center">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-violet-500 mb-1">Rider Verification Code</p>
+                                <p className="text-3xl font-black tracking-[0.2em] text-violet-700">
+                                  {deliveryCodes.pickupCode}
+                                </p>
+                                <p className="mt-2 text-[9px] font-bold text-violet-600/60 leading-relaxed">
+                                  Confirm this code with the rider before handing over.
+                                </p>
+                              </div>
+                            )}
                           </div>
                       </div>
                     ) : (
@@ -658,11 +661,6 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                         </div>
                     </div>
 
-                    {order.pickupType === 'DELIVERY' && (
-                      <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm text-center">
-                          <p className="text-xs font-bold text-slate-500">5 riders nearby, assigning one soon</p>
-                      </div>
-                    )}
 
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2">
@@ -707,16 +705,31 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
           </div>
 
 
-          <div className="mt-8 flex">
-             <button className="flex-1 rounded-2xl border border-slate-100 bg-white py-4 text-[10px] font-black uppercase tracking-tight text-slate-500 transition-colors hover:bg-slate-50">
+          <div className="mt-8 flex gap-3">
+             <a 
+               href={`https://wa.me/919082220155?text=Need%20help%20with%20Order%20%23${order.orderNumber}`}
+               target="_blank"
+               rel="noopener noreferrer"
+               className="flex-1 text-center rounded-2xl border border-slate-100 bg-white py-4 text-[10px] font-black uppercase tracking-tight text-slate-500 transition-colors hover:bg-slate-50 hover:text-emerald-600"
+             >
                 Live order chat support
-             </button>
-             <button className="flex-1 rounded-2xl border border-slate-100 bg-white py-4 text-[10px] font-black uppercase tracking-tight text-slate-500 transition-colors hover:bg-slate-50">
+             </a>
+             <a 
+               href={`https://wa.me/919082220155?text=Issue%20with%20Order%20%23${order.orderNumber}`}
+               target="_blank"
+               rel="noopener noreferrer"
+               className="flex-1 text-center rounded-2xl border border-slate-100 bg-white py-4 text-[10px] font-black uppercase tracking-tight text-slate-500 transition-colors hover:bg-slate-50 hover:text-emerald-600"
+             >
                 Order help
-             </button>
+             </a>
           </div>
         </div>
       </div>
+      <TimelineModal 
+        isOpen={showTimeline} 
+        onClose={() => setShowTimeline(false)} 
+        order={order} 
+      />
     </article>
   );
 };

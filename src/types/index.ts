@@ -36,6 +36,11 @@ export interface Order {
   otp?: string;
   paymentStatus?: string;
   paymentStatusDisplay?: string;
+  confirmedAt?: string;
+  preparingAt?: string;
+  readyAt?: string;
+  pickedUpAt?: string;
+  deliveredAt?: string;
 }
 
 

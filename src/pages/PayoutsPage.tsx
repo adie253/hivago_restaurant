@@ -124,11 +124,9 @@ const PayoutsPage = () => {
     }, [user?.id, selectedOutletId, availableOutlets]);
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
+        return `₹${amount.toLocaleString('en-IN', {
             maximumFractionDigits: 2
-        }).format(amount);
+        })}`;
     };
 
     if (loading) return <PayoutsPageSkeleton />;
