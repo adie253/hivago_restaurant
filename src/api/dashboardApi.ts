@@ -463,7 +463,7 @@ export const fetchFullMenu = async (restaurantId: string): Promise<{ categories:
 
 
 export const toggleItemAvailability = async (itemId: string, isAvailable: boolean): Promise<void> => {
-  await client.patch(`/items/${itemId}/availability`, { isAvailable });
+  await client.patch(`/restaurant/items/${itemId}/availability`, { isAvailable });
 };
 
 export const updateRestaurantAvailability = async (status: boolean): Promise<any> => {
