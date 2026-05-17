@@ -66,6 +66,16 @@ export const useOrders = () => {
     if (lastOrderReceived) {
       console.log('Real-time order update received:', lastOrderReceived);
       
+      // Normalize the SignalR payload (mapping orderId -> id, totalAmount -> total)
+      const normalizedOrder = {
+        ...lastOrderReceived,
+        id: lastOrderReceived.id || lastOrderReceived.orderId,
+        total: lastOrderReceived.total ?? lastOrderReceived.totalAmount,
+      };
+      
+      // Instantly open the popup when the event triggers (ensuring it matches the sound play)
+      setNewOrder(normalizedOrder);
+      
       // Debounce the refresh to avoid hammering the server if many updates arrive
       const timer = setTimeout(() => {
         refreshOrders();

@@ -14,10 +14,15 @@ interface NewOrderOverlayProps {
 
 
 const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: NewOrderOverlayProps) => {
-  const [order, setOrder] = useState<Order>(initialOrder);
+  const [order, setOrder] = useState<Order>({
+    ...initialOrder,
+    items: initialOrder?.items || []
+  });
   const [loading, setLoading] = useState(false);
   const calculateTimeLeft = () => {
+    if (!order?.createdAt) return 600;
     const createdAt = new Date(order.createdAt).getTime();
+    if (isNaN(createdAt)) return 600;
     const now = Date.now();
     const tenMinutes = 10 * 60 * 1000;
     const diff = Math.max(0, Math.floor((createdAt + tenMinutes - now) / 1000));
@@ -41,9 +46,15 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
           setOrder(fullOrder);
         } catch (err) {
           console.error(`Failed to fetch details for new order ${initialOrder.id}`, err);
+          setOrder({
+            ...initialOrder,
+            items: initialOrder?.items || []
+          });
         } finally {
           setLoading(false);
         }
+      } else {
+        setOrder(initialOrder);
       }
     };
 
