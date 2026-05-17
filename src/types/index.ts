@@ -194,13 +194,148 @@ export interface RestaurantSettings {
   notifications: NotificationSettings;
 }
 
+
+export type PayoutLedgerStatus = 'Pending' | 'Batched' | 'PaidOut';
+export type PayoutStatus = 'Pending' | 'Processing' | 'Paid' | 'Failed' | 'OnHold';
+
+export interface PayoutLedgerDto {
+  orderId: string;
+  orderNumber: string;
+  orderAmount: number;
+  gstAmount: number;
+  commissionAmount: number;
+  commissionGst: number;
+  tdsAmount: number;
+  netAmount: number;
+  status: PayoutLedgerStatus;
+  createdAt: string;
+}
+
+export interface EarningsSummaryDto {
+  orderCount: number;
+  grossRevenue: number;
+  totalCommission: number;
+  totalTds: number;
+  netEarnings: number;
+  periodStart: string;
+  periodEnd: string;
+  ledgerEntries: PayoutLedgerDto[];
+}
+
+export interface PayoutDto {
+  id: string;
+  ownerId: string;
+  periodStart: string;
+  periodEnd: string;
+  orderCount: number;
+  grossOrderAmount: number;
+  totalGstCollected: number;
+  totalCommission: number;
+  totalCommissionGst: number;
+  totalTds: number;
+  netPayoutAmount: number;
+  status: PayoutStatus;
+  transactionReference?: string;
+  paidAt?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface PayoutDetailDto extends PayoutDto {
+  ledgerEntries: PayoutLedgerDto[];
+}
+
+export interface GstLineItemDto {
+  orderId: string;
+  orderNumber: string;
+  orderDate: string;
+  grossAmount: number;
+  gstOnOrder: number;
+  commission: number;
+  commissionGst: number;
+}
+
+export interface GstSummaryDto {
+  fromDate: string;
+  toDate: string;
+  orderCount: number;
+  grossOrderAmount: number;
+  totalGstOnOrders: number;
+  totalCommission: number;
+  totalCommissionGst: number;
+  lineItems: GstLineItemDto[];
+}
+
+export interface TdsLineItemDto {
+  orderId: string;
+  orderNumber: string;
+  orderDate: string;
+  grossAmount: number;
+  commission: number;
+  tdsDeducted: number;
+  netAfterTds: number;
+}
+
+export interface TdsSummaryDto {
+  fromDate: string;
+  toDate: string;
+  orderCount: number;
+  grossOrderAmount: number;
+  totalCommission: number;
+  totalTdsDeducted: number;
+  netAfterTds: number;
+  lineItems: TdsLineItemDto[];
+}
+
+// Admin Payout Types
+export interface RestaurantPayoutSummary {
+  pendingCount: number;
+  totalPendingAmount: number;
+  failedAmount: number;
+  onHoldCount: number;
+  onHoldAmount: number;
+  platformProfit: number;
+  nextAutoRunAtUtc: string;
+  lastAutoRun?: {
+    atUtc: string;
+    restaurantCount: number;
+    totalAmount: number;
+    totalPaid: number;
+  };
+}
+
+export interface RestaurantPayoutRow {
+  payoutId: string;
+  ownerId: string;
+  displayName: string;
+  orderCount: number;
+  gmv: number;
+  netPayable: number;
+  status: PayoutStatus;
+  statusNote?: string;
+  cycleStart: string;
+  cycleEnd: string;
+  createdAtUtc: string;
+  paidAtUtc?: string;
+  transactionReference?: string;
+}
+
+export interface RestaurantPayoutsPagedResult {
+  items: RestaurantPayoutRow[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+// Keep PayoutCycle and PayoutSummary for backward compatibility during transition if needed
+// but mark them as deprecated or update them to wrap the new types
 export interface PayoutCycle {
   id: string;
   cycleRange: string;
   payoutDate: string;
   ordersCount: number;
   amount: number;
-  status: 'PAID' | 'PENDING' | 'UPCOMING';
+  status: 'PAID' | 'PENDING' | 'UPCOMING' | string;
   utr?: string;
   restaurantName?: string;
 }

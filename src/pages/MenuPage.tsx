@@ -154,14 +154,14 @@ const MenuPage = () => {
         {/* Header Section */}
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-slate-900">Menu Management</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Menu Management</h1>
             <p className="mt-1.5 text-base font-bold text-slate-400">
               {items.length} items in All Items
             </p>
           </div>
           <button 
             onClick={handleAddNewItem}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-red-100 transition-all hover:bg-brand-700 hover:shadow-2xl active:scale-95"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-3.5 text-sm font-bold text-white shadow-xl shadow-red-100 transition-all hover:bg-brand-700 hover:shadow-2xl active:scale-95"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />

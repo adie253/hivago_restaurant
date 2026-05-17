@@ -37,7 +37,7 @@ const CategorySidebar = ({ categories, activeCategoryId, onSelectCategory, onDel
   return (
     <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
       <div className="flex items-center justify-between px-2 pb-6">
-        <h3 className="text-xl font-black tracking-tight text-slate-900">Categories</h3>
+        <h3 className="text-xl font-bold tracking-tight text-slate-900">Categories</h3>
         {onCreateCategory && !isAdding && (
           <button 
             onClick={() => setIsAdding(true)}
@@ -67,13 +67,13 @@ const CategorySidebar = ({ categories, activeCategoryId, onSelectCategory, onDel
               <button 
                 onClick={handleCreate}
                 disabled={creating || !newName.trim()}
-                className="flex-1 rounded-xl bg-brand-600 py-2 text-xs font-black text-white disabled:opacity-50"
+                className="flex-1 rounded-xl bg-brand-600 py-2 text-xs font-bold text-white disabled:opacity-50"
               >
                 {creating ? '...' : 'ADD'}
               </button>
               <button 
                 onClick={() => { setIsAdding(false); setNewName(''); }}
-                className="flex-1 rounded-xl bg-slate-100 py-2 text-xs font-black text-slate-500"
+                className="flex-1 rounded-xl bg-slate-100 py-2 text-xs font-bold text-slate-500"
               >
                 CANCEL
               </button>

@@ -62,7 +62,7 @@ const DeliverySettingsForm = ({ settings: initialSettings, onSave, saving }: Del
             <p className="text-sm font-bold text-slate-900">Pickup orders</p>
             <p className="text-xs font-bold text-slate-400">Contact Hivago support to change this setting.</p>
           </div>
-          <div className={`px-5 py-2.5 rounded-2xl text-sm font-black transition-all ${settings.acceptsPickup ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+          <div className={`px-5 py-2.5 rounded-2xl text-sm font-bold transition-all ${settings.acceptsPickup ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
             {settings.acceptsPickup ? 'ENABLED' : 'DISABLED'}
           </div>
         </div>

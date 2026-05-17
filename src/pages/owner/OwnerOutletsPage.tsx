@@ -24,7 +24,7 @@ const TimeOffStatus = ({ activeTimeOff, onReopen }: { activeTimeOff?: any; onReo
           e.stopPropagation();
           onReopen();
         }}
-        className="text-[9px] font-black text-amber-600 hover:text-emerald-600 uppercase tracking-widest transition-colors"
+        className="text-[9px] font-bold text-amber-600 hover:text-emerald-600 uppercase tracking-widest transition-colors"
       >
         Reopen
       </button>
@@ -88,7 +88,7 @@ const OutletCard = ({ outlet, onSwitch, onPause }: { outlet: any; onSwitch: (id:
                   title="Pause Restaurant"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span className="text-[9px] font-black uppercase tracking-tighter opacity-0 group-hover/btn:opacity-100 transition-opacity">Pause</span>
+                  <span className="text-[9px] font-bold uppercase tracking-tighter opacity-0 group-hover/btn:opacity-100 transition-opacity">Pause</span>
                 </button>
               </div>
             </div>

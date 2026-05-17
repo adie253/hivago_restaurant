@@ -176,7 +176,7 @@ const TimeOffModal: React.FC<TimeOffModalProps> = ({ outletId, outletName, isOpe
                   <div key={t.id} className={`p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${t.isActive ? 'border-amber-200 bg-amber-50/50' : 'border-slate-50 bg-white'}`}>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        {t.isActive && <span className="px-1.5 py-0.5 rounded bg-amber-500 text-white text-[8px] font-black uppercase tracking-widest animate-pulse">Active Now</span>}
+                        {t.isActive && <span className="px-1.5 py-0.5 rounded bg-amber-500 text-white text-[8px] font-bold uppercase tracking-widest animate-pulse">Active Now</span>}
                         <p className="text-[11px] font-bold text-slate-700 truncate">
                           {toDisplayFormat(t.startsAtUtc)} — {toDisplayFormat(t.endsAtUtc)}
                         </p>

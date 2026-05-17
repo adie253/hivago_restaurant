@@ -313,16 +313,22 @@ export const changePassword = async (currentPassword: string, newPassword: strin
 // Actually, I'll keep the legacy path until requested otherwise, but spec didn't mention logo.
 export const uploadRestaurantLogo = async (restaurantId: string, file: File): Promise<{ logoUrl: string }> => {
   // 1. Get upload URL
-  const urlRes = await client.post<{ uploadUrl: string, fileKey: string }>(
+  const urlRes = await client.post<any>(
     `/users/restaurants/${restaurantId}/logo/upload-url`,
-    { contentType: file.type }
+    { contentType: 'image/jpeg' }
   );
-  const { uploadUrl, fileKey } = urlRes.data;
+  
+  const responseData = urlRes.data.data || urlRes.data;
+  const { uploadUrl, fileKey } = responseData;
+
+  console.log('File to upload:', file);
+  console.log('File Name:', file.name);
+  console.log('Upload URL:', uploadUrl);
 
   // 2. Upload to S3/R2 (Use a clean axios call to avoid global interceptors/headers)
   const uploadResponse = await axios.put(uploadUrl, file, {
     headers: {
-      'Content-Type': file.type
+      'Content-Type': 'image/jpeg'
     }
   });
 
@@ -331,12 +337,12 @@ export const uploadRestaurantLogo = async (restaurantId: string, file: File): Pr
   }
 
   // 3. Confirm upload
-  const confirmRes = await client.patch<{ logoUrl: string }>(
+  const confirmRes = await client.patch<any>(
     `/users/restaurants/${restaurantId}/logo/confirm`,
     { fileKey }
   );
 
-  return confirmRes.data;
+  return confirmRes.data.data || confirmRes.data;
 };
 
 // Menu Item Operations
@@ -351,7 +357,7 @@ export const deleteMenuCategory = async (menuId: string): Promise<void> => {
 
 
 export const fetchMenuItemDetails = async (itemId: string): Promise<MenuItem> => {
-  const response = await client.get(`/restaurant/items/${itemId}`);
+  const response = await client.get(`/items/${itemId}`);
   const item = response.data.data || response.data;
   return {
     ...item,
@@ -371,16 +377,16 @@ export const updateMenuItem = async (itemId: string, payload: Partial<CreateMenu
 };
 
 export const createOptionGroup = async (itemId: string, payload: any): Promise<MenuItemOptionGroup> => {
-  const response = await client.post(`/restaurant/items/${itemId}/option-groups`, payload);
+  const response = await client.post(`/items/${itemId}/option-groups`, payload);
   return response.data.data || response.data;
 };
 
 export const updateOptionGroup = async (itemId: string, groupId: string, payload: any): Promise<void> => {
-  await client.put(`/restaurant/items/${itemId}/option-groups/${groupId}`, payload);
+  await client.put(`/items/${itemId}/option-groups/${groupId}`, payload);
 };
 
 export const deleteOptionGroup = async (itemId: string, groupId: string): Promise<void> => {
-  await client.delete(`/restaurant/items/${itemId}/option-groups/${groupId}`);
+  await client.delete(`/items/${itemId}/option-groups/${groupId}`);
 };
 
 export const createOption = async (groupId: string, payload: any): Promise<MenuItemOption> => {
@@ -396,15 +402,35 @@ export const deleteOption = async (optionId: string): Promise<void> => {
   await client.delete(`/restaurant/options/${optionId}`);
 };
 
-export const getMenuItemImageUploadUrl = async (itemId: string, contentType: string): Promise<{ uploadUrl: string, fileKey: string }> => {
-  const response = await client.get(`/restaurant/items/${itemId}/upload-url`, {
-    params: { contentType }
-  });
-  return response.data.data || response.data;
-};
+// Unified 3-step menu item image upload
+export const uploadMenuItemImage = async (itemId: string, file: File): Promise<{ imageUrl: string }> => {
+  // 1. Get upload URL
+  const urlRes = await client.post<any>(
+    `/catalog/menu-items/${itemId}/image/upload-url`,
+    { contentType: 'image/jpeg' }
+  );
+  
+  const responseData = urlRes.data.data || urlRes.data;
+  const { uploadUrl, fileKey } = responseData;
 
-export const confirmMenuItemImageUpload = async (itemId: string, fileKey: string): Promise<void> => {
-  await client.post(`/restaurant/items/${itemId}/confirm-upload`, { imageUrl: fileKey });
+  // 2. Upload directly to S3/R2 (bypassing interceptors)
+  const uploadResponse = await axios.put(uploadUrl, file, {
+    headers: {
+      'Content-Type': 'image/jpeg'
+    }
+  });
+
+  if (uploadResponse.status < 200 || uploadResponse.status >= 300) {
+    throw new Error('Failed to upload menu item image to storage');
+  }
+
+  // 3. Confirm upload
+  const confirmRes = await client.patch<any>(
+    `/catalog/menu-items/${itemId}/image/confirm`,
+    { fileKey }
+  );
+
+  return confirmRes.data.data || confirmRes.data;
 };
 
 export const fetchFullMenu = async (restaurantId: string): Promise<{ categories: MenuCategory[], items: MenuItem[] }> => {
@@ -437,7 +463,7 @@ export const fetchFullMenu = async (restaurantId: string): Promise<{ categories:
 
 
 export const toggleItemAvailability = async (itemId: string, isAvailable: boolean): Promise<void> => {
-  await client.patch(`/restaurant/items/${itemId}/availability`, { isAvailable });
+  await client.patch(`/items/${itemId}/availability`, { isAvailable });
 };
 
 export const updateRestaurantAvailability = async (status: boolean): Promise<any> => {

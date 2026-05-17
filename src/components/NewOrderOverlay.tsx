@@ -81,7 +81,7 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
       <div className="w-full h-auto max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-[0_32px_120px_rgba(15,23,42,0.3)] flex flex-col max-h-[95vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-8 py-5 pb-0 shrink-0">
-          <h2 className="text-xl font-black tracking-tight text-slate-900">1 new order</h2>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900">1 new order</h2>
           <div className="flex items-center gap-4">
             <button className="text-slate-400 hover:text-slate-600 transition-colors">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -116,7 +116,7 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
               </div>
 
               <div className="mt-6">
-                <h3 className="text-xl font-black tracking-tight text-slate-900">#{order.orderNumber}</h3>
+                <h3 className="text-xl font-bold tracking-tight text-slate-900">#{order.orderNumber}</h3>
                 <p className="mt-1 text-sm font-normal text-slate-400">
                   {order.address || 'Bandra East'} | {formatRelativeTime(order.createdAt)}
                 </p>
@@ -124,7 +124,7 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
 
               {order.customerNote && (
                 <div className="mt-6 rounded-2xl bg-[#FFFBEB] border-l-4 border-amber-400 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">Customer Note:</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700">Customer Note:</p>
                   <p className="mt-1.5 text-base font-bold text-amber-900 leading-relaxed italic">
                     "{order.customerNote || 'No note'}"
                   </p>

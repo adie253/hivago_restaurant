@@ -7,6 +7,7 @@ import SettingsPage from './pages/SettingsPage';
 import PayoutsPage from './pages/PayoutsPage';
 import OwnerOutletsPage from './pages/owner/OwnerOutletsPage';
 import AdminCreateRestaurantPage from './pages/admin/AdminCreateRestaurantPage';
+import AdminPayoutsPage from './pages/admin/AdminPayoutsPage';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -124,6 +125,15 @@ const App = () => {
                       element={
                         <RequireAuth allowedRoles={['admin', 'owner']}>
                           <AdminCreateRestaurantPage />
+                        </RequireAuth>
+                      }
+                    />
+
+                    <Route
+                      path="/admin/payouts"
+                      element={
+                        <RequireAuth allowedRoles={['admin']}>
+                          <AdminPayoutsPage />
                         </RequireAuth>
                       }
                     />

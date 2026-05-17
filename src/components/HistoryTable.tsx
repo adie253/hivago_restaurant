@@ -90,7 +90,7 @@ const StatusBadge = ({ status }: { status: Order['status'] }) => {
   };
 
   return (
-    <span className={`inline-flex items-center rounded-xl border px-3 py-1 text-[10px] font-black tracking-widest uppercase ${getStyles()}`}>
+    <span className={`inline-flex items-center rounded-xl border px-3 py-1 text-[10px] font-bold tracking-widest uppercase ${getStyles()}`}>
       {getLabel()}
     </span>
   );
@@ -102,7 +102,7 @@ const PaymentBadge = ({ order }: { order: Order }) => {
   const isPaid = order.paymentStatus?.toUpperCase() === 'PAID';
   
   return (
-    <span className={`inline-flex items-center rounded-xl border px-3 py-1 text-[10px] font-black tracking-widest uppercase ${
+    <span className={`inline-flex items-center rounded-xl border px-3 py-1 text-[10px] font-bold tracking-widest uppercase ${
       isPaid 
         ? 'bg-green-50 text-green-600 border-green-100' 
         : 'bg-yellow-50 text-yellow-700 border-yellow-100'

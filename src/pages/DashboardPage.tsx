@@ -121,7 +121,7 @@ const DashboardPage = () => {
   return (
     <div className="space-y-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black text-slate-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
         <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
           {['today', '7d', '30d'].map((r) => (
             <button

@@ -75,8 +75,19 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
 
   useEffect(() => {
     // Sync local state with prop when it changes (especially status)
+    // We must merge carefully to avoid overwriting rich details fetched by loadFullDetails with minimal summary data
     setOrder(prev => ({
+      ...prev,
       ...initialOrder,
+      customerPhone: initialOrder.customerPhone || prev.customerPhone,
+      address: initialOrder.address || prev.address,
+      customerName: initialOrder.customerName || prev.customerName,
+      customerNote: initialOrder.customerNote || prev.customerNote,
+      paymentStatus: initialOrder.paymentStatus || prev.paymentStatus,
+      paymentStatusDisplay: initialOrder.paymentStatusDisplay || prev.paymentStatusDisplay,
+      riderName: initialOrder.riderName || prev.riderName,
+      riderPhone: initialOrder.riderPhone || prev.riderPhone,
+      otp: initialOrder.otp || prev.otp,
       items: (initialOrder.items && initialOrder.items.length > 0) ? initialOrder.items : prev.items
     }));
 
@@ -137,7 +148,6 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     try {
       const updatedOrder = await readyOrder(order.id);
       setOrder(updatedOrder);
-      showToast(`Order #${order.orderNumber} marked as ready`, 'success');
       if (onUpdate) onUpdate(updatedOrder);
     } catch (err: any) {
       // Rollback
@@ -162,7 +172,6 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     try {
       const updatedOrder = await preparingOrder(order.id, selectedPrepTime, deliveryPartner);
       setOrder(updatedOrder);
-      showToast(`Order #${order.orderNumber} accepted`, 'success');
       if (onUpdate) onUpdate(updatedOrder);
     } catch (err: any) {
       // Rollback
@@ -194,7 +203,6 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
       setOrder(updatedOrder);
       setShowRejectReason(false);
       setRejectReason('');
-      showToast(`Order #${order.orderNumber} rejected`, 'info');
       if (onUpdate) onUpdate(updatedOrder);
     } catch (err: any) {
       // Rollback
@@ -248,7 +256,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
           </header>
 
           <div className="mt-8">
-            <h3 className="text-2xl font-black tracking-tight text-slate-900">#{order.orderNumber}</h3>
+            <h3 className="text-2xl font-bold tracking-tight text-slate-900">#{order.orderNumber}</h3>
             <p className="mt-1.5 text-sm font-semibold text-slate-400">
               {order.address} | {formatRelativeTime(order.createdAt)}
             </p>
@@ -261,22 +269,22 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
           )}
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-             <span className="flex items-center gap-2 rounded-xl bg-[#EBEDFF] px-4 py-2 text-[11px] font-black tracking-widest text-[#4C51BF]">
+             <span className="flex items-center gap-2 rounded-xl bg-[#EBEDFF] px-4 py-2 text-[11px] font-bold tracking-widest text-[#4C51BF]">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 KOT
              </span>
-             <span className="flex items-center gap-2 rounded-xl bg-[#EBEDFF] px-4 py-2 text-[11px] font-black tracking-widest text-[#4C51BF]">
+             <span className="flex items-center gap-2 rounded-xl bg-[#EBEDFF] px-4 py-2 text-[11px] font-bold tracking-widest text-[#4C51BF]">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 ORDER
              </span>
              {loading ? (
                 <div className="h-8 w-24 animate-pulse rounded-xl bg-slate-100"></div>
               ) : order.paymentStatus?.toUpperCase() === 'PAID' ? (
-                <span className="flex items-center gap-2 rounded-xl bg-[#DCFCE7] px-4 py-2 text-[11px] font-black tracking-widest text-[#15803D]">
+                <span className="flex items-center gap-2 rounded-xl bg-[#DCFCE7] px-4 py-2 text-[11px] font-bold tracking-widest text-[#15803D]">
                   PAID
                 </span>
               ) : (
-                <span className="flex items-center gap-2 rounded-xl bg-[#FEF9C3] px-4 py-2 text-[11px] font-black tracking-widest text-[#854D0E]">
+                <span className="flex items-center gap-2 rounded-xl bg-[#FEF9C3] px-4 py-2 text-[11px] font-bold tracking-widest text-[#854D0E]">
                   {order.paymentStatusDisplay?.toUpperCase() || order.paymentStatus?.toUpperCase() || 'UNPAID'}
                 </span>
               )}
@@ -288,7 +296,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
           </div>
 
           <div className="mt-10 space-y-5">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-300">Order Items</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-300">Order Items</p>
             {loading ? (
               <div className="flex animate-pulse flex-col gap-4">
                 <div className="flex gap-4">
@@ -318,11 +326,11 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
           <div className="mt- border-t border-slate-100 pt-10">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-lg font-black text-slate-900">
+                <p className="text-lg font-bold text-slate-900">
                   {order.customerPhone} · <button className="font-semibold text-blue-600 hover:underline">Call</button>
                 </p>
-                <p className="mt-1 text-sm font-bold text-slate-400 italic">1st order</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-500">{order.address} (&lt;1 km, 1 mins away)</p>
+
+                <p className="mt-1.5 text-sm font-bold text-slate-500">{order.address}</p>
                 <p className="mt-6 text-[11px] font-bold uppercase tracking-widest text-slate-300">Placed: {formatRelativeTime(order.createdAt)}</p>
                 
                 <button 
@@ -348,7 +356,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                              </div>
                         </div>
                         <div className='text-start p-4'>
-                           <h4 className="text-xl font-black text-[#3B82F6]">Picked up</h4>
+                           <h4 className="text-xl font-bold text-[#3B82F6]">Picked up</h4>
                            <p className="mt-1 text-sm font-bold text-[#3B82F6]/60">
                              {order.riderName?.split(' ')[0]} has picked up your order.
                            </p>
@@ -361,7 +369,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                                 {order.riderName?.split(' ').map(n => n[0]).join('') || 'RD'}
                             </div>
                             <div className="flex-1">
-                                <p className="text-sm font-black text-slate-900">{order.riderName || 'Rider Assigned'}</p>
+                                <p className="text-sm font-bold text-slate-900">{order.riderName || 'Rider Assigned'}</p>
                                 <p className="text-xs font-bold text-slate-400">has picked up your order</p>
                             </div>
                             <button className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:underline">
@@ -374,12 +382,12 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2">
                            <p className="text-sm font-bold text-slate-600">Total Bill</p>
-                           <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-500">
+                           <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-500">
                               <span className="h-3.5 w-3.5 rounded-full border border-emerald-500 flex items-center justify-center text-[8px]">✓</span>
                               Paid
                            </span>
                         </div>
-                        <p className="text-xl font-black text-slate-900">{formatCurrency(order.total)}</p>
+                        <p className="text-xl font-bold text-slate-900">{formatCurrency(order.total)}</p>
                     </div>
 
                     <div className="space-y-4">
@@ -389,7 +397,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-black text-[#1D915F]">Order was prepared in time</p>
+                                    <p className="text-sm font-bold text-[#1D915F]">Order was prepared in time</p>
                                     <p className="mt-0.5 text-xs font-bold text-[#1D915F]/70">Timely delivery to the customer</p>
                                 </div>
                             </div>
@@ -417,7 +425,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                              </div>
                         </div>
                         <div className='text-start p-4'>
-                           <h4 className="text-xl font-black text-[#6366F1]">Ready to Pickup</h4>
+                           <h4 className="text-xl font-bold text-[#6366F1]">Ready to Pickup</h4>
                            <p className="mt-1 text-sm font-bold text-[#6366F1]/60">
                              {order.riderName ? `${order.riderName} is on the way.` : 'A rider will be assigned soon.'}
                            </p>
@@ -432,7 +440,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                                   {order.riderName?.split(' ').map(n => n[0]).join('') || 'RD'}
                               </div>
                               <div className="flex-1">
-                                  <p className="text-sm font-black text-slate-900">{order.riderName || 'Rider assignment in progress'}</p>
+                                  <p className="text-sm font-bold text-slate-900">{order.riderName || 'Rider assignment in progress'}</p>
                                   {order.riderName && <p className="text-xs font-bold text-emerald-500">is on the way</p>}
                               </div>
                           </div>
@@ -449,8 +457,8 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
 
                             {deliveryCodes?.pickupCode && (
                               <div className="rounded-2xl border border-violet-100 bg-violet-50/50 p-4 text-center">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-violet-500 mb-1">Rider Verification Code</p>
-                                <p className="text-3xl font-black tracking-[0.2em] text-violet-700">
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-violet-500 mb-1">Rider Verification Code</p>
+                                <p className="text-3xl font-bold tracking-[0.2em] text-violet-700">
                                   {deliveryCodes.pickupCode}
                                 </p>
                                 <p className="mt-2 text-[9px] font-bold text-violet-600/60 leading-relaxed">
@@ -473,15 +481,15 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                            {loading ? (
                              <div className="h-4 w-12 animate-pulse rounded bg-slate-100"></div>
                            ) : order.paymentStatus?.toUpperCase() === 'PAID' ? (
-                             <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-500">
+                             <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-500">
                                 <span className="h-3.5 w-3.5 rounded-full border border-emerald-500 flex items-center justify-center text-[8px]">✓</span>
                                 Paid
                              </span>
                            ) : (
-                             <span className="text-[10px] font-black uppercase text-amber-600">{order.paymentStatusDisplay || 'Unpaid'}</span>
+                             <span className="text-[10px] font-bold uppercase text-amber-600">{order.paymentStatusDisplay || 'Unpaid'}</span>
                            )}
                         </div>
-                        <p className="text-2xl font-black text-slate-900">{formatCurrency(order.total)}</p>
+                        <p className="text-2xl font-bold text-slate-900">{formatCurrency(order.total)}</p>
                     </div>
 
                     <div className="rounded-3xl bg-[#E7FAF3] p-6 shadow-sm border border-[#D1F2E8]">
@@ -490,7 +498,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M5 13l4 4L19 7" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
                              </div>
                              <div>
-                                <p className="text-sm font-black text-[#1D915F]">Order was prepared in time</p>
+                                <p className="text-sm font-bold text-[#1D915F]">Order was prepared in time</p>
                                 <p className="mt-0.5 text-xs font-bold text-[#1D915F]/70">Timely delivery to the customer</p>
                              </div>
                         </div>
@@ -546,8 +554,8 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                             </div>
                             <div className='text-start p-4'>
                                <div className="flex items-center justify-between gap-4">
-                                 <h4 className="text-xl font-black text-amber-600">Pending</h4>
-                                 <div className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-sm font-black tracking-tight ${
+                                 <h4 className="text-xl font-bold text-amber-600">Pending</h4>
+                                 <div className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-sm font-bold tracking-tight ${
                                    timeLeft < 120 ? 'bg-red-500 text-white animate-pulse' : 'bg-amber-100 text-amber-700'
                                  }`}>
                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -613,15 +621,15 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                                {loading ? (
                                  <div className="h-4 w-12 animate-pulse rounded bg-slate-100"></div>
                                ) : order.paymentStatus?.toUpperCase() === 'PAID' ? (
-                                 <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-500">
+                                 <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-500">
                                     <span className="h-3.5 w-3.5 rounded-full border border-emerald-500 flex items-center justify-center text-[8px]">✓</span>
                                     Paid
                                  </span>
                                ) : (
-                                 <span className="text-[10px] font-black uppercase text-amber-600">{order.paymentStatusDisplay || 'Unpaid'}</span>
+                                 <span className="text-[10px] font-bold uppercase text-amber-600">{order.paymentStatusDisplay || 'Unpaid'}</span>
                                )}
                             </div>
-                            <p className="text-2xl font-black text-slate-900">{formatCurrency(order.total)}</p>
+                            <p className="text-2xl font-bold text-slate-900">{formatCurrency(order.total)}</p>
                         </div>
 
                         <div className="flex gap-3">
@@ -656,7 +664,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                            <img src={order_preparing_man} className="h-25 object-contain" alt="Preparing" />
                         </div>
                         <div className=' text-start p-4'>
-                          <h4 className="text-xl font-black text-[#4338CA]">Preparing</h4>
+                          <h4 className="text-xl font-bold text-[#4338CA]">Preparing</h4>
                         <p className="mt-1.5 text-sm font-bold text-[#4338CA]/60">The food is being prepared</p>
                         </div>
                     </div>
@@ -676,13 +684,13 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                              <span className="text-xs font-bold text-amber-600">{order.paymentStatusDisplay || 'Unpaid'}</span>
                            )}
                         </div>
-                        <p className="text-2xl font-black text-slate-900">{formatCurrency(order.total)}</p>
+                        <p className="text-2xl font-bold text-slate-900">{formatCurrency(order.total)}</p>
                     </div>
 
                     {deliveryCodes?.pickupCode && (
                       <div className="rounded-3xl border border-violet-100 bg-violet-50/50 p-5 text-center mb-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-violet-500 mb-1.5">Rider Verification Code</p>
-                        <p className="text-3xl font-black tracking-[0.2em] text-violet-700">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-violet-500 mb-1.5">Rider Verification Code</p>
+                        <p className="text-3xl font-bold tracking-[0.2em] text-violet-700">
                           {deliveryCodes.pickupCode}
                         </p>
                         <p className="mt-2 text-[10px] font-bold text-violet-600/60 leading-relaxed">
@@ -710,7 +718,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                href={`https://wa.me/919082220155?text=Need%20help%20with%20Order%20%23${order.orderNumber}`}
                target="_blank"
                rel="noopener noreferrer"
-               className="flex-1 text-center rounded-2xl border border-slate-100 bg-white py-4 text-[10px] font-black uppercase tracking-tight text-slate-500 transition-colors hover:bg-slate-50 hover:text-emerald-600"
+               className="flex-1 text-center rounded-2xl border border-slate-100 bg-white py-4 text-[10px] font-bold uppercase tracking-tight text-slate-500 transition-colors hover:bg-slate-50 hover:text-emerald-600"
              >
                 Live order chat support
              </a>
@@ -718,7 +726,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                href={`https://wa.me/919082220155?text=Issue%20with%20Order%20%23${order.orderNumber}`}
                target="_blank"
                rel="noopener noreferrer"
-               className="flex-1 text-center rounded-2xl border border-slate-100 bg-white py-4 text-[10px] font-black uppercase tracking-tight text-slate-500 transition-colors hover:bg-slate-50 hover:text-emerald-600"
+               className="flex-1 text-center rounded-2xl border border-slate-100 bg-white py-4 text-[10px] font-bold uppercase tracking-tight text-slate-500 transition-colors hover:bg-slate-50 hover:text-emerald-600"
              >
                 Order help
              </a>

@@ -212,7 +212,7 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
                 </svg>
               </div>
             </div>
-            <span className="text-sm font-black text-slate-300 uppercase letter-spacing-widest">to</span>
+            <span className="text-sm font-bold text-slate-300 uppercase letter-spacing-widest">to</span>
             <div 
               className="relative group cursor-pointer"
               onClick={(e) => {
@@ -260,7 +260,7 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
                     {!isClosed && (
                       <button
                         onClick={() => handleApplyToAll(dayName)}
-                        className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter bg-emerald-50 px-2 py-1.5 rounded-lg hover:bg-emerald-500 hover:text-white transition-all"
+                        className="text-[10px] font-bold text-emerald-600 uppercase tracking-tighter bg-emerald-50 px-2 py-1.5 rounded-lg hover:bg-emerald-500 hover:text-white transition-all"
                       >
                         Apply to all days
                       </button>
@@ -318,7 +318,7 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
                               </div>
                             </div>
 
-                            <span className="text-[10px] font-black text-slate-300 uppercase letter-spacing-widest">to</span>
+                            <span className="text-[10px] font-bold text-slate-300 uppercase letter-spacing-widest">to</span>
 
                             <div 
                               className="relative group cursor-pointer"
@@ -378,7 +378,7 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
                         <div className="flex h-7 w-7 items-center justify-center rounded-xl border-2 border-[#AD221F] text-[#AD221F] group-hover:bg-[#AD221F] group-hover:text-white transition-all">
                           <span className="text-xs font-bold">＋</span>
                         </div>
-                        <span className="text-[11px] font-black text-[#AD221F] uppercase tracking-wider">Add custom slot</span>
+                        <span className="text-[11px] font-bold text-[#AD221F] uppercase tracking-wider">Add custom slot</span>
                       </button>
                     )}
                   </div>

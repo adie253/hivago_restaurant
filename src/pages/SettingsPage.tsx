@@ -400,9 +400,19 @@ const SettingsPage = () => {
                 if (!user?.id) return;
                 setSavingSections(prev => ({ ...prev, logo: true }));
                 try {
-                    const { logoUrl } = await uploadRestaurantLogo(user.id, file);
-                    setSettings(prev => prev ? { ...prev, profile: { ...prev.profile, logoUrl } } : null);
-                    showToast('Logo updated successfully!', 'success');
+                    const response = await uploadRestaurantLogo(user.id, file);
+                    console.log('Upload response:', response);
+                    
+                    // The backend might return the URL as a string or an object with a different key
+                    const logoUrl = typeof response === 'string' ? response : (response.logoUrl || response.url || Object.values(response)[0]);
+                    
+                    if (logoUrl && typeof logoUrl === 'string') {
+                        setSettings(prev => prev ? { ...prev, profile: { ...prev.profile, logoUrl } } : null);
+                        showToast('Logo updated successfully!', 'success');
+                    } else {
+                        console.error('Could not find logoUrl in response:', response);
+                        showToast('Logo uploaded, but failed to refresh UI.', 'success');
+                    }
                 } catch (err) {
                     console.error('Logo upload failed:', err);
                     showToast('Failed to upload logo. Please try again.', 'error');

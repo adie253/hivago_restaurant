@@ -115,7 +115,7 @@ const TimelineModal = ({ isOpen, onClose, order }: TimelineModalProps) => {
             <div className="p-8">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900">Order Timeline</h3>
+                  <h3 className="text-xl font-bold text-slate-900">Order Timeline</h3>
                   <p className="text-sm font-bold text-slate-400">#{order.orderNumber}</p>
                 </div>
                 <button
@@ -159,13 +159,13 @@ const TimelineModal = ({ isOpen, onClose, order }: TimelineModalProps) => {
 
                       <div className="flex flex-col pt-1 flex-1">
                         <div className="flex items-center justify-between gap-4">
-                          <span className={`text-sm font-black transition-colors duration-500 ${
+                          <span className={`text-sm font-bold transition-colors duration-500 ${
                             isCompleted ? 'text-slate-900' : 'text-slate-400'
                           }`}>
                             {event.label}
                           </span>
                           {eventTime && (
-                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded whitespace-nowrap">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded whitespace-nowrap">
                               {formatRelativeTime(String(eventTime))}
                             </span>
                           )}
@@ -188,7 +188,7 @@ const TimelineModal = ({ isOpen, onClose, order }: TimelineModalProps) => {
                       </svg>
                     </div>
                     <div className="flex flex-col pt-1">
-                      <span className="text-sm font-black text-rose-600">{order.status === 'REJECTED' ? 'Order Rejected' : 'Order Cancelled'}</span>
+                      <span className="text-sm font-bold text-rose-600">{order.status === 'REJECTED' ? 'Order Rejected' : 'Order Cancelled'}</span>
                       <p className="mt-0.5 text-xs font-bold text-rose-400">The order was terminated and will not be processed further.</p>
                     </div>
                   </div>

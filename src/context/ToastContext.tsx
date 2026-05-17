@@ -25,9 +25,14 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const showToast = useCallback((message: string, type: ToastType = 'info', duration: number = 4000) => {
-    const id = Math.random().toString(36).substring(2, 9);
+    // Deduplication: Don't show same message twice within 2 seconds
+    const now = Date.now();
+    const isDuplicate = toasts.some(t => t.message === message && (now - Number(t.id.split('-')[0])) < 2000);
+    if (isDuplicate) return;
+
+    const id = `${now}-${Math.random().toString(36).substring(2, 9)}`;
     setToasts((prev) => [...prev, { id, message, type, duration }]);
-  }, []);
+  }, [toasts]);
 
   return (
     <ToastContext.Provider value={{ showToast, removeToast }}>
@@ -109,7 +114,7 @@ const ToastItem = ({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
       <div className="group relative overflow-hidden rounded-[28px] bg-white/95 backdrop-blur-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-slate-100/50 flex items-center gap-4 transition-transform hover:scale-[1.02] active:scale-[0.98]">
         {getIcon()}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-black text-slate-800 leading-snug tracking-tight">
+          <p className="text-sm font-bold text-slate-800 leading-snug tracking-tight">
             {toast.message}
           </p>
         </div>
