@@ -403,8 +403,8 @@ const SettingsPage = () => {
                     const response = await uploadRestaurantLogo(user.id, file);
                     console.log('Upload response:', response);
                     
-                    // The backend might return the URL as a string or an object with a different key
-                    const logoUrl = typeof response === 'string' ? response : (response.logoUrl || response.url || Object.values(response)[0]);
+                    const responseAny = response as any;
+                    const logoUrl = typeof responseAny === 'string' ? responseAny : (responseAny.logoUrl || responseAny.url || Object.values(responseAny)[0]);
                     
                     if (logoUrl && typeof logoUrl === 'string') {
                         setSettings(prev => prev ? { ...prev, profile: { ...prev.profile, logoUrl } } : null);
