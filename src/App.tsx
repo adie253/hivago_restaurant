@@ -123,7 +123,7 @@ const App = () => {
                     <Route
                       path="/admin/create-restaurant"
                       element={
-                        <RequireAuth allowedRoles={['admin', 'owner']}>
+                        <RequireAuth allowedRoles={['admin']}>
                           <AdminCreateRestaurantPage />
                         </RequireAuth>
                       }

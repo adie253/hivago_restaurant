@@ -296,10 +296,14 @@ const SettingsPage = () => {
                     <label className="text-sm font-bold text-slate-900">Average Preparation Time</label>
                     <div className="relative">
                       <input
-                        type="number"
+                        type="text"
                         name="avgPrepTimeMins"
+                        inputMode="numeric"
                         value={settings.operations.avgPrepTimeMins}
-                        onChange={handleOperationsChange}
+                        onChange={e => {
+                          e.target.value = e.target.value.replace(/\D/g, '');
+                          handleOperationsChange(e);
+                        }}
                         className="w-full rounded-xl bg-white border border-transparent px-5 py-4 text-base font-bold text-slate-900 outline-none transition-all focus:border-slate-200 focus:shadow-sm"
                       />
                       <span className="absolute right-5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">min</span>
@@ -311,10 +315,16 @@ const SettingsPage = () => {
                     <div className="relative">
                       <span className="absolute left-5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">₹</span>
                       <input
-                        type="number"
+                        type="text"
                         name="minOrderAmount"
+                        inputMode="decimal"
                         value={settings.operations.minOrderAmount}
-                        onChange={handleOperationsChange}
+                        onChange={e => {
+                          const val = e.target.value.replace(/[^0-9.]/g, '');
+                          const parts = val.split('.');
+                          e.target.value = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
+                          handleOperationsChange(e);
+                        }}
                         className="w-full rounded-xl bg-white border border-transparent pl-9 pr-5 py-4 text-base font-bold text-slate-900 outline-none transition-all focus:border-slate-200 focus:shadow-sm"
                       />
                     </div>

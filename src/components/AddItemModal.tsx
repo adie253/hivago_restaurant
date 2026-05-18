@@ -37,10 +37,10 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [basePrice, setBasePrice] = useState<number | ''>('');
-  const [displayOrder, setDisplayOrder] = useState<number>(0);
+  const [basePrice, setBasePrice] = useState<string>('');
+  const [displayOrder, setDisplayOrder] = useState<string>('0');
   const [isVegetarian, setIsVegetarian] = useState(true);
-  const [preparationTimeMinutes, setPreparationTimeMinutes] = useState<number | ''>('');
+  const [preparationTimeMinutes, setPreparationTimeMinutes] = useState<string>('');
   
   const [tagsInput, setTagsInput] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -70,10 +70,10 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
           setMenuId(data.menuId || categories[0]?.id || '');
           setName(data.name || '');
           setDescription(data.description || '');
-          setBasePrice(data.price || 0);
-          setDisplayOrder(data.displayOrder || 0);
+          setBasePrice(data.price ? String(data.price) : '');
+          setDisplayOrder(String(data.displayOrder || 0));
           setIsVegetarian(data.isVegetarian ?? true);
-          setPreparationTimeMinutes(data.preparationTimeMinutes || 0);
+          setPreparationTimeMinutes(data.preparationTimeMinutes ? String(data.preparationTimeMinutes) : '');
           setTagsInput((data.tags || []).join(', '));
           setImagePreview((data.imageUrl || null) as any);
           
@@ -106,7 +106,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
       setName('');
       setDescription('');
       setBasePrice('');
-      setDisplayOrder(0);
+      setDisplayOrder('0');
       setIsVegetarian(true);
       setPreparationTimeMinutes('');
       setTagsInput('');
@@ -240,7 +240,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
           description,
           basePrice: Number(basePrice) || 0,
           imageUrl: (imagePreview && !imagePreview.startsWith('data:')) ? imagePreview : "", 
-          displayOrder,
+          displayOrder: Number(displayOrder) || 0,
           isVegetarian,
           preparationTimeMinutes: Number(preparationTimeMinutes) || 0,
           options: sanitizedOptions,
@@ -255,7 +255,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
           description,
           basePrice: Number(basePrice) || 0,
           imageUrl: (imagePreview && !imagePreview.startsWith('data:')) ? imagePreview : undefined, 
-          displayOrder,
+          displayOrder: Number(displayOrder) || 0,
           isVegetarian,
           preparationTimeMinutes: Number(preparationTimeMinutes) || 0,
           options,
@@ -392,10 +392,16 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
                     <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Base Price (₹)</label>
                     <input
                       required
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       placeholder="250"
                       value={basePrice}
-                      onChange={e => setBasePrice(e.target.value === '' ? '' : Number(e.target.value))}
+                      onChange={e => {
+                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                        const parts = val.split('.');
+                        const cleaned = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
+                        setBasePrice(cleaned);
+                      }}
                       className="w-full rounded-xl border-2 border-slate-50 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand-500/10 focus:bg-white focus:ring-4 focus:ring-brand-500/5"
                     />
                   </div>
@@ -424,20 +430,22 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Prep Time (mins)</label>
                         <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             placeholder="15"
                             value={preparationTimeMinutes}
-                            onChange={e => setPreparationTimeMinutes(e.target.value === '' ? '' : Number(e.target.value))}
+                            onChange={e => setPreparationTimeMinutes(e.target.value.replace(/\D/g, ''))}
                             className="w-full rounded-xl border-2 border-slate-50 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand-500/10 focus:bg-white focus:ring-4 focus:ring-brand-500/5"
                         />
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">Display Order</label>
                         <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             placeholder="0"
                             value={displayOrder}
-                            onChange={e => setDisplayOrder(Number(e.target.value))}
+                            onChange={e => setDisplayOrder(e.target.value.replace(/\D/g, ''))}
                             className="w-full rounded-xl border-2 border-slate-50 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand-500/10 focus:bg-white focus:ring-4 focus:ring-brand-500/5"
                         />
                     </div>
@@ -577,17 +585,19 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
                                 <div className="flex items-center gap-2">
                                     <span className="text-[9px] font-bold text-slate-400 uppercase">Min</span>
                                     <input 
-                                        type="number" 
+                                        type="text" 
+                                        inputMode="numeric"
                                         className="w-8 bg-transparent text-[10px] font-bold text-slate-900 outline-none" 
                                         value={group.minSelections}
-                                        onChange={e => handleUpdateOptionGroup(gIndex, 'minSelections', Number(e.target.value))}
+                                        onChange={e => handleUpdateOptionGroup(gIndex, 'minSelections', Number(e.target.value.replace(/\D/g, '')) || 0)}
                                     />
                                     <span className="text-[9px] font-bold text-slate-400 uppercase">Max</span>
                                     <input 
-                                        type="number" 
+                                        type="text" 
+                                        inputMode="numeric"
                                         className="w-8 bg-transparent text-[10px] font-bold text-slate-900 outline-none" 
                                         value={group.maxSelections}
-                                        onChange={e => handleUpdateOptionGroup(gIndex, 'maxSelections', Number(e.target.value))}
+                                        onChange={e => handleUpdateOptionGroup(gIndex, 'maxSelections', Number(e.target.value.replace(/\D/g, '')) || 0)}
                                     />
                                 </div>
                             </div>
@@ -606,9 +616,15 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
                                         <div className="flex w-14 items-center rounded-lg bg-white px-2 py-1.5">
                                             <span className="text-[9px] font-bold text-slate-300 mr-0.5">₹</span>
                                             <input
-                                                type="number"
+                                                type="text"
+                                                inputMode="decimal"
                                                 value={option.additionalPrice}
-                                                onChange={e => updateGroupOption(gIndex, oIndex, 'additionalPrice', Number(e.target.value))}
+                                                onChange={e => {
+                                                  const val = e.target.value.replace(/[^0-9.]/g, '');
+                                                  const parts = val.split('.');
+                                                  const cleaned = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
+                                                  updateGroupOption(gIndex, oIndex, 'additionalPrice', cleaned === '' ? 0 : Number(cleaned));
+                                                }}
                                                 className="w-full bg-transparent text-xs font-bold text-slate-900 outline-none"
                                             />
                                         </div>
@@ -677,9 +693,15 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
                         <div className="flex w-16 items-center rounded-lg bg-white px-2 py-1.5">
                           <span className="text-[9px] font-bold text-slate-300 mr-0.5">₹</span>
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             value={option.additionalPrice}
-                            onChange={e => handleUpdateOption(index, 'additionalPrice', Number(e.target.value))}
+                            onChange={e => {
+                              const val = e.target.value.replace(/[^0-9.]/g, '');
+                              const parts = val.split('.');
+                              const cleaned = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
+                              handleUpdateOption(index, 'additionalPrice', cleaned === '' ? 0 : Number(cleaned));
+                            }}
                             className="w-full bg-transparent text-xs font-bold text-slate-900 outline-none"
                           />
                         </div>

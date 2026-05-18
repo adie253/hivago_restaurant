@@ -40,7 +40,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [accessTokenExpiresAt, setAccessTokenExpiresAt] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isRemembered, setIsRemembered] = useState(false);
 
   const [showSessionWarning, setShowSessionWarning] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -55,32 +54,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const savedUser = storage.getItem(USER_KEY);
 
     const isExpired = savedExpiresAt && new Date(savedExpiresAt).getTime() <= Date.now();
+    const isSessionRemembered = localStorage.getItem(ACCESS_TOKEN_KEY) !== null;
 
     if (savedAccessToken && !isExpired) {
       console.log(`[Auth] Restoring session from ${storage === localStorage ? 'localStorage' : 'sessionStorage'}...`);
       setAccessToken(savedAccessToken);
-      client.defaults.headers.common.Authorization = `Bearer ${savedAccessToken}`;
-      setIsRemembered(storage === localStorage);
-    } else if (isExpired) {
-      console.log('[Auth] Saved session has expired, clearing...');
-      [localStorage, sessionStorage].forEach(s => {
-        s.removeItem(ACCESS_TOKEN_KEY);
-        s.removeItem(REFRESH_TOKEN_KEY);
-        s.removeItem(`${ACCESS_TOKEN_KEY}_expires_at`);
-        s.removeItem(USER_KEY);
-      });
-    }
-    if (savedRefreshToken) {
       setRefreshToken(savedRefreshToken);
-    }
-    if (savedExpiresAt) {
       setAccessTokenExpiresAt(savedExpiresAt);
-    }
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        setUser(null);
+      client.defaults.headers.common.Authorization = `Bearer ${savedAccessToken}`;
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch {
+          setUser(null);
+        }
+      }
+    } else if (savedAccessToken && isExpired && savedRefreshToken) {
+      // Access token is expired, but we have a refresh token! Attempt a silent refresh immediately on mount.
+      console.log('[Auth] Access token is expired, attempting silent refresh on mount...');
+      setRefreshToken(savedRefreshToken);
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch {
+          // ignore
+        }
+      }
+
+      const tryRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+          const response = await refreshAuthToken(savedRefreshToken);
+          setAccessToken(response.accessToken);
+          setRefreshToken(response.refreshToken);
+          setAccessTokenExpiresAt(response.accessTokenExpiresAt);
+          
+          const targetStorage = isSessionRemembered ? localStorage : sessionStorage;
+          targetStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
+          targetStorage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
+          targetStorage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
+          
+          client.defaults.headers.common.Authorization = `Bearer ${response.accessToken}`;
+          console.log('[Auth] Silent refresh on mount succeeded, session restored.');
+        } catch (err) {
+          console.error('[Auth] Silent refresh on mount failed, clearing session...', err);
+          logout();
+        } finally {
+          setIsRefreshing(false);
+        }
+      };
+      
+      tryRefresh();
+    } else {
+      if (savedAccessToken) {
+        console.log('[Auth] Saved session expired without a valid refresh path, clearing...');
+        logout();
       }
     }
   }, []);
@@ -109,16 +137,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const now = Date.now();
       const timeRemaining = expiresAt - now;
 
+      // Check if session is stored in localStorage (Remember Me checked)
+      const isSessionRemembered = localStorage.getItem(ACCESS_TOKEN_KEY) !== null;
+
       if (timeRemaining <= 0) {
         // Token has expired
-        logout();
-        setShowSessionWarning(false);
-        sessionStorage.setItem('hivago_session_expired', 'true');
+        if (isSessionRemembered && refreshToken) {
+          // Silently refresh for remembered users instead of logging out
+          if (!isRefreshing) {
+            console.log('[Auth] Access token expired, performing silent background refresh...');
+            refreshSession();
+          }
+        } else {
+          logout();
+          setShowSessionWarning(false);
+          sessionStorage.setItem('hivago_session_expired', 'true');
+        }
       } else if (timeRemaining <= WARNING_THRESHOLD) {
         // Soon to expire
-        if (isRemembered) {
+        if (isSessionRemembered) {
           // If remembered, refresh automatically without showing popup
           if (!isRefreshing) {
+            console.log('[Auth] Access token near expiration, performing automatic refresh...');
             refreshSession();
           }
         } else {
@@ -133,7 +173,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const interval = setInterval(checkExpiration, 30000); // Check every 30 seconds
 
     return () => clearInterval(interval);
-  }, [accessTokenExpiresAt]);
+  }, [accessTokenExpiresAt, refreshToken, isRefreshing]);
 
   const login = async (credentials: LoginCredentials, role: AuthRole, remember: boolean = false) => {
     console.log(`[Auth] Attempting ${role} login for ${credentials.email} (Remember: ${remember})...`);
@@ -173,7 +213,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       ownerEmail: role === 'owner' ? (profileData?.email || credentials.email) : undefined
     };
     setUser(newUser);
-    setIsRemembered(remember);
 
     const storage = remember ? localStorage : sessionStorage;
     storage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
@@ -255,7 +294,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRefreshToken(response.refreshToken);
       setAccessTokenExpiresAt(response.accessTokenExpiresAt);
       
-      const storage = isRemembered ? localStorage : sessionStorage;
+      const isSessionRemembered = localStorage.getItem(ACCESS_TOKEN_KEY) !== null;
+      const storage = isSessionRemembered ? localStorage : sessionStorage;
       storage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
       storage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
       storage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
@@ -276,7 +316,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRefreshToken(null);
     setAccessTokenExpiresAt(null);
     setUser(null);
-    setIsRemembered(false);
     
     // Clear both storages to be safe
     [localStorage, sessionStorage].forEach(storage => {
