@@ -23,9 +23,10 @@ interface AddItemModalProps {
   categories: MenuCategory[];
   onItemAdded: () => void;
   editItemId?: string | null;
+  onCategoryCreated?: () => void;
 }
 
-const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories, onItemAdded, editItemId }) => {
+const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories, onItemAdded, editItemId, onCategoryCreated }) => {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(false);
   const { showToast } = useToast();
@@ -142,6 +143,9 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
       setMenuId(newCat.id);
       setIsAddingCategory(false);
       setNewCategoryName('');
+      if (onCategoryCreated) {
+        await onCategoryCreated();
+      }
     } catch (err: any) {
       console.error(err);
       showToast(err?.response?.data?.message || err.message || 'Failed to create category', 'error');

@@ -258,6 +258,7 @@ const MenuPage = () => {
             showToast(editItemId ? 'Item updated successfully' : 'Item added successfully', 'success');
             loadMenuData();
         }}
+        onCategoryCreated={loadMenuData}
       />
     </div>
   );
