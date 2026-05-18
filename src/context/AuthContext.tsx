@@ -24,6 +24,7 @@ interface AuthContextValue {
   refreshToken: string | null;
   accessTokenExpiresAt: string | null;
   isAuthenticated: boolean;
+  loading: boolean;
   login: (credentials: LoginCredentials, role: AuthRole, remember?: boolean) => Promise<void>;
   switchOutlet: (outletId: string) => Promise<void>;
   resetToOwner: () => Promise<void>;
@@ -43,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const [showSessionWarning, setShowSessionWarning] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check localStorage first, then sessionStorage
@@ -69,6 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(null);
         }
       }
+      setLoading(false);
     } else if (savedAccessToken && isExpired && savedRefreshToken) {
       // Access token is expired, but we have a refresh token! Attempt a silent refresh immediately on mount.
       console.log('[Auth] Access token is expired, attempting silent refresh on mount...');
@@ -101,6 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           logout();
         } finally {
           setIsRefreshing(false);
+          setLoading(false);
         }
       };
       
@@ -110,6 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('[Auth] Saved session expired without a valid refresh path, clearing...');
         logout();
       }
+      setLoading(false);
     }
   }, []);
 
@@ -336,12 +341,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       refreshToken,
       accessTokenExpiresAt,
       isAuthenticated: Boolean(accessToken),
+      loading,
       login,
       switchOutlet,
       resetToOwner,
       logout
     }),
-    [user, accessToken, refreshToken, accessTokenExpiresAt]
+    [user, accessToken, refreshToken, accessTokenExpiresAt, loading]
   );
 
   return (
