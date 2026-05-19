@@ -82,13 +82,37 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
           const standaloneGroupIndex = allGroups.findIndex((g: any) => g.groupName === 'Addons');
           
           if (standaloneGroupIndex !== -1) {
-            setOptions(allGroups[standaloneGroupIndex].options || []);
+            const mappedOpts = (allGroups[standaloneGroupIndex].options || []).map((o: any) => ({
+              ...o,
+              additionalPrice: String(o.additionalPrice || 0)
+            }));
+            setOptions(mappedOpts);
             setStandaloneGroupId(allGroups[standaloneGroupIndex].id || null);
-            setOptionGroups(allGroups.filter((_: any, i: number) => i !== standaloneGroupIndex));
+            setOptionGroups(allGroups.filter((_: any, i: number) => i !== standaloneGroupIndex).map((g: any) => ({
+              ...g,
+              minSelections: String(g.minSelections || 0),
+              maxSelections: String(g.maxSelections || 0),
+              options: (g.options || []).map((o: any) => ({
+                ...o,
+                additionalPrice: String(o.additionalPrice || 0)
+              }))
+            })));
           } else {
-            setOptions(data.options || []);
+            const mappedOpts = (data.options || []).map((o: any) => ({
+              ...o,
+              additionalPrice: String(o.additionalPrice || 0)
+            }));
+            setOptions(mappedOpts);
             setStandaloneGroupId(null);
-            setOptionGroups(allGroups);
+            setOptionGroups(allGroups.map((g: any) => ({
+              ...g,
+              minSelections: String(g.minSelections || 0),
+              maxSelections: String(g.maxSelections || 0),
+              options: (g.options || []).map((o: any) => ({
+                ...o,
+                additionalPrice: String(o.additionalPrice || 0)
+              }))
+            })));
           }
           
           setDeletedGroupIds([]);
@@ -155,7 +179,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
   };
 
   const addOption = () => {
-    setOptions([...options, { name: '', type: 'AddOn', additionalPrice: 0, isDefault: false }]);
+    setOptions([...options, { name: '', type: 'AddOn', additionalPrice: '0', isDefault: false } as any]);
   };
   
   const handleUpdateOption = (index: number, field: keyof MenuItemOption, value: any) => {
@@ -176,7 +200,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
   const addOptionGroup = () => {
     setOptionGroups([
       ...optionGroups,
-      { groupName: '', isRequired: false, minSelections: 0, maxSelections: 1, displayOrder: optionGroups.length, options: [] }
+      { groupName: '', isRequired: false, minSelections: '0', maxSelections: '1', displayOrder: optionGroups.length, options: [] } as any
     ]);
   };
 
@@ -196,7 +220,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
 
   const addGroupOption = (gIndex: number) => {
     const newGroups = [...optionGroups];
-    newGroups[gIndex].options.push({ name: '', type: 'Choice', additionalPrice: 0, isDefault: false });
+    newGroups[gIndex].options.push({ name: '', type: 'Choice', additionalPrice: '0', isDefault: false } as any);
     setOptionGroups(newGroups);
   };
 
@@ -228,11 +252,19 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
     try {
       const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
       
-      // Strip IDs for strict swagger match
-      const sanitizedOptions = options.map(({ id, ...rest }) => rest);
+      // Strip IDs and sanitize numeric values for strict swagger match
+      const sanitizedOptions = options.map(({ id, ...rest }) => ({
+        ...rest,
+        additionalPrice: Number(rest.additionalPrice) || 0
+      }));
       const sanitizedGroups = optionGroups.map(({ id, options: groupOpts, ...rest }) => ({
         ...rest,
-        options: groupOpts.map(({ id: optId, ...optRest }) => optRest)
+        minSelections: Number(rest.minSelections) || 0,
+        maxSelections: Number(rest.maxSelections) || 0,
+        options: groupOpts.map(({ id: optId, ...optRest }) => ({
+          ...optRest,
+          additionalPrice: Number(optRest.additionalPrice) || 0
+        }))
       }));
 
       let itemId = editItemId;
@@ -262,8 +294,8 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
           displayOrder: Number(displayOrder) || 0,
           isVegetarian,
           preparationTimeMinutes: Number(preparationTimeMinutes) || 0,
-          options,
-          optionGroups,
+          options: sanitizedOptions,
+          optionGroups: sanitizedGroups,
           tags
         };
         const createdItem = await createMenuItem(createPayload);
@@ -593,7 +625,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
                                         inputMode="numeric"
                                         className="w-8 bg-transparent text-[10px] font-bold text-slate-900 outline-none" 
                                         value={group.minSelections}
-                                        onChange={e => handleUpdateOptionGroup(gIndex, 'minSelections', Number(e.target.value.replace(/\D/g, '')) || 0)}
+                                        onChange={e => handleUpdateOptionGroup(gIndex, 'minSelections', e.target.value.replace(/\D/g, ''))}
                                     />
                                     <span className="text-[9px] font-bold text-slate-400 uppercase">Max</span>
                                     <input 
@@ -601,7 +633,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
                                         inputMode="numeric"
                                         className="w-8 bg-transparent text-[10px] font-bold text-slate-900 outline-none" 
                                         value={group.maxSelections}
-                                        onChange={e => handleUpdateOptionGroup(gIndex, 'maxSelections', Number(e.target.value.replace(/\D/g, '')) || 0)}
+                                        onChange={e => handleUpdateOptionGroup(gIndex, 'maxSelections', e.target.value.replace(/\D/g, ''))}
                                     />
                                 </div>
                             </div>
@@ -627,7 +659,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
                                                   const val = e.target.value.replace(/[^0-9.]/g, '');
                                                   const parts = val.split('.');
                                                   const cleaned = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
-                                                  updateGroupOption(gIndex, oIndex, 'additionalPrice', cleaned === '' ? 0 : Number(cleaned));
+                                                  updateGroupOption(gIndex, oIndex, 'additionalPrice', cleaned);
                                                 }}
                                                 className="w-full bg-transparent text-xs font-bold text-slate-900 outline-none"
                                             />
@@ -704,7 +736,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
                               const val = e.target.value.replace(/[^0-9.]/g, '');
                               const parts = val.split('.');
                               const cleaned = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val;
-                              handleUpdateOption(index, 'additionalPrice', cleaned === '' ? 0 : Number(cleaned));
+                              handleUpdateOption(index, 'additionalPrice', cleaned);
                             }}
                             className="w-full bg-transparent text-xs font-bold text-slate-900 outline-none"
                           />
