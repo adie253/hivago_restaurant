@@ -418,7 +418,7 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
   );
 
   const renderMainView = () => (
-    <div className="flex flex-col h-full max-h-[85vh]">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <div className="px-8 pt-8 pb-4 flex items-center justify-between shrink-0">
         <h2 className="text-xl font-bold text-slate-900 tracking-tight">Manage Outlet</h2>
         <button 
@@ -685,7 +685,7 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
   return (
     <>
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-        <div className="bg-white rounded-[24px] w-full max-w-[460px] shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="bg-white rounded-[24px] w-full max-w-[460px] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
           {flowStep === 'list' && renderMainView()}
           {flowStep === 'reason' && renderOfflineReasonView()}
           {flowStep === 'duration' && renderDurationView()}
