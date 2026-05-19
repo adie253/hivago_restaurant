@@ -31,25 +31,41 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
   const [initialLoading, setInitialLoading] = useState(false);
   const { showToast } = useToast();
 
+  // Helper to load raw draft value safely on initialization
+  const getDraftValue = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem('hivago_add_item_draft');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed[key] !== undefined) {
+          return parsed[key];
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return defaultValue;
+  };
+
   const [localCategories, setLocalCategories] = useState<MenuCategory[]>(categories);
-  const [menuId, setMenuId] = useState(categories[0]?.id || '');
+  const [menuId, setMenuId] = useState(() => getDraftValue('menuId', categories[0]?.id || ''));
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [basePrice, setBasePrice] = useState<string>('');
-  const [displayOrder, setDisplayOrder] = useState<string>('0');
-  const [isVegetarian, setIsVegetarian] = useState(true);
-  const [preparationTimeMinutes, setPreparationTimeMinutes] = useState<string>('');
+  const [name, setName] = useState(() => getDraftValue('name', ''));
+  const [description, setDescription] = useState(() => getDraftValue('description', ''));
+  const [basePrice, setBasePrice] = useState<string>(() => getDraftValue('basePrice', ''));
+  const [displayOrder, setDisplayOrder] = useState<string>(() => getDraftValue('displayOrder', '0'));
+  const [isVegetarian, setIsVegetarian] = useState(() => getDraftValue('isVegetarian', true));
+  const [preparationTimeMinutes, setPreparationTimeMinutes] = useState<string>(() => getDraftValue('preparationTimeMinutes', ''));
   
-  const [tagsInput, setTagsInput] = useState('');
+  const [tagsInput, setTagsInput] = useState(() => getDraftValue('tagsInput', ''));
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [options, setOptions] = useState<MenuItemOption[]>([]);
-  const [optionGroups, setOptionGroups] = useState<MenuItemOptionGroup[]>([]);
+  const [options, setOptions] = useState<MenuItemOption[]>(() => getDraftValue('options', []));
+  const [optionGroups, setOptionGroups] = useState<MenuItemOptionGroup[]>(() => getDraftValue('optionGroups', []));
   
   const [deletedGroupIds, setDeletedGroupIds] = useState<string[]>([]);
   const [deletedOptionIds, setDeletedOptionIds] = useState<string[]>([]);
