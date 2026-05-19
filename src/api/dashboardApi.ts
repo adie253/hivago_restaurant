@@ -402,9 +402,13 @@ export const deleteOption = async (optionId: string): Promise<void> => {
   await client.delete(`/restaurant/options/${optionId}`);
 };
 
-// Unified 3-step menu item image upload
-export const uploadMenuItemImage = async (itemId: string, file: File): Promise<{ imageUrl: string }> => {
-  // 1. Get upload URL
+// Delete a menu item
+export const deleteMenuItem = async (itemId: string): Promise<void> => {
+  await client.delete(`/restaurant/items/${itemId}`);
+};
+
+// 1 & 2. Get upload URL & upload directly to S3/Cloudflare R2 (returns fileKey)
+export const uploadMenuItemImageToStorage = async (itemId: string, file: File): Promise<string> => {
   const urlRes = await client.post<any>(
     `/catalog/menu-items/${itemId}/image/upload-url`,
     { contentType: 'image/jpeg' }
@@ -413,7 +417,6 @@ export const uploadMenuItemImage = async (itemId: string, file: File): Promise<{
   const responseData = urlRes.data.data || urlRes.data;
   const { uploadUrl, fileKey } = responseData;
 
-  // 2. Upload directly to S3/R2 (bypassing interceptors)
   const uploadResponse = await axios.put(uploadUrl, file, {
     headers: {
       'Content-Type': 'image/jpeg'
@@ -424,13 +427,23 @@ export const uploadMenuItemImage = async (itemId: string, file: File): Promise<{
     throw new Error('Failed to upload menu item image to storage');
   }
 
-  // 3. Confirm upload
+  return fileKey;
+};
+
+// 3. Confirm upload on backend
+export const confirmMenuItemImage = async (itemId: string, fileKey: string): Promise<{ imageUrl: string }> => {
   const confirmRes = await client.patch<any>(
     `/catalog/menu-items/${itemId}/image/confirm`,
     { fileKey }
   );
 
   return confirmRes.data.data || confirmRes.data;
+};
+
+// Kept for backward compatibility
+export const uploadMenuItemImage = async (itemId: string, file: File): Promise<{ imageUrl: string }> => {
+  const fileKey = await uploadMenuItemImageToStorage(itemId, file);
+  return confirmMenuItemImage(itemId, fileKey);
 };
 
 export const fetchFullMenu = async (restaurantId: string): Promise<{ categories: MenuCategory[], items: MenuItem[] }> => {

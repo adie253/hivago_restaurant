@@ -5,6 +5,9 @@ import { MenuCategory, CreateMenuItemPayload, MenuItemOption, MenuItemOptionGrou
 import { 
   createMenuItem, 
   uploadMenuItemImage, 
+  uploadMenuItemImageToStorage,
+  confirmMenuItemImage,
+  deleteMenuItem,
   createMenuCategory, 
   fetchMenuItemDetails, 
   updateMenuItem, 
@@ -383,9 +386,42 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
 
       if (!itemId) throw new Error("Item ID is missing");
       
-      // Handle Image Upload if selected
+      // Handle Image Upload if selected with Transactional Rollback
       if (selectedFile && itemId) {
-        await uploadMenuItemImage(itemId, selectedFile);
+        const isNewItem = !editItemId;
+        let fileKey = '';
+        
+        try {
+          // Step 2: Upload to Cloudflare storage
+          fileKey = await uploadMenuItemImageToStorage(itemId, selectedFile);
+        } catch (uploadErr: any) {
+          console.error("Image upload to Cloudflare storage failed:", uploadErr);
+          if (isNewItem) {
+            try {
+              await deleteMenuItem(itemId);
+              console.log(`Successfully rolled back and deleted newly created menu item ${itemId} due to image upload failure.`);
+            } catch (rollbackErr) {
+              console.error("Failed to delete menu item during rollback:", rollbackErr);
+            }
+          }
+          throw new Error(uploadErr?.message || "Failed to upload image. Rolling back item creation...");
+        }
+
+        try {
+          // Step 3: Confirm the image upload
+          await confirmMenuItemImage(itemId, fileKey);
+        } catch (confirmErr: any) {
+          console.error("Image confirmation failed:", confirmErr);
+          if (isNewItem) {
+            try {
+              await deleteMenuItem(itemId);
+              console.log(`Successfully rolled back and deleted newly created menu item ${itemId} due to image confirmation failure.`);
+            } catch (rollbackErr) {
+              console.error("Failed to delete menu item during rollback:", rollbackErr);
+            }
+          }
+          throw new Error(confirmErr?.message || "Failed to confirm image. Rolling back item creation...");
+        }
       }
       
       showToast(`Item ${editItemId ? 'updated' : 'added'} successfully`, 'success');
