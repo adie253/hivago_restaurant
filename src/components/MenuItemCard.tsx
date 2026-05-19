@@ -12,7 +12,7 @@ const MenuItemCard = ({ item, onToggle, onEdit }: MenuItemCardProps) => {
     <div className={`group flex items-center justify-between rounded-[28px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] ${
       item.isAvailable ? 'bg-white' : 'bg-slate-50/50 opacity-75'
     }`}>
-      <div className="flex items-center gap-4">
+      <div className="flex flex-1 items-center gap-4 min-w-0 mr-4">
         {/* Image Section */}
         <div className="relative h-20 w-20 flex-none overflow-hidden rounded-2xl">
           <img
@@ -24,7 +24,7 @@ const MenuItemCard = ({ item, onToggle, onEdit }: MenuItemCardProps) => {
             className={`h-full w-full object-cover transition-all duration-300 ${!item.isAvailable ? 'grayscale opacity-50' : ''}`}
           />
           {/* Veg/Non-Veg Badge */}
-          <div className="absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-md border border-slate-200 bg-white shadow-sm">
+          <div className={`absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-md border bg-white shadow-sm ${item.isVeg ? 'border-emerald-500' : 'border-red-500'}`}>
             <div className={`h-2 w-2 rounded-full ${item.isVeg ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
           </div>
           
@@ -37,9 +37,9 @@ const MenuItemCard = ({ item, onToggle, onEdit }: MenuItemCardProps) => {
         </div>
 
         {/* Details Section */}
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h4 className={`text-base font-bold leading-tight line-clamp-1 ${item.isAvailable ? 'text-slate-900' : 'text-slate-400'}`}>
+            <h4 className={`text-base font-bold leading-tight truncate w-full ${item.isAvailable ? 'text-slate-900' : 'text-slate-400'}`} title={item.name}>
               {item.name}
             </h4>
           </div>
