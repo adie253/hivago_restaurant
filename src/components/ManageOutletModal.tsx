@@ -225,13 +225,13 @@ const ManageOutletModal = ({ isOpen, onClose }: ManageOutletModalProps) => {
           filteredOutlets.map((outlet) => (
             <div key={outlet.id} className="flex items-center justify-between p-4 rounded-3xl border border-slate-100 bg-white shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all hover:border-slate-200">
             
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-base shadow-sm ${outlet.color}`}>
+            <div className="flex items-center gap-4 flex-1 min-w-0 mr-4">
+              <div className={`w-12 h-12 rounded-2xl flex-none flex items-center justify-center text-white font-bold text-base shadow-sm ${outlet.color}`}>
                 {outlet.initials}
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">{outlet.name}</h3>
-                <p className="text-xs font-semibold text-slate-400 mt-0.5">{outlet.area}</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-slate-900 truncate" title={outlet.name}>{outlet.name}</h3>
+                <p className="text-xs font-semibold text-slate-400 mt-0.5 truncate" title={outlet.area}>{outlet.area}</p>
               </div>
             </div>
 
