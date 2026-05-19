@@ -13,7 +13,7 @@ const menuItems = [
   { label: 'Menu', path: '/menu', img: menu_icon, roles: ['restaurant'] },
   { label: 'Payouts', path: '/payouts', img: payout_icon, roles: ['restaurant', 'owner'] },
   { label: 'Settings', path: '/settings', img: settings_icon, roles: ['restaurant'] },
-  { label: 'My Outlets', path: '/owner/outlets', img: manage_outlet_icon, roles: ['owner'] },
+  // { label: 'My Outlets', path: '/owner/outlets', img: manage_outlet_icon, roles: ['owner'] },
   { label: 'Control Center', path: '/admin/payouts', img: payout_icon, roles: ['admin'] },
   { label: 'Add Restaurant', path: '/admin/create-restaurant', img: settings_icon, roles: ['admin'] },
 ];
