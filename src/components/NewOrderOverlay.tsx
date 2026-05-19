@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Order } from '../types';
 import { formatCurrency, formatRelativeTime } from '../utils/format';
 import { fetchOrderById } from '../api/dashboardApi';
@@ -87,7 +88,7 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
 
   const prepTimes = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
       <div className="w-full h-auto max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-[0_32px_120px_rgba(15,23,42,0.3)] flex flex-col max-h-[95vh]">
         {/* Header */}
@@ -316,8 +317,8 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
           </div>
         </div>
       </div>
-    </div>
-
+    </div>,
+    document.body
   );
 };
 
