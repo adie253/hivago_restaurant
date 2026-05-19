@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { MenuCategory, MenuItem } from '../types';
 import { fetchFullMenu, toggleItemAvailability, deleteMenuCategory, createMenuCategory } from '../api/dashboardApi';
@@ -18,8 +19,10 @@ const MenuPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
-  const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isAddItemModalOpen = searchParams.get('add-item') === 'true' || searchParams.has('edit-item');
+  const editItemId = searchParams.get('edit-item');
+
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
@@ -66,13 +69,19 @@ const MenuPage = () => {
   };
 
   const handleEditItem = (item: MenuItem) => {
-    setEditItemId(item.id);
-    setIsAddItemModalOpen(true);
+    setSearchParams(prev => {
+      prev.set('edit-item', item.id);
+      prev.delete('add-item');
+      return prev;
+    });
   };
 
   const handleAddNewItem = () => {
-    setEditItemId(null);
-    setIsAddItemModalOpen(true);
+    setSearchParams(prev => {
+      prev.set('add-item', 'true');
+      prev.delete('edit-item');
+      return prev;
+    });
   };
 
   const confirmDeleteCategory = async () => {
@@ -249,8 +258,11 @@ const MenuPage = () => {
       <AddItemModal
         isOpen={isAddItemModalOpen}
         onClose={() => {
-            setIsAddItemModalOpen(false);
-            setEditItemId(null);
+            setSearchParams(prev => {
+              prev.delete('add-item');
+              prev.delete('edit-item');
+              return prev;
+            });
         }}
         categories={categories}
         editItemId={editItemId}

@@ -127,6 +127,31 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
       };
       loadItem();
     } else if (isOpen && !editItemId) {
+      const savedDraft = localStorage.getItem('hivago_add_item_draft');
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft);
+          setMenuId(draft.menuId || categories[0]?.id || '');
+          setName(draft.name || '');
+          setDescription(draft.description || '');
+          setBasePrice(draft.basePrice || '');
+          setDisplayOrder(draft.displayOrder || '0');
+          setIsVegetarian(draft.isVegetarian ?? true);
+          setPreparationTimeMinutes(draft.preparationTimeMinutes || '');
+          setTagsInput(draft.tagsInput || '');
+          setOptions(draft.options || []);
+          setOptionGroups(draft.optionGroups || []);
+          setStandaloneGroupId(null);
+          setDeletedGroupIds([]);
+          setDeletedOptionIds([]);
+          setSelectedFile(null);
+          setImagePreview(null);
+          return;
+        } catch (e) {
+          console.error('Failed to parse saved draft', e);
+        }
+      }
+
       setMenuId(categories[0]?.id || '');
       setName('');
       setDescription('');
@@ -145,6 +170,38 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
     }
 
   }, [isOpen, editItemId, categories]);
+
+  // Save form draft to localStorage
+  React.useEffect(() => {
+    if (isOpen && !editItemId) {
+      const draft = {
+        menuId,
+        name,
+        description,
+        basePrice,
+        displayOrder,
+        isVegetarian,
+        preparationTimeMinutes,
+        tagsInput,
+        options,
+        optionGroups
+      };
+      localStorage.setItem('hivago_add_item_draft', JSON.stringify(draft));
+    }
+  }, [
+    isOpen,
+    editItemId,
+    menuId,
+    name,
+    description,
+    basePrice,
+    displayOrder,
+    isVegetarian,
+    preparationTimeMinutes,
+    tagsInput,
+    options,
+    optionGroups
+  ]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -316,6 +373,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
       }
       
       showToast(`Item ${editItemId ? 'updated' : 'added'} successfully`, 'success');
+      localStorage.removeItem('hivago_add_item_draft');
       onItemAdded();
       onClose();
     } catch (err: any) {
@@ -343,7 +401,10 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
             <p className="text-xs font-semibold text-slate-400">{editItemId ? 'Update your menu item details' : 'Add a fresh dish to your digital menu'}</p>
           </div>
           <button 
-            onClick={onClose}
+            onClick={() => {
+              localStorage.removeItem('hivago_add_item_draft');
+              onClose();
+            }}
             className="group flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
           >
             <span className="text-lg font-bold transition-transform group-hover:rotate-90">✕</span>
@@ -766,7 +827,10 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
             <div className="mt-8 flex gap-3 sticky bottom-0 bg-white pt-3 pb-1 border-t border-slate-50">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  localStorage.removeItem('hivago_add_item_draft');
+                  onClose();
+                }}
                 className="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-500 transition-all hover:bg-slate-200"
               >
                 CANCEL
