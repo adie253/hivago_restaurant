@@ -25,10 +25,22 @@ const to12h = (time: string) => {
   return `${displayHours}:${m.toString().padStart(2, '0')} ${period}`;
 };
 
-// Ensure all 7 days exist in local state
-const buildFullSchedule = (provided: DaySchedule[] = []): DaySchedule[] => {
+// Ensure all 7 days exist in local state and pre-populate with standard hours if entirely empty initially
+const buildFullSchedule = (
+  provided: DaySchedule[] = [], 
+  defaultOpens: string = '09:00:00', 
+  defaultCloses: string = '22:00:00'
+): DaySchedule[] => {
+  const isEntirelyEmpty = !provided || provided.length === 0 || provided.every(day => !day.slots || day.slots.length === 0);
+
   return DAYS_OF_WEEK.map(day => {
     const existing = provided.find(d => d.dayOfWeek === day);
+    if (isEntirelyEmpty) {
+      return {
+        dayOfWeek: day,
+        slots: [{ opensAt: defaultOpens, closesAt: defaultCloses }]
+      };
+    }
     return existing ? existing : { dayOfWeek: day, slots: [] };
   });
 };
@@ -38,7 +50,17 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
     useCustomSchedule: initialHours.useCustomSchedule,
     openingTime: initialHours.openingTime || '09:00:00',
     closingTime: initialHours.closingTime || '22:00:00',
-    weeklySchedule: buildFullSchedule(initialHours.weeklySchedule)
+    weeklySchedule: initialHours.useCustomSchedule
+      ? buildFullSchedule(
+          initialHours.weeklySchedule, 
+          initialHours.openingTime || '09:00:00', 
+          initialHours.closingTime || '22:00:00'
+        )
+      : buildFullSchedule(
+          [], 
+          initialHours.openingTime || '09:00:00', 
+          initialHours.closingTime || '22:00:00'
+        )
   });
 
   useEffect(() => {
@@ -48,7 +70,17 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
         useCustomSchedule: initialHours.useCustomSchedule,
         openingTime: initialHours.openingTime || '09:00:00',
         closingTime: initialHours.closingTime || '22:00:00',
-        weeklySchedule: buildFullSchedule(initialHours.weeklySchedule)
+        weeklySchedule: initialHours.useCustomSchedule
+          ? buildFullSchedule(
+              initialHours.weeklySchedule, 
+              initialHours.openingTime || '09:00:00', 
+              initialHours.closingTime || '22:00:00'
+            )
+          : buildFullSchedule(
+              [], 
+              initialHours.openingTime || '09:00:00', 
+              initialHours.closingTime || '22:00:00'
+            )
       });
     }
   }, [initialHours, saving]);
@@ -56,12 +88,10 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
   const handleToggleCustom = () => {
     setHours(prev => {
       const nextMode = !prev.useCustomSchedule;
-      
-      // If we're enabling custom schedule and all days are empty, pre-populate them with the standard hours
       let nextSchedule = prev.weeklySchedule;
-      const isEntirelyEmpty = prev.weeklySchedule.every(day => day.slots.length === 0);
       
-      if (nextMode && isEntirelyEmpty) {
+      // When enabling Custom schedule, pre-populate all days to match current standard hours in the UI
+      if (nextMode) {
         nextSchedule = prev.weeklySchedule.map(day => ({
           ...day,
           slots: [{ opensAt: prev.openingTime, closesAt: prev.closingTime }]
@@ -77,7 +107,21 @@ const BusinessHoursForm = ({ hours: initialHours, onSave, saving }: BusinessHour
   };
 
   const handleSimpleTimeChange = (field: 'openingTime' | 'closingTime', val: string) => {
-    setHours(prev => ({ ...prev, [field]: val + (val.length === 5 ? ':00' : '') }));
+    const formattedVal = val + (val.length === 5 ? ':00' : '');
+    setHours(prev => {
+      const nextHours = { ...prev, [field]: formattedVal };
+      // Keep weeklySchedule in sync with standard hours while Custom Schedule is off
+      if (!prev.useCustomSchedule) {
+        nextHours.weeklySchedule = prev.weeklySchedule.map(day => ({
+          ...day,
+          slots: [{ 
+            opensAt: field === 'openingTime' ? formattedVal : prev.openingTime, 
+            closesAt: field === 'closingTime' ? formattedVal : prev.closingTime 
+          }]
+        }));
+      }
+      return nextHours;
+    });
   };
 
   const handleToggleDay = (dayName: DayOfWeek) => {

@@ -35,19 +35,72 @@ interface FetchOrdersOptions {
   pageSize?: number;
 }
 
-const normalizeStatus = (status?: string): Order['status'] => {
-  if (!status) return 'PENDING';
-  const normalized = status.toLowerCase();
+export const normalizeStatus = (status?: string | number): Order['status'] => {
+  if (status === undefined || status === null) return 'PENDING';
+  const normalized = String(status).trim().toLowerCase();
 
-  if (normalized.includes('pending') || normalized === 'confirmed') return 'PENDING';
-  if (normalized.includes('ready')) return 'READY';
-  if (normalized.includes('picked')) return 'PICKED_UP';
+  // 1. Check numeric representations first (C# enum integers)
+  if (normalized === '0' || normalized === '1' || normalized === '2') return 'PENDING';
+  if (normalized === '3') return 'PREPARING';
+  if (normalized === '4') return 'READY';
+  if (normalized === '5') return 'PICKED_UP';
+  if (normalized === '6') return 'DELIVERED';
+  if (normalized === '7') return 'REJECTED';
+  if (normalized === '8' || normalized === '9') return 'CANCELLED';
+  if (normalized === '10' || normalized === '11') return 'REFUNDING';
+
+  // 2. Check exact enum names & display names or partial terms
+  if (
+    normalized.includes('ready') || 
+    normalized === 'readyforpickup' || 
+    normalized === 'ready for pickup'
+  ) {
+    return 'READY';
+  }
+  
+  if (
+    normalized.includes('picked') || 
+    normalized === 'pickedup' || 
+    normalized === 'picked up'
+  ) {
+    return 'PICKED_UP';
+  }
+  
   if (normalized === 'delivered') return 'DELIVERED';
-  if (normalized === 'rejected') return 'REJECTED';
-  if (normalized === 'cancelled') return 'CANCELLED';
-  if (normalized === 'refunding' || normalized.includes('refund')) return 'REFUNDING';
-
+  
+  if (
+    normalized === 'rejected' || 
+    normalized.includes('rejected')
+  ) {
+    return 'REJECTED';
+  }
+  
+  if (
+    normalized === 'cancelled' || 
+    normalized === 'failed' || 
+    normalized.includes('cancelled') || 
+    normalized.includes('failed')
+  ) {
+    return 'CANCELLED';
+  }
+  
+  if (
+    normalized === 'refunding' || 
+    normalized === 'refunded' || 
+    normalized.includes('refund')
+  ) {
+    return 'REFUNDING';
+  }
+  
   if (normalized === 'preparing') return 'PREPARING';
+  
+  if (
+    normalized.includes('pending') || 
+    normalized.includes('paid') || 
+    normalized === 'confirmed'
+  ) {
+    return 'PENDING';
+  }
 
   return 'PENDING';
 };
@@ -86,8 +139,8 @@ const parseNumber = (value: unknown): number => {
   return 0;
 };
 
-const normalizeOrder = (raw: Record<string, unknown>): Order => {
-  const statusRaw = String(raw.status ?? raw.statusDisplay ?? 'PREPARING');
+export const normalizeOrder = (raw: Record<string, unknown>): Order => {
+  const statusRaw = (raw.status ?? raw.statusDisplay ?? 'PREPARING') as string | number;
   const normalizedStatus = normalizeStatus(statusRaw);
 
   const pricing = (raw.pricing as Record<string, unknown>) || {};

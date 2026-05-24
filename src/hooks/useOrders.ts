@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { Order } from '../types';
-import { fetchOrders } from '../api/dashboardApi';
+import { fetchOrders, normalizeOrder } from '../api/dashboardApi';
 
 export const useOrders = () => {
   const { user } = useAuth();
@@ -66,12 +66,8 @@ export const useOrders = () => {
     if (lastOrderReceived) {
       console.log('Real-time order update received:', lastOrderReceived);
       
-      // Normalize the SignalR payload (mapping orderId -> id, totalAmount -> total)
-      const normalizedOrder = {
-        ...lastOrderReceived,
-        id: lastOrderReceived.id || lastOrderReceived.orderId,
-        total: lastOrderReceived.total ?? lastOrderReceived.totalAmount,
-      };
+      // Normalize the SignalR payload using the robust dashboardApi normalizer
+      const normalizedOrder = normalizeOrder(lastOrderReceived);
       
       // Instantly open the popup when the event triggers (ensuring it matches the sound play)
       setNewOrder(normalizedOrder);
