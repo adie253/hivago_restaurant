@@ -158,7 +158,8 @@ export const normalizeOrder = (raw: Record<string, unknown>): Order => {
     quantity: Number(item.quantity ?? 1),
     price: parseNumber(item.unitPrice ?? item.price ?? 0),
     imageUrl: String(item.imageUrl ?? ''),
-    description: String(item.itemDescription ?? item.description ?? '')
+    description: String(item.itemDescription ?? item.description ?? ''),
+    specialInstructions: item.specialInstructions ? String(item.specialInstructions) : undefined
   }));
 
   return {

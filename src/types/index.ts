@@ -10,6 +10,7 @@ export interface OrderItem {
   price: number;
   imageUrl?: string;
   description?: string;
+  specialInstructions?: string;
 }
 
 export interface Order {

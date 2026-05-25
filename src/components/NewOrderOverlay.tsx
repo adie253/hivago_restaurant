@@ -146,14 +146,19 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
               <div className="mt-8 space-y-4">
                 {order.items.length > 0 ? (
                   order.items.map((item) => (
-                    <div key={item.id} className="flex items-start justify-between">
+                    <div key={item.id} className="flex items-start justify-between border-b border-slate-50 pb-3 last:border-0 last:pb-0">
                       <div className="flex gap-3">
                         <span className="mt-0.5 text-base">🌶️</span>
-                        <div>
-                          <p className="text-md  font-semibold text-slate-900 leading-tight">
+                        <div className="flex items-center gap-3 font-semibold flex-wrap">
+                          <span className="text-md font-semibold text-slate-900 leading-tight">
                             {item.quantity} x {item.name}
-                          </p>
-                          {/* <p className="mt-0.5 text-xs font-semibold text-slate-400">{item.description || 'Extra spicy, no onions'}</p> */}
+                          </span>
+                          {item.specialInstructions && (
+                            <span className="rounded-lg bg-[#FFF9E5] border border-[#FDE68A] px-2 py-0.5 text-xs font-semibold text-[#856404] flex items-center gap-1">
+                              <span className="text-[#D97706] text-[10px]">★</span>
+                              <span>Instructions: <span className="font-medium text-slate-700">{item.specialInstructions}</span></span>
+                            </span>
+                          )}
                         </div>
                       </div>
                       <p className="text-md font-bold text-slate-900">{formatCurrency(item.price * item.quantity)}</p>

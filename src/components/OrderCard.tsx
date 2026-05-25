@@ -309,11 +309,19 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
               </div>
             ) : order.items && order.items.length > 0 ? (
               order.items.map(item => (
-                <div key={item.id} className="flex items-center justify-between border-b border-slate-50 line-height-[2px] last:border-0 last:pb-0">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 font-semibold">
-                        <span className="text-sm font-inter text-slate-900">{item.quantity} x</span>
-                        <span className="text-sm font-inter text-slate-700">{item.name}</span>
+                <div key={item.id} className="border-b border-slate-50 py-3 last:border-0 last:pb-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 font-semibold flex-wrap">
+                          <span className="text-sm font-inter text-slate-900">{item.quantity} x</span>
+                          <span className="text-sm font-inter text-slate-700">{item.name}</span>
+                          {item.specialInstructions && (
+                            <span className="rounded-lg bg-[#FFF9E5] border border-[#FDE68A] px-2 py-0.5 text-xs font-semibold text-[#856404] flex items-center gap-1">
+                              <span className="text-[#D97706] text-[10px]">★</span>
+                              <span>Instructions: <span className="font-medium text-slate-700">{item.specialInstructions}</span></span>
+                            </span>
+                          )}
+                      </div>
                     </div>
                   </div>
                 </div>
