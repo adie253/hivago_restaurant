@@ -294,7 +294,9 @@ export const confirmOrder = async (orderId: string): Promise<Order> => {
 
 export const rejectOrder = async (orderId: string, reason: string): Promise<Order> => {
   const response = await client.put(`orders/${orderId}/reject`, { reason });
-  return normalizeOrder(response.data.data || response.data);
+  const order = normalizeOrder(response.data.data || response.data);
+  order.status = 'REJECTED';
+  return order;
 };
 
 export const preparingOrder = async (orderId: string, prepTime?: number, deliveryPartner?: 'HIVAGO' | 'RESTAURANT'): Promise<Order> => {
@@ -302,13 +304,17 @@ export const preparingOrder = async (orderId: string, prepTime?: number, deliver
     prepTime,
     deliveryPartner
   });
-  return normalizeOrder(response.data.data || response.data);
+  const order = normalizeOrder(response.data.data || response.data);
+  order.status = 'PREPARING';
+  return order;
 };
 
 
 export const readyOrder = async (orderId: string): Promise<Order> => {
   const response = await client.put(`orders/${orderId}/ready`, {});
-  return normalizeOrder(response.data.data || response.data);
+  const order = normalizeOrder(response.data.data || response.data);
+  order.status = 'READY';
+  return order;
 };
 
 // Settings & Profile APIs

@@ -41,7 +41,13 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     if (order.status !== 'PENDING') return;
 
     // Initial sync
-    setTimeLeft(calculateTimeLeft());
+    const initialRemaining = calculateTimeLeft();
+    setTimeLeft(initialRemaining);
+
+    if (initialRemaining <= 0 && !actionLoading) {
+      handleAutoReject();
+      return;
+    }
 
     const timer = setInterval(() => {
       const remaining = calculateTimeLeft();
