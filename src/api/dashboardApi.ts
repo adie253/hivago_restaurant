@@ -1,4 +1,4 @@
-import { DashboardStats, NewRestaurantStats, MenuCategory, MenuItem, Order, RestaurantSettings, ProfileSettings, DietarySettings, OperationsSettings, HoursSettings, DeliverySettings, NotificationSettings, CreateMenuItemPayload, MenuItemOption, MenuItemOptionGroup } from '../types';
+import { DashboardStats, NewRestaurantStats, MenuCategory, MenuItem, Order, RestaurantSettings, ProfileSettings, DietarySettings, OperationsSettings, HoursSettings, DeliverySettings, NotificationSettings, CreateMenuItemPayload, MenuItemOption, MenuItemOptionGroup, ParsedMenuCategory, ParsedMenuItem, BulkImportPayload, BulkImportResponse } from '../types';
 import axios from 'axios';
 import client from './client';
 
@@ -556,4 +556,9 @@ export const fetchDeliveryCodes = async (orderId: string): Promise<{ pickupCode:
     if (error?.response?.status === 404) return null;
     throw error;
   }
+};
+
+export const bulkImportMenu = async (payload: BulkImportPayload): Promise<BulkImportResponse> => {
+  const response = await client.post<BulkImportResponse>('/restaurant/menus/bulk-import', payload);
+  return response.data;
 };

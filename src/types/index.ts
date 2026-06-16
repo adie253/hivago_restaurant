@@ -369,3 +369,39 @@ export interface RestaurantMinimal {
   isAcceptingOrders?: boolean;
 }
 
+export interface ParsedMenuCategory {
+  name: string;
+}
+
+export interface ParsedMenuItem {
+  name: string;
+  description?: string;
+  price: number;
+  category: string;
+  isVeg: boolean;
+  optionGroups?: MenuItemOptionGroup[];
+}
+
+export interface ParsePdfResponse {
+  success: boolean;
+  data: {
+    categories: ParsedMenuCategory[];
+    items: ParsedMenuItem[];
+  };
+}
+
+export interface BulkImportPayload {
+  categories: ParsedMenuCategory[];
+  items: ParsedMenuItem[];
+}
+
+export interface BulkImportResponse {
+  success: boolean;
+  message: string;
+  data: {
+    categoriesCreated: number;
+    itemsCreated: number;
+  };
+}
+
+
