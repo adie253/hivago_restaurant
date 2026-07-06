@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Order } from '../types';
 import { formatCurrency, formatRelativeTime } from '../utils/format';
 import { fetchOrderById } from '../api/dashboardApi';
+import { useNotifications } from '../context/NotificationContext';
 import hivago_delivery_popup from '../assets/hivago_delivery_popup.svg';
 import restaurant_delivery_popup from '../assets/restaurant_delivery_popup.svg';
 
@@ -36,6 +37,19 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
 
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+
+  const [isMuted, setIsMuted] = useState(false);
+  const { playNotification, stopNotification } = useNotifications();
+
+  const handleMuteToggle = () => {
+    if (isMuted) {
+      setIsMuted(false);
+      playNotification();
+    } else {
+      setIsMuted(true);
+      stopNotification();
+    }
+  };
 
   useEffect(() => {
     const loadFullDetails = async () => {
@@ -99,10 +113,17 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
         <div className="flex items-center justify-between border-b border-slate-100 px-8 py-5 pb-0 shrink-0">
           <h2 className="text-xl font-bold tracking-tight text-slate-900">1 new order</h2>
           <div className="flex items-center gap-4">
-            <button className="text-slate-400 hover:text-slate-600 transition-colors">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              </svg>
+            <button onClick={handleMuteToggle} className="text-slate-400 hover:text-slate-600 transition-colors" title={isMuted ? "Unmute sound" : "Mute sound"}>
+              {isMuted ? (
+                <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                </svg>
+              ) : (
+                <svg className="h-6 w-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+              )}
             </button>
             <button onClick={onClose} className="rounded-full bg-slate-50 p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

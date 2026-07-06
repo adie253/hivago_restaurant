@@ -6,11 +6,18 @@ import { fetchOrders, normalizeOrder } from '../api/dashboardApi';
 
 export const useOrders = () => {
   const { user } = useAuth();
-  const { lastOrderReceived, clearLastOrderReceived } = useNotifications();
+  const { lastOrderReceived, clearLastOrderReceived, stopNotification } = useNotifications();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [newOrder, setNewOrder] = useState<Order | null>(null);
+  const [newOrder, setNewOrderState] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const setNewOrder = (order: Order | null) => {
+    setNewOrderState(order);
+    if (!order) {
+      stopNotification();
+    }
+  };
   const previousOrderIdsRef = useRef<string[]>([]);
   const initialLoadRef = useRef(false);
 

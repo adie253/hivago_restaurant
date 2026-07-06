@@ -8,6 +8,8 @@ interface NotificationContextType {
   lastOrderReceived: any | null;
   clearLastOrderReceived: () => void;
   isConnected: boolean;
+  playNotification: () => void;
+  stopNotification: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -115,11 +117,13 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       console.log('[Notification] Attempting to play sound. Unlocked:', isAudioUnlocked);
       notificationAudio.currentTime = 0;
       notificationAudio.volume = 1;
+      notificationAudio.loop = true; // Loop continuously (like Zomato)
       notificationAudio.play().catch(e => {
         console.warn('[Notification] Audio playback blocked or failed:', e);
         // Fallback: try to play a fresh Audio object in case the global one failed
         try {
           const fallbackAudio = new Audio(NOTIFICATION_SOUND_URL);
+          fallbackAudio.loop = true;
           fallbackAudio.play().catch(err => console.error('[Notification] Fallback audio playback failed:', err));
         } catch (fallbackErr) {
           console.error('[Notification] Failed to initialize fallback audio:', fallbackErr);
@@ -130,12 +134,24 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     }
   };
 
+  const stopNotification = () => {
+    if (!notificationAudio) return;
+    try {
+      console.log('[Notification] Stopping looping notification sound.');
+      notificationAudio.loop = false;
+      notificationAudio.pause();
+      notificationAudio.currentTime = 0;
+    } catch (err) {
+      console.error('[Notification] Failed to stop notification sound:', err);
+    }
+  };
+
   const clearLastOrderReceived = () => {
     setLastOrderReceived(null);
   };
 
   return (
-    <NotificationContext.Provider value={{ lastOrderReceived, clearLastOrderReceived, isConnected }}>
+    <NotificationContext.Provider value={{ lastOrderReceived, clearLastOrderReceived, isConnected, playNotification, stopNotification }}>
       {children}
     </NotificationContext.Provider>
   );
