@@ -72,4 +72,16 @@ export const switchOutlet = async (restaurantId: string): Promise<LoginResponse>
   return response.data;
 };
 
+export interface UpdateBankDetailsPayload {
+  bankAccountNumber: string;
+  bankIfscCode: string;
+  bankAccountName: string;
+}
 
+export const updateOwnerBankDetails = async (payload: UpdateBankDetailsPayload): Promise<any> => {
+  const token = getOwnerToken();
+  const response = await client.put('/owners/me/bank', payload, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  });
+  return response.data;
+};

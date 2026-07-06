@@ -65,7 +65,7 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
   useEffect(() => {
     // Initial sync
     setTimeLeft(calculateTimeLeft());
-    
+
     const timer = setInterval(() => {
       const remaining = calculateTimeLeft();
       setTimeLeft(remaining);
@@ -207,11 +207,10 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                     <button
                       key={time}
                       onClick={() => setSelectedPrepTime(time)}
-                      className={`rounded-xl py-3 text-sm font-semibold transition-all duration-200 ${
-                        selectedPrepTime === time
+                      className={`rounded-xl py-3 text-sm font-semibold transition-all duration-200 ${selectedPrepTime === time
                           ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 ring-2 ring-emerald-100'
                           : 'bg-white text-slate-400 hover:bg-white hover:text-slate-600 hover:shadow-md'
-                      }`}
+                        }`}
                     >
                       {time} mins
                     </button>
@@ -224,15 +223,13 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                 <div className="mt-4 space-y-3">
                   <button
                     onClick={() => setDeliveryPartner('HIVAGO')}
-                    className={`flex h-12 w-full items-center gap-3 rounded-2xl border-2 px-4 transition-all duration-200 ${
-                      deliveryPartner === 'HIVAGO'
+                    className={`flex h-12 w-full items-center gap-3 rounded-2xl border-2 px-4 transition-all duration-200 ${deliveryPartner === 'HIVAGO'
                         ? 'border-emerald-500 bg-emerald-50/50'
                         : 'border-white bg-white hover:border-slate-100 hover:bg-slate-50'
-                    }`}
+                      }`}
                   >
-                    <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
-                      deliveryPartner === 'HIVAGO' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-200'
-                    }`}>
+                    <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${deliveryPartner === 'HIVAGO' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-200'
+                      }`}>
                       {deliveryPartner === 'HIVAGO' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                     </div>
                     <img src={hivago_delivery_popup} alt="" />
@@ -241,15 +238,13 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
 
                   <button
                     onClick={() => setDeliveryPartner('RESTAURANT')}
-                    className={`flex h-12 w-full items-center gap-3 rounded-2xl border-2 px-4 transition-all duration-200 ${
-                      deliveryPartner === 'RESTAURANT'
+                    className={`flex h-12 w-full items-center gap-3 rounded-2xl border-2 px-4 transition-all duration-200 ${deliveryPartner === 'RESTAURANT'
                         ? 'border-emerald-500 bg-emerald-50/50'
                         : 'border-white bg-white hover:border-slate-100 hover:bg-slate-50'
-                    }`}
+                      }`}
                   >
-                    <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
-                      deliveryPartner === 'RESTAURANT' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-200'
-                    }`}>
+                    <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${deliveryPartner === 'RESTAURANT' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-200'
+                      }`}>
                       {deliveryPartner === 'RESTAURANT' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                     </div>
                     <img src={restaurant_delivery_popup} alt="" />
@@ -277,7 +272,7 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                       <option value="Other">Other</option>
                     </select>
                     <div className="flex gap-3">
-                      <button 
+                      <button
                         onClick={() => {
                           setShowRejectReason(false);
                           setRejectReason('');
@@ -286,7 +281,7 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                       >
                         Cancel
                       </button>
-                      <button 
+                      <button
                         onClick={() => onReject(rejectReason)}
                         disabled={!rejectReason}
                         className="flex-1 rounded-xl bg-red-500 py-3 text-sm font-bold text-white shadow-md shadow-red-200 hover:bg-red-600 transition-all active:scale-[0.98] disabled:opacity-50"
@@ -299,11 +294,10 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowRejectReason(true)}
-                      className={`flex-1 py-2 rounded-2xl border-2 text-md font-bold transition-all active:scale-[0.98] flex flex-col items-center justify-center ${
-                        timeLeft < 120 
-                          ? 'border-red-500 bg-red-50 text-red-600 animate-pulse' 
+                      className={`flex-1 py-2 rounded-2xl border-2 text-md font-bold transition-all active:scale-[0.98] flex flex-col items-center justify-center ${timeLeft < 120
+                          ? 'border-red-500 bg-red-50 text-red-600 animate-pulse'
                           : 'border-red-100 bg-white text-red-500 hover:bg-red-50'
-                      }`}
+                        }`}
                     >
                       <span>Reject</span>
                       <span className="text-[10px] opacity-70">({formatTimer(timeLeft)})</span>

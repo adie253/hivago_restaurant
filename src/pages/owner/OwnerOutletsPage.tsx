@@ -10,6 +10,7 @@ import TimeOffModal from '../../components/TimeOffModal';
 import ToggleOfflineModal from '../../components/ToggleOfflineModal';
 import { useTimeOffs, useCancelTimeOff } from '../../hooks/useTimeOff';
 
+
 const TimeOffStatus = ({ activeTimeOff, onReopen }: { activeTimeOff?: any; onReopen: () => void }) => {
   if (!activeTimeOff) return null;
 
@@ -156,6 +157,9 @@ const OwnerOutletsPage = () => {
     name: ''
   });
 
+
+
+
   const handleBulk = async (isAcceptingOrders: boolean) => {
     try {
       const result = await toggleAll.mutateAsync(isAcceptingOrders);
@@ -219,18 +223,10 @@ const OwnerOutletsPage = () => {
               All Offline
             </button>
           </div>
-
-{/* <button
-            onClick={() => navigate('/admin/create-restaurant')}
-            className="px-5 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-emerald-600 font-bold text-xs shadow-lg shadow-slate-200 flex items-center gap-2 transition-all active:scale-95"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Restaurant
-          </button> */}
         </div>
       </div>
+
+
 
       {error && (
         <div className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl text-xs font-bold flex items-center gap-3">
@@ -277,6 +273,8 @@ const OwnerOutletsPage = () => {
         }}
       />
     </div>
+
+
   );
 };
 

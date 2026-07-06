@@ -14,6 +14,9 @@ import {
 } from '../../api/payoutsApi';
 import { useToast } from '../../context/ToastContext';
 import { formatCurrency } from '../../utils/format';
+import BankDetailsModal from '../../components/BankDetailsModal';
+import { getAllOwners, updateOwnerBankDetailsAdmin } from '../../api/adminApi';
+
 
 const AdminPayoutsPage = () => {
     const { showToast } = useToast();
@@ -26,6 +29,47 @@ const AdminPayoutsPage = () => {
     const [statusFilter, setStatusFilter] = useState<string>('All');
     const [page, setPage] = useState(1);
     const pageSize = 20;
+
+    const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(null);
+    const [selectedOwnerName, setSelectedOwnerName] = useState<string>('');
+    const [bankModalOpen, setBankModalOpen] = useState(false);
+    const [ownerBankDetails, setOwnerBankDetails] = useState<{
+        bankAccountName?: string;
+        bankAccountNumber?: string;
+        bankIfscCode?: string;
+    } | undefined>(undefined);
+
+    const handleEditOwnerBank = async (ownerId: string, displayName: string) => {
+        setSelectedOwnerId(ownerId);
+        setSelectedOwnerName(displayName);
+        try {
+            const allOwners = await getAllOwners();
+            const owner = allOwners.find(o => o.id === ownerId);
+            if (owner) {
+                setOwnerBankDetails({
+                    bankAccountName: owner.bankAccountName,
+                    bankAccountNumber: owner.bankAccountNumber,
+                    bankIfscCode: owner.bankIfscCode
+                });
+            } else {
+                setOwnerBankDetails(undefined);
+            }
+            setBankModalOpen(true);
+        } catch (err) {
+            showToast('Failed to fetch owner details', 'error');
+        }
+    };
+
+    const handleSaveOwnerBankAdmin = async (data: {
+        bankAccountName: string;
+        bankAccountNumber: string;
+        bankIfscCode: string;
+    }) => {
+        if (!selectedOwnerId) return;
+        await updateOwnerBankDetailsAdmin(selectedOwnerId, data);
+        showToast('Bank details updated successfully', 'success');
+    };
+
 
     const loadData = async () => {
         setLoading(true);
@@ -176,9 +220,23 @@ const AdminPayoutsPage = () => {
                         {payouts.map((row) => (
                             <tr key={row.payoutId} className="group hover:bg-slate-50/50 transition-all">
                                 <td className="px-8 py-6">
-                                    <p className="text-sm font-bold text-slate-900">{row.displayName}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{row.orderCount} orders</p>
+                                    <div className="flex items-center gap-2">
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-900">{row.displayName}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{row.orderCount} orders</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleEditOwnerBank(row.ownerId, row.displayName)}
+                                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all ml-1"
+                                            title="Edit Owner Bank Details"
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </td>
+
                                 <td className="px-8 py-6">
                                     <p className="text-xs font-bold text-slate-600">{row.cycleStart} - {row.cycleEnd}</p>
                                 </td>
@@ -258,8 +316,17 @@ const AdminPayoutsPage = () => {
                     </tbody>
                 </table>
             </div>
+
+            <BankDetailsModal
+                isOpen={bankModalOpen}
+                onClose={() => setBankModalOpen(false)}
+                initialData={ownerBankDetails}
+                onSave={handleSaveOwnerBankAdmin}
+                title={`Bank Details: ${selectedOwnerName}`}
+            />
         </div>
     );
 };
 
 export default AdminPayoutsPage;
+

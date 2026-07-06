@@ -1,5 +1,7 @@
 import client from './client';
 import { Owner, RestaurantMinimal } from '../types';
+import { UpdateBankDetailsPayload } from './ownerApi';
+
 
 export interface CreateOwnerPayload {
   name: string;
@@ -38,3 +40,9 @@ export const getAllOwners = async (): Promise<Owner[]> => {
   const response = await client.get<Owner[]>('/admin/owners');
   return response.data;
 };
+
+export const updateOwnerBankDetailsAdmin = async (ownerId: string, payload: UpdateBankDetailsPayload): Promise<any> => {
+  const response = await client.put(`/admin/owners/${ownerId}/bank`, payload);
+  return response.data;
+};
+

@@ -14,6 +14,7 @@ const menuItems = [
   { label: 'Payouts', path: '/payouts', img: payout_icon, roles: ['restaurant'] },
   { label: 'Settings', path: '/settings', img: settings_icon, roles: ['restaurant'] },
   { label: 'My Outlets', path: '/owner/outlets', img: manage_outlet_icon, roles: ['owner'] },
+  { label: 'Bank Details', path: '/owner/bank', img: payout_icon, roles: ['owner'] },
   { label: 'Control Center', path: '/admin/payouts', img: payout_icon, roles: ['admin'] },
   { label: 'Add Restaurant', path: '/admin/create-restaurant', img: settings_icon, roles: ['admin'] },
 ];
@@ -53,34 +54,33 @@ const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
           .filter(item => {
             if (!user) return false;
             if (!item.roles) return true;
-            
+
             // Strictly hide 'Add Restaurant' if we are currently in a restaurant context
             if (item.label === 'Add Restaurant' && user.role === 'restaurant') return false;
-            
+
             return item.roles.includes(user.role) || (user.originalRole && item.roles.includes(user.originalRole));
           })
           .map(item => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `group flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 ${
-                isActive
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `group flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 ${isActive
                   ? 'bg-brand-50 text-brand-600 shadow-sm'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`
-            }
-          >
-            <div 
+                }`
+              }
+            >
+              <div
                 className="h-5 w-5 flex-shrink-0 bg-current transition-transform duration-200 group-hover:scale-110"
-                style={{ 
-                    WebkitMask: `url("${item.img}") center/contain no-repeat`,
-                    mask: `url("${item.img}") center/contain no-repeat`,
-                }} 
-            />
-            {item.label}
-          </NavLink>
-        ))}
+                style={{
+                  WebkitMask: `url("${item.img}") center/contain no-repeat`,
+                  mask: `url("${item.img}") center/contain no-repeat`,
+                }}
+              />
+              {item.label}
+            </NavLink>
+          ))}
       </nav>
 
       <div className="mt-auto border-t border-slate-50 p-4 space-y-2">
@@ -98,9 +98,9 @@ const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
           </div>
         </div>
 
-        <a 
-          href="https://wa.me/919082220155?text=Need%20HELP!" 
-          target="_blank" 
+        <a
+          href="https://wa.me/919082220155?text=Need%20HELP!"
+          target="_blank"
           rel="noopener noreferrer"
           className="group flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-600 transition-all hover:bg-emerald-50 hover:text-emerald-600"
         >
@@ -117,12 +117,12 @@ const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
           onClick={handleLogout}
           className="group flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-600 transition-all hover:bg-brand-50 hover:text-brand-600"
         >
-          <div 
+          <div
             className="h-5 w-5 flex-shrink-0 bg-current transition-transform group-hover:scale-110"
-            style={{ 
-                WebkitMask: `url("${logout_icon}") center/contain no-repeat`,
-                mask: `url("${logout_icon}") center/contain no-repeat`,
-            }} 
+            style={{
+              WebkitMask: `url("${logout_icon}") center/contain no-repeat`,
+              mask: `url("${logout_icon}") center/contain no-repeat`,
+            }}
           />
 
           Logout

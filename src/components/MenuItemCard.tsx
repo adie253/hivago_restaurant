@@ -1,5 +1,6 @@
 import { MenuItem } from '../types';
 import { formatCurrency } from '../utils/format';
+import foodFallback from '../assets/fallbacks/food_fallback.jpg';
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -8,6 +9,15 @@ interface MenuItemCardProps {
 }
 
 const MenuItemCard = ({ item, onToggle, onEdit }: MenuItemCardProps) => {
+  const isValidImageUrl = 
+    item.imageUrl && 
+    item.imageUrl !== 'null' && 
+    item.imageUrl !== 'undefined' && 
+    !item.imageUrl.includes('example.com') &&
+    !item.imageUrl.includes('placeholder');
+
+  const displayImageUrl = isValidImageUrl ? item.imageUrl : foodFallback;
+
   return (
     <div className={`group flex items-center justify-between rounded-[28px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] ${
       item.isAvailable ? 'bg-white' : 'bg-slate-50/50 opacity-75'
@@ -16,10 +26,10 @@ const MenuItemCard = ({ item, onToggle, onEdit }: MenuItemCardProps) => {
         {/* Image Section */}
         <div className="relative h-20 w-20 flex-none overflow-hidden rounded-2xl">
           <img
-            src={item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop'}
+            src={displayImageUrl}
             alt={item.name}
             onError={(e) => {
-              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=200&fit=crop';
+              (e.target as HTMLImageElement).src = foodFallback;
             }}
             className={`h-full w-full object-cover transition-all duration-300 ${!item.isAvailable ? 'grayscale opacity-50' : ''}`}
           />

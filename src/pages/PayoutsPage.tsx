@@ -22,6 +22,7 @@ import { formatCurrency } from '../utils/format';
 type PayoutTab = 'earnings' | 'history' | 'tax-reports';
 
 const PayoutsPage = () => {
+
     const { user } = useAuth();
     const { showToast } = useToast();
     
@@ -37,6 +38,8 @@ const PayoutsPage = () => {
     // Detail Modal State
     const [selectedPayout, setSelectedPayout] = useState<PayoutDetailDto | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+
     
     // Date Range for Tax Reports
     const [taxDateRange, setTaxDateRange] = useState({ 
@@ -194,6 +197,8 @@ const PayoutsPage = () => {
                     </button>
                 ))}
             </div>
+
+
 
             {/* Tab Content */}
             <div className="space-y-8">
@@ -384,8 +389,7 @@ const PayoutsPage = () => {
                             </div>
                         )}
                     </div>
-                )}
-            </div>
+                )}            </div>
 
             {/* Detail Modal */}
             <PayoutDetailsModal 
@@ -394,6 +398,8 @@ const PayoutsPage = () => {
                 payout={selectedPayout}
             />
         </div>
+
+
     );
 };
 

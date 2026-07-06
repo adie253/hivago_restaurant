@@ -6,6 +6,8 @@ import MenuPage from './pages/MenuPage';
 import SettingsPage from './pages/SettingsPage';
 import PayoutsPage from './pages/PayoutsPage';
 import OwnerOutletsPage from './pages/owner/OwnerOutletsPage';
+import OwnerBankPage from './pages/owner/OwnerBankPage';
+
 import AdminCreateRestaurantPage from './pages/admin/AdminCreateRestaurantPage';
 import AdminPayoutsPage from './pages/admin/AdminPayoutsPage';
 import Navbar from './components/Navbar';
@@ -27,7 +29,7 @@ const RequireAuth = ({ children, allowedRoles }: { children: JSX.Element; allowe
 
   if (allowedRoles && user) {
     const hasRequiredRole = allowedRoles.includes(user.role) || (user.originalRole && allowedRoles.includes(user.originalRole));
-    
+
     if (!hasRequiredRole) {
       if (user.role === 'owner') return <Navigate to="/owner/outlets" replace />;
       return <Navigate to="/dashboard" replace />;
@@ -80,9 +82,8 @@ const AppContent = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         {showSidebar && (
-          <aside className={`fixed inset-y-0 left-0 z-40 w-72 flex-none bg-white lg:static lg:block ${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          } transition-transform duration-300 ease-in-out`}>
+          <aside className={`fixed inset-y-0 left-0 z-40 w-72 flex-none bg-white lg:static lg:block ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+            } transition-transform duration-300 ease-in-out`}>
             <Sidebar
               isOpen={sidebarOpen}
               onDismiss={() => setSidebarOpen(false)}
@@ -127,6 +128,16 @@ const AppContent = () => {
                 </RequireAuth>
               }
             />
+
+            <Route
+              path="/owner/bank"
+              element={
+                <RequireAuth allowedRoles={['owner']}>
+                  <OwnerBankPage />
+                </RequireAuth>
+              }
+            />
+
 
             <Route
               path="/admin/create-restaurant"

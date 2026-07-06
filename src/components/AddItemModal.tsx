@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useToast } from '../context/ToastContext';
 import { MenuCategory, CreateMenuItemPayload, MenuItemOption, MenuItemOptionGroup } from '../types';
+import foodFallback from '../assets/fallbacks/food_fallback.jpg';
 
 import { 
   createMenuItem, 
@@ -612,7 +613,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
                           src={imagePreview} 
                           alt="Preview" 
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop';
+                            (e.target as HTMLImageElement).src = foodFallback;
                           }}
                           className="h-full w-full object-cover" 
                         />
