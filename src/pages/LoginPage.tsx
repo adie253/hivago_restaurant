@@ -11,7 +11,7 @@ const LoginPage = () => {
   const { showToast } = useToast();
   const [email, setEmail] = useState('vohuman@rally.in');
   const [password, setPassword] = useState('Test@123');
-  const [remember, setRemember] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<AuthRole>('restaurant');

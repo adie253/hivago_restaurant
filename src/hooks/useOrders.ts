@@ -6,7 +6,7 @@ import { fetchOrders, normalizeOrder } from '../api/dashboardApi';
 
 export const useOrders = () => {
   const { user } = useAuth();
-  const { lastOrderReceived } = useNotifications();
+  const { lastOrderReceived, clearLastOrderReceived } = useNotifications();
   const [orders, setOrders] = useState<Order[]>([]);
   const [newOrder, setNewOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +35,7 @@ export const useOrders = () => {
       if (initialLoadRef.current) {
         const previousIds = new Set(previousOrderIdsRef.current);
         const newlyArrived = latestOrders.find(order => !previousIds.has(order.id));
-        if (newlyArrived) {
+        if (newlyArrived && newlyArrived.status === 'PENDING') {
           setNewOrder(newlyArrived);
         }
       }
@@ -69,8 +69,14 @@ export const useOrders = () => {
       // Normalize the SignalR payload using the robust dashboardApi normalizer
       const normalizedOrder = normalizeOrder(lastOrderReceived);
       
+      // Force status to PENDING since it is received via NewOrderReceived event
+      normalizedOrder.status = 'PENDING';
+      
       // Instantly open the popup when the event triggers (ensuring it matches the sound play)
       setNewOrder(normalizedOrder);
+      
+      // Clear it from the notification context so we don't process it again on remount
+      clearLastOrderReceived();
       
       // Debounce the refresh to avoid hammering the server if many updates arrive
       const timer = setTimeout(() => {

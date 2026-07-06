@@ -40,19 +40,23 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
   useEffect(() => {
     const loadFullDetails = async () => {
       // If items are missing or it's a minimal order object, fetch full details
-      if (!initialOrder.items || initialOrder.items.length === 0 || !initialOrder.address) {
-        setLoading(true);
-        try {
-          const fullOrder = await fetchOrderById(initialOrder.id);
-          setOrder(fullOrder);
-        } catch (err) {
-          console.error(`Failed to fetch details for new order ${initialOrder.id}`, err);
-          setOrder({
-            ...initialOrder,
-            items: initialOrder?.items || []
-          });
-        } finally {
-          setLoading(false);
+      if (initialOrder.id && initialOrder.id !== 'undefined' && initialOrder.id !== 'null') {
+        if (!initialOrder.items || initialOrder.items.length === 0 || !initialOrder.address) {
+          setLoading(true);
+          try {
+            const fullOrder = await fetchOrderById(initialOrder.id);
+            setOrder(fullOrder);
+          } catch (err) {
+            console.error(`Failed to fetch details for new order ${initialOrder.id}`, err);
+            setOrder({
+              ...initialOrder,
+              items: initialOrder?.items || []
+            });
+          } finally {
+            setLoading(false);
+          }
+        } else {
+          setOrder(initialOrder);
         }
       } else {
         setOrder(initialOrder);

@@ -142,13 +142,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const now = Date.now();
       const timeRemaining = expiresAt - now;
 
-      // Check if session is stored in localStorage (Remember Me checked)
-      const isSessionRemembered = localStorage.getItem(ACCESS_TOKEN_KEY) !== null;
-
       if (timeRemaining <= 0) {
         // Token has expired
-        if (isSessionRemembered && refreshToken) {
-          // Silently refresh for remembered users instead of logging out
+        if (refreshToken) {
+          // Silently refresh in the background if a refresh token is present
           if (!isRefreshing) {
             console.log('[Auth] Access token expired, performing silent background refresh...');
             refreshSession();
@@ -160,8 +157,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } else if (timeRemaining <= WARNING_THRESHOLD) {
         // Soon to expire
-        if (isSessionRemembered) {
-          // If remembered, refresh automatically without showing popup
+        if (refreshToken) {
+          // Silently refresh automatically in the background without showing any warning popup
           if (!isRefreshing) {
             console.log('[Auth] Access token near expiration, performing automatic refresh...');
             refreshSession();

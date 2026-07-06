@@ -163,8 +163,8 @@ export const normalizeOrder = (raw: Record<string, unknown>): Order => {
   }));
 
   return {
-    id: String(raw.id ?? ''),
-    orderNumber: String(raw.orderNumber ?? raw.id ?? ''),
+    id: String(raw.id ?? raw.orderId ?? ''),
+    orderNumber: String(raw.orderNumber ?? raw.id ?? raw.orderId ?? ''),
     status: normalizedStatus,
     customerName: String(raw.customerName ?? raw.restaurantName ?? 'Guest'),
     customerPhone: String(raw.customerPhone ?? raw.restaurantPhone ?? ''),
