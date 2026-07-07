@@ -7,6 +7,7 @@ import order_preparing_man from '../assets/order_preparing_man.svg';
 import ready_to_pickup from '../assets/ready_to_pickup.svg';
 import { useToast } from '../context/ToastContext';
 import TimelineModal from './TimelineModal';
+import { useAuth } from '../context/AuthContext';
 
 interface OrderCardProps {
   order: Order;
@@ -18,6 +19,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const { showToast } = useToast();
+  const { user } = useAuth();
   
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -222,32 +224,50 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
   };
 
   const handlePrintKOT = () => {
-    const printWindow = window.open('', '_blank', 'width=600,height=600');
+    const printWindow = window.open('', '_blank', 'width=600,height=800');
     if (!printWindow) {
       showToast('Popup blocked! Please allow popups to print KOT.', 'error');
       return;
     }
 
+    const subTotal = order.subTotal ?? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const tax = order.tax ?? 0;
+    const discount = order.discount ?? 0;
+    const total = order.total;
+
+    // Items list with quantities, names and prices
     const itemsHtml = order.items && order.items.length > 0 
       ? order.items.map(item => `
-          <tr style="border-bottom: 1px dashed #ccc;">
-            <td style="padding: 8px 0; font-size: 16px; font-weight: bold; width: 40px; text-align: left; vertical-align: top;">
-              ${item.quantity}x
-            </td>
-            <td style="padding: 8px 0; font-size: 16px; vertical-align: top;">
-              <strong>${item.name}</strong>
-              ${item.specialInstructions ? `
-                <div style="font-size: 13px; color: #555; margin-top: 4px; font-style: italic; background: #fef3c7; padding: 4px 8px; border-radius: 4px;">
-                  * ${item.specialInstructions}
-                </div>
-              ` : ''}
-            </td>
-          </tr>
+          <div style="margin-top: 12px; margin-bottom: 4px;">
+            <div style="font-size: 15px; font-weight: bold; text-align: left;">${item.name}</div>
+            <div style="display: flex; justify-content: space-between; font-size: 14px; margin-top: 4px;">
+              <span style="font-weight: bold;">${item.quantity} <span style="font-weight: normal; font-size: 13px; color: #555;">x ${Math.round(item.price)}</span></span>
+              <span style="font-weight: bold;">₹${Math.round(item.quantity * item.price)}</span>
+            </div>
+            ${item.specialInstructions ? `
+              <div style="font-size: 12px; font-style: italic; color: #444; margin-top: 2px; text-align: left;">
+                * Instructions: ${item.specialInstructions}
+              </div>
+            ` : ''}
+          </div>
         `).join('')
-      : '<tr><td colspan="2" style="padding: 8px 0; text-align: center; color: #888;">No items</td></tr>';
+      : '<div style="text-align: center; color: #888; font-style: italic; padding: 10px 0;">No items</div>';
 
-    const formattedTime = new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const formattedDate = new Date(order.createdAt).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
+    // Date formatting helper: e.g. "6th Jul 2026 at 4:22 PM"
+    const formatDateString = (dateStr: string) => {
+      const date = new Date(dateStr);
+      const day = date.getDate();
+      const suffix = ["th", "st", "nd", "rd"][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10];
+      const month = date.toLocaleString('en-US', { month: 'short' });
+      const year = date.getFullYear();
+      const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return `${day}${suffix} ${month} ${year} at ${time}`;
+    };
+    const formattedDate = formatDateString(order.createdAt);
+
+    const isPaid = order.paymentStatus?.toUpperCase() === 'PAID';
+    const otpCode = order.otp || deliveryCodes?.pickupCode || '';
+    const restaurantName = user?.name || 'Hivago Restaurant Partner';
 
     printWindow.document.write(`
       <html>
@@ -255,94 +275,199 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
           <title>KOT - #${order.orderNumber}</title>
           <style>
             @media print {
-              body { margin: 0; padding: 10px; }
+              body { margin: 0; padding: 5px; }
               @page { size: auto; margin: 0mm; }
             }
             body {
               font-family: 'Courier New', Courier, monospace, sans-serif;
               color: #000;
-              margin: 20px;
+              margin: 10px auto;
+              max-width: 320px;
+              line-height: 1.3;
+              text-align: center;
+              font-weight: 500;
+            }
+            .header-title {
+              font-size: 18px;
+              font-weight: bold;
+              margin-bottom: 6px;
+            }
+            .order-number {
+              font-size: 24px;
+              font-weight: bold;
+              margin-bottom: 12px;
+            }
+            .restaurant-section {
+              font-size: 14px;
+              margin-bottom: 8px;
               line-height: 1.4;
             }
-            .header {
-              text-align: center;
-              border-bottom: 2px dashed #000;
-              padding-bottom: 10px;
-              margin-bottom: 15px;
+            .date-section {
+              border-top: 1px solid #000;
+              border-bottom: 1px solid #000;
+              padding: 6px 0;
+              font-size: 13px;
+              margin: 8px 0;
             }
-            .title {
-              font-size: 22px;
+            .status-banner {
+              border-bottom: 1px solid #000;
+              padding-bottom: 8px;
+              margin-bottom: 10px;
+              font-size: 15px;
               font-weight: bold;
-              margin: 5px 0;
             }
-            .info-table {
-              width: 100%;
-              margin-bottom: 15px;
+            .customer-details {
+              text-align: left;
+              font-size: 13px;
+              line-height: 1.4;
+              margin-bottom: 12px;
+            }
+            .summary-title {
+              font-size: 15px;
+              font-weight: bold;
+              margin: 12px 0 6px 0;
+              border-top: 1px solid #000;
+              padding-top: 8px;
+            }
+            .financial-section {
+              border-top: 1px dashed #000;
+              margin-top: 10px;
+              padding-top: 8px;
               font-size: 14px;
+              text-align: right;
             }
-            .info-table td {
-              padding: 2px 0;
+            .financial-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 4px;
             }
-            .items-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 15px;
+            .total-row {
+              border-top: 1px solid #000;
+              margin-top: 6px;
+              padding-top: 6px;
+              font-size: 16px;
+              font-weight: bold;
             }
-            .footer {
-              border-top: 2px dashed #000;
+            .order-requests {
+              border-top: 1px solid #000;
+              margin-top: 12px;
+              padding-top: 8px;
+              text-align: left;
+              font-size: 13px;
+            }
+            .footer-section {
+              border-top: 1px solid #000;
+              margin-top: 15px;
               padding-top: 10px;
-              text-align: center;
               font-size: 12px;
-              margin-top: 20px;
+              line-height: 1.4;
             }
-            .pickup-badge {
-              display: inline-block;
-              background: #000;
-              color: #fff;
-              padding: 4px 8px;
-              font-weight: bold;
-              margin-top: 5px;
-              font-size: 14px;
+            .barcode {
+              display: flex;
+              justify-content: center;
+              gap: 1.5px;
+              height: 30px;
+              margin: 10px auto;
+              width: 160px;
             }
           </style>
         </head>
         <body>
-          <div class="header">
-            <div class="title">KITCHEN ORDER TICKET</div>
-            <div style="font-size: 26px; font-weight: bold; margin-top: 5px;">#${order.orderNumber.slice(-5)}</div>
-            <div style="font-size: 14px;">Full Order ID: #${order.orderNumber}</div>
-            <div class="pickup-badge">${order.pickupType === 'DELIVERY' ? 'HIVAGO DELIVERY' : 'SELF PICKUP'}</div>
-          </div>
+          <div class="header-title">Hivago order:</div>
+          <div class="order-number">${order.orderNumber}</div>
           
-          <table class="info-table">
-            <tr>
-              <td><strong>Date:</strong> ${formattedDate}</td>
-              <td style="text-align: right;"><strong>Time:</strong> ${formattedTime}</td>
-            </tr>
-            ${order.customerNote ? `
-              <tr>
-                <td colspan="2" style="background: #eee; padding: 6px; font-size: 13px; font-weight: bold; margin-top: 5px; border-radius: 4px;">
-                  NOTE: ${order.customerNote}
-                </td>
-              </tr>
-            ` : ''}
-          </table>
-
-          <table class="items-table">
-            <thead>
-              <tr style="border-bottom: 2px dashed #000;">
-                <th style="text-align: left; padding-bottom: 5px;">Qty</th>
-                <th style="text-align: left; padding-bottom: 5px;">Item Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
-
-          <div class="footer">
-            <p style="margin: 0; font-weight: bold;">Hivago Restaurant Partner</p>
+          <div class="restaurant-section">
+            <strong>${restaurantName}</strong><br/>
+            Outlet ID: ${user?.outletId || 'Main Outlet'}<br/>
+            FSSAI Lic. No.<br/>
+            21526068000923
           </div>
+
+          <div class="date-section">
+            ${formattedDate}
+          </div>
+
+          <div class="status-banner">
+            <div>${isPaid ? 'PAID' : 'COD (CASH ON DELIVERY)'}</div>
+            <div style="font-weight: normal; font-size: 14px; margin-top: 2px;">
+              ${order.pickupType === 'DELIVERY' ? 'Delivery by Hivago' : 'Self Pickup'}
+            </div>
+          </div>
+
+          <div class="customer-details">
+            <strong>Name:</strong> ${order.customerName}<br/>
+            <strong>Address:</strong> ${order.address}<br/>
+            ${otpCode ? `<strong>OTP:</strong> ${otpCode}` : ''}
+          </div>
+
+          <div class="summary-title">Summary</div>
+          <div style="border-bottom: 1px dashed #000; padding-bottom: 8px;">
+            ${itemsHtml}
+          </div>
+
+          <div class="financial-section">
+            <div class="financial-row">
+              <span>Subtotal</span>
+              <span>₹${Math.round(subTotal)}</span>
+            </div>
+            <div class="financial-row">
+              <span>Taxes</span>
+              <span>₹${Math.round(tax)}</span>
+            </div>
+            ${discount > 0 ? `
+              <div class="financial-row">
+                <span>Discount</span>
+                <span>-₹${Math.round(discount)}</span>
+              </div>
+            ` : ''}
+            <div class="financial-row total-row">
+              <span>Total</span>
+              <span>₹${Math.round(total)}</span>
+            </div>
+          </div>
+
+          ${order.customerNote ? `
+            <div class="order-requests">
+              <strong>Order requests:</strong> ${order.customerNote}
+              <div style="font-weight: bold; margin-top: 4px;">
+                ${order.customerNote.toLowerCase().includes('cutlery') ? 'Send cutlery' : 'No cutlery needed'}
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="footer-section">
+            <div>This is not a tax invoice.</div>
+            <div>Hivago FSSAI Lic. No.</div>
+            <div style="font-weight: bold;">10019064001810</div>
+            
+            <div class="barcode">
+              <div style="width: 2px; background: #000;"></div>
+              <div style="width: 1px; background: #000;"></div>
+              <div style="width: 3px; background: #000;"></div>
+              <div style="width: 1px; background: #000;"></div>
+              <div style="width: 4px; background: #000;"></div>
+              <div style="width: 2px; background: #000;"></div>
+              <div style="width: 1px; background: #000;"></div>
+              <div style="width: 3px; background: #000;"></div>
+              <div style="width: 1px; background: #000;"></div>
+              <div style="width: 4px; background: #000;"></div>
+              <div style="width: 2px; background: #000;"></div>
+              <div style="width: 1px; background: #000;"></div>
+              <div style="width: 3px; background: #000;"></div>
+              <div style="width: 1px; background: #000;"></div>
+              <div style="width: 4px; background: #000;"></div>
+              <div style="width: 2px; background: #000;"></div>
+              <div style="width: 1.5px; background: #000;"></div>
+              <div style="width: 3px; background: #000;"></div>
+              <div style="width: 1px; background: #000;"></div>
+              <div style="width: 4px; background: #000;"></div>
+            </div>
+            
+            <div style="font-size: 10px; font-weight: bold; margin-top: 6px;">
+              Hivago delivery partner will scan to pickup the order
+            </div>
+          </div>
+
           <script>
             window.onload = function() {
               window.print();
