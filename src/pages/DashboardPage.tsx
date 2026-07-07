@@ -9,6 +9,8 @@ import StatCard from '../components/StatCard';
 import { StatCardSkeleton, OrderCardSkeleton } from '../components/Skeletons';
 import { useToast } from '../context/ToastContext';
 import { Order, OrderSectionKey } from '../types';
+import { useAutoPrintKot } from '../hooks/useAutoPrintKot';
+import { KitchenTicket } from '../components/orders/KitchenTicket';
 
 import todays_orders_icon from '../assets/todays_orders_icon.svg';
 import todays_revenue_icon from '../assets/todays_revenue_icon.svg';
@@ -34,6 +36,22 @@ const DashboardPage = () => {
   const { showToast } = useToast();
   const { stats, loading: loadingStats, error: statsError } = useDashboardStats(range);
   const { orders, newOrder, setNewOrder, refreshOrders, updateLocalOrder, loading: loadingOrders, error: ordersError } = useOrders();
+
+  const [autoPrintEnabled, setAutoPrintEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('hivago_auto_print_kot') === 'true';
+    }
+    return false;
+  });
+
+  const handleToggleAutoPrint = () => {
+    const newValue = !autoPrintEnabled;
+    setAutoPrintEnabled(newValue);
+    localStorage.setItem('hivago_auto_print_kot', String(newValue));
+    showToast(`Auto-print KOT ${newValue ? 'Enabled' : 'Disabled'}`, 'info');
+  };
+
+  const autoKot = useAutoPrintKot(autoPrintEnabled);
 
   const handleOrderUpdate = (updatedOrder: Order) => {
     updateLocalOrder(updatedOrder);
@@ -120,20 +138,35 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-10">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
-          {['today', '7d', '30d'].map((r) => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${
-                range === r ? 'bg-brand-500 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              {r === 'today' ? 'Today' : r.toUpperCase()}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Auto Print KOT Toggle */}
+          <button
+            onClick={handleToggleAutoPrint}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all shadow-sm active:scale-95 border ${
+              autoPrintEnabled
+                ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600 shadow-emerald-500/10'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <div className={`h-2 w-2 rounded-full ${autoPrintEnabled ? 'bg-white animate-pulse' : 'bg-slate-400'}`} />
+            <span>AUTO-PRINT KOT: {autoPrintEnabled ? 'ON' : 'OFF'}</span>
+          </button>
+
+          <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
+            {['today', '7d', '30d'].map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={`px-4 py-1.5 text-xs font-bold rounded-xl transition-all ${
+                  range === r ? 'bg-brand-500 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                {r === 'today' ? 'Today' : r.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -227,6 +260,10 @@ const DashboardPage = () => {
           </div>
         )}
       </section>
+      {/* Hidden KOT auto-printer target */}
+      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+        {autoKot.data && <KitchenTicket ref={autoKot.ref} ticket={autoKot.data} />}
+      </div>
     </div>
   );
 };

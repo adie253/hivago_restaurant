@@ -8,6 +8,9 @@ import ready_to_pickup from '../assets/ready_to_pickup.svg';
 import { useToast } from '../context/ToastContext';
 import TimelineModal from './TimelineModal';
 import { useAuth } from '../context/AuthContext';
+import { useKotPrint, useLabelPrint } from '../hooks/usePrintDoc';
+import { KitchenTicket } from './orders/KitchenTicket';
+import { OrderLabel } from './orders/OrderLabel';
 
 interface OrderCardProps {
   order: Order;
@@ -20,6 +23,8 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
   const [actionLoading, setActionLoading] = useState(false);
   const { showToast } = useToast();
   const { user } = useAuth();
+  const kot = useKotPrint();
+  const label = useLabelPrint();
   
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -125,7 +130,21 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     };
 
     loadFullDetails();
-  }, [initialOrder.id, initialOrder.status, showToast]);
+  }, [
+    initialOrder.id,
+    initialOrder.status,
+    initialOrder.paymentStatus,
+    initialOrder.paymentStatusDisplay,
+    initialOrder.riderName,
+    initialOrder.riderPhone,
+    initialOrder.otp,
+    initialOrder.address,
+    initialOrder.customerName,
+    initialOrder.customerPhone,
+    initialOrder.customerNote,
+    JSON.stringify(initialOrder.items),
+    showToast
+  ]);
 
   useEffect(() => {
     const loadCodes = async () => {
@@ -223,263 +242,6 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     }
   };
 
-  const handlePrintKOT = () => {
-    const printWindow = window.open('', '_blank', 'width=600,height=800');
-    if (!printWindow) {
-      showToast('Popup blocked! Please allow popups to print KOT.', 'error');
-      return;
-    }
-
-    const subTotal = order.subTotal ?? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const tax = order.tax ?? 0;
-    const discount = order.discount ?? 0;
-    const total = order.total;
-
-    // Items list with quantities, names and prices
-    const itemsHtml = order.items && order.items.length > 0 
-      ? order.items.map(item => `
-          <div style="margin-top: 12px; margin-bottom: 4px;">
-            <div style="font-size: 15px; font-weight: bold; text-align: left;">${item.name}</div>
-            <div style="display: flex; justify-content: space-between; font-size: 14px; margin-top: 4px;">
-              <span style="font-weight: bold;">${item.quantity} <span style="font-weight: normal; font-size: 13px; color: #555;">x ${Math.round(item.price)}</span></span>
-              <span style="font-weight: bold;">₹${Math.round(item.quantity * item.price)}</span>
-            </div>
-            ${item.specialInstructions ? `
-              <div style="font-size: 12px; font-style: italic; color: #444; margin-top: 2px; text-align: left;">
-                * Instructions: ${item.specialInstructions}
-              </div>
-            ` : ''}
-          </div>
-        `).join('')
-      : '<div style="text-align: center; color: #888; font-style: italic; padding: 10px 0;">No items</div>';
-
-    // Date formatting helper: e.g. "6th Jul 2026 at 4:22 PM"
-    const formatDateString = (dateStr: string) => {
-      const date = new Date(dateStr);
-      const day = date.getDate();
-      const suffix = ["th", "st", "nd", "rd"][(day % 10 > 3 || Math.floor(day % 100 / 10) === 1) ? 0 : day % 10];
-      const month = date.toLocaleString('en-US', { month: 'short' });
-      const year = date.getFullYear();
-      const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      return `${day}${suffix} ${month} ${year} at ${time}`;
-    };
-    const formattedDate = formatDateString(order.createdAt);
-
-    const isPaid = order.paymentStatus?.toUpperCase() === 'PAID';
-    const otpCode = order.otp || deliveryCodes?.pickupCode || '';
-    const restaurantName = user?.name || 'Hivago Restaurant Partner';
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>KOT - #${order.orderNumber}</title>
-          <style>
-            @media print {
-              body { margin: 0; padding: 5px; }
-              @page { size: auto; margin: 0mm; }
-            }
-            body {
-              font-family: 'Courier New', Courier, monospace, sans-serif;
-              color: #000;
-              margin: 10px auto;
-              max-width: 320px;
-              line-height: 1.3;
-              text-align: center;
-              font-weight: 500;
-            }
-            .header-title {
-              font-size: 18px;
-              font-weight: bold;
-              margin-bottom: 6px;
-            }
-            .order-number {
-              font-size: 24px;
-              font-weight: bold;
-              margin-bottom: 12px;
-            }
-            .restaurant-section {
-              font-size: 14px;
-              margin-bottom: 8px;
-              line-height: 1.4;
-            }
-            .date-section {
-              border-top: 1px solid #000;
-              border-bottom: 1px solid #000;
-              padding: 6px 0;
-              font-size: 13px;
-              margin: 8px 0;
-            }
-            .status-banner {
-              border-bottom: 1px solid #000;
-              padding-bottom: 8px;
-              margin-bottom: 10px;
-              font-size: 15px;
-              font-weight: bold;
-            }
-            .customer-details {
-              text-align: left;
-              font-size: 13px;
-              line-height: 1.4;
-              margin-bottom: 12px;
-            }
-            .summary-title {
-              font-size: 15px;
-              font-weight: bold;
-              margin: 12px 0 6px 0;
-              border-top: 1px solid #000;
-              padding-top: 8px;
-            }
-            .financial-section {
-              border-top: 1px dashed #000;
-              margin-top: 10px;
-              padding-top: 8px;
-              font-size: 14px;
-              text-align: right;
-            }
-            .financial-row {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 4px;
-            }
-            .total-row {
-              border-top: 1px solid #000;
-              margin-top: 6px;
-              padding-top: 6px;
-              font-size: 16px;
-              font-weight: bold;
-            }
-            .order-requests {
-              border-top: 1px solid #000;
-              margin-top: 12px;
-              padding-top: 8px;
-              text-align: left;
-              font-size: 13px;
-            }
-            .footer-section {
-              border-top: 1px solid #000;
-              margin-top: 15px;
-              padding-top: 10px;
-              font-size: 12px;
-              line-height: 1.4;
-            }
-            .barcode {
-              display: flex;
-              justify-content: center;
-              gap: 1.5px;
-              height: 30px;
-              margin: 10px auto;
-              width: 160px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header-title">Hivago order:</div>
-          <div class="order-number">${order.orderNumber}</div>
-          
-          <div class="restaurant-section">
-            <strong>${restaurantName}</strong><br/>
-            Outlet ID: ${user?.outletId || 'Main Outlet'}<br/>
-            FSSAI Lic. No.<br/>
-            21526068000923
-          </div>
-
-          <div class="date-section">
-            ${formattedDate}
-          </div>
-
-          <div class="status-banner">
-            <div>${isPaid ? 'PAID' : 'COD (CASH ON DELIVERY)'}</div>
-            <div style="font-weight: normal; font-size: 14px; margin-top: 2px;">
-              ${order.pickupType === 'DELIVERY' ? 'Delivery by Hivago' : 'Self Pickup'}
-            </div>
-          </div>
-
-          <div class="customer-details">
-            <strong>Name:</strong> ${order.customerName}<br/>
-            <strong>Address:</strong> ${order.address}<br/>
-            ${otpCode ? `<strong>OTP:</strong> ${otpCode}` : ''}
-          </div>
-
-          <div class="summary-title">Summary</div>
-          <div style="border-bottom: 1px dashed #000; padding-bottom: 8px;">
-            ${itemsHtml}
-          </div>
-
-          <div class="financial-section">
-            <div class="financial-row">
-              <span>Subtotal</span>
-              <span>₹${Math.round(subTotal)}</span>
-            </div>
-            <div class="financial-row">
-              <span>Taxes</span>
-              <span>₹${Math.round(tax)}</span>
-            </div>
-            ${discount > 0 ? `
-              <div class="financial-row">
-                <span>Discount</span>
-                <span>-₹${Math.round(discount)}</span>
-              </div>
-            ` : ''}
-            <div class="financial-row total-row">
-              <span>Total</span>
-              <span>₹${Math.round(total)}</span>
-            </div>
-          </div>
-
-          ${order.customerNote ? `
-            <div class="order-requests">
-              <strong>Order requests:</strong> ${order.customerNote}
-              <div style="font-weight: bold; margin-top: 4px;">
-                ${order.customerNote.toLowerCase().includes('cutlery') ? 'Send cutlery' : 'No cutlery needed'}
-              </div>
-            </div>
-          ` : ''}
-
-          <div class="footer-section">
-            <div>This is not a tax invoice.</div>
-            <div>Hivago FSSAI Lic. No.</div>
-            <div style="font-weight: bold;">10019064001810</div>
-            
-            <div class="barcode">
-              <div style="width: 2px; background: #000;"></div>
-              <div style="width: 1px; background: #000;"></div>
-              <div style="width: 3px; background: #000;"></div>
-              <div style="width: 1px; background: #000;"></div>
-              <div style="width: 4px; background: #000;"></div>
-              <div style="width: 2px; background: #000;"></div>
-              <div style="width: 1px; background: #000;"></div>
-              <div style="width: 3px; background: #000;"></div>
-              <div style="width: 1px; background: #000;"></div>
-              <div style="width: 4px; background: #000;"></div>
-              <div style="width: 2px; background: #000;"></div>
-              <div style="width: 1px; background: #000;"></div>
-              <div style="width: 3px; background: #000;"></div>
-              <div style="width: 1px; background: #000;"></div>
-              <div style="width: 4px; background: #000;"></div>
-              <div style="width: 2px; background: #000;"></div>
-              <div style="width: 1.5px; background: #000;"></div>
-              <div style="width: 3px; background: #000;"></div>
-              <div style="width: 1px; background: #000;"></div>
-              <div style="width: 4px; background: #000;"></div>
-            </div>
-            
-            <div style="font-size: 10px; font-weight: bold; margin-top: 6px;">
-              Hivago delivery partner will scan to pickup the order
-            </div>
-          </div>
-
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
-
   return (
     <article className="overflow-hidden rounded-[40px] border border-slate-100 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
       <div className="grid lg:grid-cols-[1.6fr_1fr]">
@@ -534,15 +296,26 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
           )}
           <div className="mt-8 flex flex-wrap items-center gap-3">
              {order.status !== 'PENDING' ? (
-               <button 
-                 onClick={handlePrintKOT}
-                 className="flex items-center gap-2 rounded-xl bg-[#AD221F] px-4 py-2 text-[11px] font-bold tracking-widest text-white shadow-md hover:bg-red-800 transition-all hover:scale-105 active:scale-95"
-               >
-                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                   <path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h8z" strokeLinecap="round" strokeLinejoin="round" />
-                 </svg>
-                 PRINT KOT
-               </button>
+               <>
+                 <button 
+                   onClick={() => kot.print(order.id)}
+                   className="flex items-center gap-2 rounded-xl bg-[#AD221F] px-4 py-2 text-[11px] font-bold tracking-widest text-white shadow-md hover:bg-red-800 transition-all hover:scale-105 active:scale-95"
+                 >
+                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                     <path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h8z" strokeLinecap="round" strokeLinejoin="round" />
+                   </svg>
+                   PRINT KOT
+                 </button>
+                 <button 
+                   onClick={() => label.print(order.id)}
+                   className="flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-[11px] font-bold tracking-widest text-white shadow-md hover:bg-slate-900 transition-all hover:scale-105 active:scale-95"
+                 >
+                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                     <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round" />
+                   </svg>
+                   PRINT BILL
+                 </button>
+               </>
              ) : (
                <span className="flex items-center gap-2 rounded-xl bg-[#EBEDFF] px-4 py-2 text-[11px] font-bold tracking-widest text-[#4C51BF]">
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -984,13 +757,23 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                     )}
 
                     <button 
-                      onClick={handlePrintKOT}
+                      onClick={() => kot.print(order.id)}
                       className="w-full rounded-[20px] border-2 border-[#AD221F] bg-white py-4 text-sm font-bold text-[#AD221F] hover:bg-red-50/50 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 mb-3"
                     >
                       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h8z" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       Print KOT (Kitchen Ticket)
+                    </button>
+
+                    <button 
+                      onClick={() => label.print(order.id)}
+                      className="w-full rounded-[20px] border-2 border-slate-800 bg-white py-4 text-sm font-bold text-slate-800 hover:bg-slate-50 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 mb-3"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Print Bill (Bag copy)
                     </button>
 
                     <button 
@@ -1032,6 +815,12 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
         onClose={() => setShowTimeline(false)} 
         order={order} 
       />
+
+      {/* Hidden print targets */}
+      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+        {kot.data && <KitchenTicket ref={kot.ref} ticket={kot.data} />}
+        {label.data && <OrderLabel ref={label.ref} label={label.data} />}
+      </div>
     </article>
   );
 };

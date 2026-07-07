@@ -21,14 +21,16 @@ export const useOrders = () => {
   const previousOrderIdsRef = useRef<string[]>([]);
   const initialLoadRef = useRef(false);
 
-  const refreshOrders = async () => {
+  const refreshOrders = async (silent = false) => {
     if (!user?.id) {
       setOrders([]);
       setNewOrder(null);
       return;
     }
 
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const response = await fetchOrders(user.id, { activeOnly: false, pageSize: 100 });
@@ -53,7 +55,9 @@ export const useOrders = () => {
     } catch (err) {
       setError('Unable to load orders.');
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -66,6 +70,12 @@ export const useOrders = () => {
     }
 
     refreshOrders();
+
+    const timer = setInterval(() => {
+      refreshOrders(true);
+    }, 15000);
+
+    return () => clearInterval(timer);
   }, [user?.id]);
 
   // Handle Real-Time Updates from SignalR
