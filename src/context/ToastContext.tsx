@@ -43,7 +43,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
             <ToastItem 
               key={toast.id} 
               toast={toast} 
-              onClose={() => removeToast(toast.id)} 
+              removeToast={removeToast} 
             />
           ))}
         </AnimatePresence>
@@ -53,11 +53,13 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 
-const ToastItem = ({ toast, onClose }: { toast: ToastMessage; onClose: () => void }) => {
+const ToastItem = ({ toast, removeToast }: { toast: ToastMessage; removeToast: (id: string) => void }) => {
   React.useEffect(() => {
-    const timer = setTimeout(onClose, toast.duration || 4000);
+    const timer = setTimeout(() => {
+      removeToast(toast.id);
+    }, toast.duration || 4000);
     return () => clearTimeout(timer);
-  }, [toast.duration, onClose]);
+  }, [toast.id, toast.duration, removeToast]);
 
   const getIcon = () => {
     switch (toast.type) {
@@ -119,7 +121,7 @@ const ToastItem = ({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
           </p>
         </div>
         <button 
-          onClick={onClose}
+          onClick={() => removeToast(toast.id)}
           className="shrink-0 p-2 text-slate-300 hover:text-slate-900 hover:bg-slate-100 rounded-2xl transition-all"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
