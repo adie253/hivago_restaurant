@@ -200,6 +200,11 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
       const updatedOrder = await preparingOrder(order.id, selectedPrepTime, deliveryPartner);
       setOrder(updatedOrder);
       if (onUpdate) onUpdate(updatedOrder);
+
+      const autoPrintEnabled = localStorage.getItem('hivago_auto_print_kot') === 'true';
+      if (autoPrintEnabled) {
+        kot.print(updatedOrder.id);
+      }
     } catch (err: any) {
       // Rollback
       setOrder(originalOrder);

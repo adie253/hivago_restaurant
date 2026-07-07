@@ -85,6 +85,9 @@ const DashboardPage = () => {
       handleOrderUpdate(updatedOrder);
       setNewOrderModal(null);
       setNewOrder(null);
+      
+      // Auto-print KOT if enabled
+      autoKot.printOnAccept(updatedOrder.id);
     } catch (err: any) {
       console.error('Failed to mark order as preparing:', err);
       showToast(err.response?.data?.message || err.message || 'Failed to accept order', 'error');
