@@ -29,6 +29,7 @@ export interface Order {
   discount?: number;
   deliveryETA: string;
   items: OrderItem[];
+  totalItems?: number;
   address: string;
   paymentVerified?: boolean;
   riderName?: string;

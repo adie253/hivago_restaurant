@@ -177,6 +177,7 @@ export const normalizeOrder = (raw: Record<string, unknown>): Order => {
     discount: parseNumber(pricing.discount ?? pricing.discountTotal ?? 0),
     deliveryETA: String(deliveryInfo.estimatedTimeDisplay ?? raw.estimatedTimeDisplay ?? ''),
     items: normalizedItems,
+    totalItems: typeof raw.totalItems === 'number' ? raw.totalItems : undefined,
     address: String(deliveryAddress.formattedAddress ?? raw.address ?? ''),
     paymentVerified,
     riderName: String(deliveryInfo.riderName ?? ''),

@@ -221,6 +221,140 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
     }
   };
 
+  const handlePrintKOT = () => {
+    const printWindow = window.open('', '_blank', 'width=600,height=600');
+    if (!printWindow) {
+      showToast('Popup blocked! Please allow popups to print KOT.', 'error');
+      return;
+    }
+
+    const itemsHtml = order.items && order.items.length > 0 
+      ? order.items.map(item => `
+          <tr style="border-bottom: 1px dashed #ccc;">
+            <td style="padding: 8px 0; font-size: 16px; font-weight: bold; width: 40px; text-align: left; vertical-align: top;">
+              ${item.quantity}x
+            </td>
+            <td style="padding: 8px 0; font-size: 16px; vertical-align: top;">
+              <strong>${item.name}</strong>
+              ${item.specialInstructions ? `
+                <div style="font-size: 13px; color: #555; margin-top: 4px; font-style: italic; background: #fef3c7; padding: 4px 8px; border-radius: 4px;">
+                  * ${item.specialInstructions}
+                </div>
+              ` : ''}
+            </td>
+          </tr>
+        `).join('')
+      : '<tr><td colspan="2" style="padding: 8px 0; text-align: center; color: #888;">No items</td></tr>';
+
+    const formattedTime = new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formattedDate = new Date(order.createdAt).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>KOT - #${order.orderNumber}</title>
+          <style>
+            @media print {
+              body { margin: 0; padding: 10px; }
+              @page { size: auto; margin: 0mm; }
+            }
+            body {
+              font-family: 'Courier New', Courier, monospace, sans-serif;
+              color: #000;
+              margin: 20px;
+              line-height: 1.4;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 2px dashed #000;
+              padding-bottom: 10px;
+              margin-bottom: 15px;
+            }
+            .title {
+              font-size: 22px;
+              font-weight: bold;
+              margin: 5px 0;
+            }
+            .info-table {
+              width: 100%;
+              margin-bottom: 15px;
+              font-size: 14px;
+            }
+            .info-table td {
+              padding: 2px 0;
+            }
+            .items-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 15px;
+            }
+            .footer {
+              border-top: 2px dashed #000;
+              padding-top: 10px;
+              text-align: center;
+              font-size: 12px;
+              margin-top: 20px;
+            }
+            .pickup-badge {
+              display: inline-block;
+              background: #000;
+              color: #fff;
+              padding: 4px 8px;
+              font-weight: bold;
+              margin-top: 5px;
+              font-size: 14px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">KITCHEN ORDER TICKET</div>
+            <div style="font-size: 26px; font-weight: bold; margin-top: 5px;">#${order.orderNumber.slice(-5)}</div>
+            <div style="font-size: 14px;">Full Order ID: #${order.orderNumber}</div>
+            <div class="pickup-badge">${order.pickupType === 'DELIVERY' ? 'HIVAGO DELIVERY' : 'SELF PICKUP'}</div>
+          </div>
+          
+          <table class="info-table">
+            <tr>
+              <td><strong>Date:</strong> ${formattedDate}</td>
+              <td style="text-align: right;"><strong>Time:</strong> ${formattedTime}</td>
+            </tr>
+            ${order.customerNote ? `
+              <tr>
+                <td colspan="2" style="background: #eee; padding: 6px; font-size: 13px; font-weight: bold; margin-top: 5px; border-radius: 4px;">
+                  NOTE: ${order.customerNote}
+                </td>
+              </tr>
+            ` : ''}
+          </table>
+
+          <table class="items-table">
+            <thead>
+              <tr style="border-bottom: 2px dashed #000;">
+                <th style="text-align: left; padding-bottom: 5px;">Qty</th>
+                <th style="text-align: left; padding-bottom: 5px;">Item Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <p style="margin: 0; font-weight: bold;">Hivago Restaurant Partner</p>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <article className="overflow-hidden rounded-[40px] border border-slate-100 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
       <div className="grid lg:grid-cols-[1.6fr_1fr]">
@@ -273,12 +407,23 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
               <span className="mr-1 text-[#D97706]">●</span> Customer Note: <span className="font-medium">{order.customerNote}</span>
             </div>
           )}
-
           <div className="mt-8 flex flex-wrap items-center gap-3">
-             <span className="flex items-center gap-2 rounded-xl bg-[#EBEDFF] px-4 py-2 text-[11px] font-bold tracking-widest text-[#4C51BF]">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                KOT
-             </span>
+             {order.status !== 'PENDING' ? (
+               <button 
+                 onClick={handlePrintKOT}
+                 className="flex items-center gap-2 rounded-xl bg-[#AD221F] px-4 py-2 text-[11px] font-bold tracking-widest text-white shadow-md hover:bg-red-800 transition-all hover:scale-105 active:scale-95"
+               >
+                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                   <path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h8z" strokeLinecap="round" strokeLinejoin="round" />
+                 </svg>
+                 PRINT KOT
+               </button>
+             ) : (
+               <span className="flex items-center gap-2 rounded-xl bg-[#EBEDFF] px-4 py-2 text-[11px] font-bold tracking-widest text-[#4C51BF]">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  KOT
+               </span>
+             )}
              <span className="flex items-center gap-2 rounded-xl bg-[#EBEDFF] px-4 py-2 text-[11px] font-bold tracking-widest text-[#4C51BF]">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 ORDER
@@ -712,6 +857,16 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                         </p>
                       </div>
                     )}
+
+                    <button 
+                      onClick={handlePrintKOT}
+                      className="w-full rounded-[20px] border-2 border-[#AD221F] bg-white py-4 text-sm font-bold text-[#AD221F] hover:bg-red-50/50 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 mb-3"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h8z" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Print KOT (Kitchen Ticket)
+                    </button>
 
                     <button 
                       onClick={handleReady}

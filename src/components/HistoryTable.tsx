@@ -34,7 +34,7 @@ const HistoryTable = ({ orders }: HistoryTableProps) => {
                   {order.customerName}
                 </td>
                 <td className="px-8 py-3 text-sm font-semibold text-slate-500 border-b border-slate-200">
-                  {order.items.length} Item(s)
+                  {order.totalItems ?? order.items.length} Item(s)
                 </td>
                 <td className="px-8 py-3 text-sm font-semibold text-slate-900 border-b border-slate-200">
                   {formatCurrency(order.total)}
