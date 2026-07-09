@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Order } from '../types';
 import { formatCurrency, formatRelativeTime } from '../utils/format';
-import { fetchDeliveryCodes, fetchOrderById, preparingOrder, readyOrder, rejectOrder } from '../api/dashboardApi';
+import { customerPickupOrder, fetchDeliveryCodes, fetchOrderById, preparingOrder, readyOrder, rejectOrder } from '../api/dashboardApi';
 import pickup_icon from '../assets/pickup_icon.svg';
 import order_preparing_man from '../assets/order_preparing_man.svg';
 import ready_to_pickup from '../assets/ready_to_pickup.svg';
@@ -181,6 +181,31 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
       setOrder(originalOrder);
       if (onUpdate) onUpdate(originalOrder);
       console.error('Failed to mark order as ready:', err);
+      showToast(err.response?.data?.message || err.message || 'Failed to update order status', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCustomerPickup = async () => {
+    const originalOrder = { ...order };
+    const optimisticOrder = { ...order, status: 'DELIVERED' as const };
+    
+    // Optimistic update
+    setOrder(optimisticOrder);
+    if (onUpdate) onUpdate(optimisticOrder);
+    setActionLoading(true);
+
+    try {
+      const updatedOrder = await customerPickupOrder(order.id);
+      setOrder(updatedOrder);
+      if (onUpdate) onUpdate(updatedOrder);
+      showToast(`Order #${order.orderNumber} marked as picked up by customer`, 'success');
+    } catch (err: any) {
+      // Rollback
+      setOrder(originalOrder);
+      if (onUpdate) onUpdate(originalOrder);
+      console.error('Failed to mark order as customer picked up:', err);
       showToast(err.response?.data?.message || err.message || 'Failed to update order status', 'error');
     } finally {
       setActionLoading(false);
@@ -531,9 +556,25 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                           </div>
                       </div>
                     ) : (
-                      <div className="rounded-3xl border border-slate-100 bg-emerald-50/30 p-5 text-center">
-                          <p className="text-sm font-bold text-emerald-600">Waiting for customer to pickup</p>
-                          <p className="mt-1 text-xs font-semibold text-emerald-600/60">Customer will arrive at the restaurant soon.</p>
+                      <div className="rounded-3xl border border-slate-100 bg-emerald-50/30 p-5 text-center space-y-4">
+                          <div>
+                              <p className="text-sm font-bold text-emerald-600">Waiting for customer to pickup</p>
+                              <p className="mt-1 text-xs font-semibold text-emerald-600/60">Customer will arrive at the restaurant soon.</p>
+                          </div>
+                          <button
+                            onClick={handleCustomerPickup}
+                            disabled={actionLoading}
+                            className="w-full rounded-[20px] bg-emerald-500 py-3.5 text-sm font-bold text-white shadow-xl shadow-emerald-100 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          >
+                            {actionLoading ? 'Updating...' : (
+                              <>
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span>Mark as Collected</span>
+                              </>
+                            )}
+                          </button>
                       </div>
                     )}
 

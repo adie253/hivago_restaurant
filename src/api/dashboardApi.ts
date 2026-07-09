@@ -318,6 +318,13 @@ export const readyOrder = async (orderId: string): Promise<Order> => {
   return order;
 };
 
+export const customerPickupOrder = async (orderId: string): Promise<Order> => {
+  const response = await client.put(`orders/${orderId}/customer-pickup`, {});
+  const order = normalizeOrder(response.data.data || response.data);
+  order.status = 'DELIVERED';
+  return order;
+};
+
 // Settings & Profile APIs
 export const fetchRestaurantSettings = async (): Promise<RestaurantSettings> => {
   const response = await client.get('/restaurants/me/details');

@@ -28,7 +28,7 @@ client.interceptors.response.use(
   },
   error => {
     console.error(`[API Error] ${error?.response?.status} ${error?.config?.url}`, error?.response?.data || error.message);
-    if (error?.response?.status === 401) {
+    if (error?.response?.status === 401 && error?.response?.data?.error !== 'Order.Unauthorized') {
       console.warn('[Auth] Unauthorized access detected, triggering logout...');
       window.dispatchEvent(new CustomEvent('hivago-unauthorized'));
     }
