@@ -134,26 +134,6 @@ export const OrderLabel = forwardRef<HTMLDivElement, OrderLabelProps>(({ label }
       <div className="text-center text-[10px] space-y-1 mt-2 text-gray-800">
         <p>This is not a tax invoice.</p>
         {label.platformFssai && <p>Rally FSSAI: {label.platformFssai}</p>}
-        
-        {/* Simple visual barcode simulation */}
-        <div className="flex justify-center gap-[1px] h-6 my-2">
-          <div className="w-[2px] bg-black h-full"></div>
-          <div className="w-[1px] bg-black h-full"></div>
-          <div className="w-[3px] bg-black h-full"></div>
-          <div className="w-[1px] bg-black h-full"></div>
-          <div className="w-[4px] bg-black h-full"></div>
-          <div className="w-[2px] bg-black h-full"></div>
-          <div className="w-[1px] bg-black h-full"></div>
-          <div className="w-[3px] bg-black h-full"></div>
-          <div className="w-[1px] bg-black h-full"></div>
-          <div className="w-[4px] bg-black h-full"></div>
-          <div className="w-[2px] bg-black h-full"></div>
-          <div className="w-[1px] bg-black h-full"></div>
-        </div>
-        
-        <p className="font-bold text-[9px] uppercase leading-tight">
-          Delivery partner will scan to pickup the order.
-        </p>
       </div>
     </div>
   );
