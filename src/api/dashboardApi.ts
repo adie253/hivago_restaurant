@@ -191,8 +191,11 @@ export const normalizeOrder = (raw: Record<string, unknown>): Order => {
     readyAt: raw.readyAt ? String(raw.readyAt) : undefined,
     pickedUpAt: raw.pickedUpAt ? String(raw.pickedUpAt) : undefined,
     deliveredAt: raw.deliveredAt ? String(raw.deliveredAt) : undefined,
+    cancelledAt: raw.cancelledAt ? String(raw.cancelledAt) : undefined,
+    rejectedAt: raw.rejectedAt ? String(raw.rejectedAt) : undefined,
+    cancellationReason: raw.cancellationReason ? String(raw.cancellationReason) : (raw.cancelReason ? String(raw.cancelReason) : (raw.reason && normalizedStatus === 'CANCELLED' ? String(raw.reason) : undefined)),
+    rejectionReason: raw.rejectionReason ? String(raw.rejectionReason) : (raw.rejectReason ? String(raw.rejectReason) : (raw.reason && normalizedStatus === 'REJECTED' ? String(raw.reason) : undefined)),
   };
-
 };
 
 

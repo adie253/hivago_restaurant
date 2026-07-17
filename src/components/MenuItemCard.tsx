@@ -49,7 +49,7 @@ const MenuItemCard = ({ item, onToggle, onEdit }: MenuItemCardProps) => {
         {/* Details Section */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h4 className={`text-base font-bold leading-tight truncate w-full ${item.isAvailable ? 'text-slate-900' : 'text-slate-400'}`} title={item.name}>
+            <h4 className={`text-sm font-bold leading-tight line-clamp-2 ${item.isAvailable ? 'text-slate-900' : 'text-slate-400'}`} title={item.name}>
               {item.name}
             </h4>
           </div>

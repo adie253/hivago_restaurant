@@ -7,6 +7,7 @@ import { useKotPrint, useLabelPrint } from '../hooks/usePrintDoc';
 import { KitchenTicket } from './orders/KitchenTicket';
 import { OrderLabel } from './orders/OrderLabel';
 import pickup_icon from '../assets/pickup_icon.svg';
+import TimelineModal from './TimelineModal';
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -48,6 +49,7 @@ const getStatusLabel = (status: Order['status']) => {
 export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder }: OrderDetailsModalProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
   const kot = useKotPrint();
   const label = useLabelPrint();
 
@@ -81,6 +83,8 @@ export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder
   const currentOrder = order || initialOrder;
   const isPaid = currentOrder.paymentStatus?.toUpperCase() === 'PAID';
 
+  // Removed local timeline events generation as it is now a popup modal
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
@@ -104,13 +108,22 @@ export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder
           <div className="flex items-center justify-between border-b border-slate-100 px-8 py-6 sm:px-10 shrink-0 bg-white">
             <div className="flex flex-wrap items-center gap-3">
               <div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <h2 className="text-2xl font-bold tracking-tight text-slate-900">
                     Order #{currentOrder.orderNumber}
                   </h2>
                   <span className={`inline-flex items-center rounded-xl border px-3 py-1 text-[10px] font-bold tracking-widest uppercase ${getStatusBadgeStyles(currentOrder.status)}`}>
                     {getStatusLabel(currentOrder.status)}
                   </span>
+                  <button
+                    onClick={() => setShowTimeline(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Timeline
+                  </button>
                 </div>
                 <p className="mt-1 text-xs font-semibold text-slate-400">
                   Placed {new Date(currentOrder.createdAt).toLocaleString()} ({formatRelativeTime(currentOrder.createdAt)})
@@ -144,7 +157,8 @@ export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {/* Left Column: Items and Billing */}
                 <div className="md:col-span-2 space-y-6">
                   {/* Items Card */}
@@ -225,6 +239,8 @@ export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder
                       </p>
                     </div>
                   )}
+
+                  {/* Cancellation / Rejection / Refund Reason warning card removed from here; details are shown inline inside the Timeline popup */}
                 </div>
 
                 {/* Right Column: Customer Info & Fulfillment */}
@@ -349,6 +365,9 @@ export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder
                   </div>
                 </div>
               </div>
+
+              {/* Inline timeline removed; accessed via Timeline popup button */}
+              </>
             )}
           </div>
 
@@ -387,6 +406,12 @@ export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder
             {kot.data && <KitchenTicket ref={kot.ref} ticket={kot.data} />}
             {label.data && <OrderLabel ref={label.ref} label={label.data} />}
           </div>
+
+          <TimelineModal
+            isOpen={showTimeline}
+            onClose={() => setShowTimeline(false)}
+            order={currentOrder}
+          />
         </motion.div>
       </div>
     </AnimatePresence>

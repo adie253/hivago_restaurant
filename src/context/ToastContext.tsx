@@ -25,14 +25,16 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const showToast = useCallback((message: string, type: ToastType = 'info', duration: number = 4000) => {
-    // Deduplication: Don't show same message twice within 2 seconds
-    const now = Date.now();
-    const isDuplicate = toasts.some(t => t.message === message && (now - Number(t.id.split('-')[0])) < 2000);
-    if (isDuplicate) return;
+    setToasts((prev) => {
+      // Deduplication: Don't show same message twice within 2 seconds
+      const now = Date.now();
+      const isDuplicate = prev.some(t => t.message === message && (now - Number(t.id.split('-')[0])) < 2000);
+      if (isDuplicate) return prev;
 
-    const id = `${now}-${Math.random().toString(36).substring(2, 9)}`;
-    setToasts((prev) => [...prev, { id, message, type, duration }]);
-  }, [toasts]);
+      const id = `${now}-${Math.random().toString(36).substring(2, 9)}`;
+      return [...prev, { id, message, type, duration }];
+    });
+  }, []);
 
   return (
     <ToastContext.Provider value={{ showToast, removeToast }}>

@@ -43,6 +43,10 @@ export interface Order {
   readyAt?: string;
   pickedUpAt?: string;
   deliveredAt?: string;
+  cancellationReason?: string;
+  rejectionReason?: string;
+  cancelledAt?: string;
+  rejectedAt?: string;
 }
 
 
@@ -165,6 +169,7 @@ export interface OperationsSettings {
   avgPrepTimeMins: number;
   minOrderAmount: number;
   commissionPercentage: number;
+  commissionFlatFee?: number;
 }
 
 export interface HoursSettings {

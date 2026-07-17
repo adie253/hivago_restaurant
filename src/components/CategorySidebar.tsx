@@ -25,7 +25,6 @@ const CategorySidebar = ({ categories, activeCategoryId, onSelectCategory, onDel
       await onCreateCategory(newName);
       setNewName('');
       setIsAdding(false);
-      showToast('Category created successfully', 'success');
     } catch (err: any) {
       console.error(err);
       showToast(err?.message || 'Failed to create category', 'error');

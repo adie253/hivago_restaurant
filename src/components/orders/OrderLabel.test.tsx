@@ -16,7 +16,7 @@ const mockDeliveryLabel: OrderLabelDto = {
   restaurantName: 'Hivago Royal Kitchen',
   restaurantAddress: '123 Main St, Mumbai',
   restaurantFssai: '21526068000923',
-  platformFssai: '10019064001810',
+  platformFssai: '11526998000419',
   deliveryAddress: '456 Park Avenue, Apt 4B',
   distanceKm: 4.5,
   estimatedMinutes: 25,
@@ -65,7 +65,7 @@ describe('OrderLabel Component', () => {
 
     expect(screen.getByText('Hivago Royal Kitchen')).toBeInTheDocument();
     expect(screen.getByText('FSSAI: 21526068000923')).toBeInTheDocument();
-    expect(screen.getByText('Rally FSSAI: 10019064001810')).toBeInTheDocument();
+    expect(screen.getByText('Hivago FSSAI: 11526998000419')).toBeInTheDocument();
     expect(screen.getByText('#999')).toBeInTheDocument();
   });
 

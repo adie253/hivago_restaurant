@@ -280,7 +280,6 @@ const MenuPage = () => {
         categories={categories}
         editItemId={editItemId}
         onItemAdded={() => {
-            showToast(editItemId ? 'Item updated successfully' : 'Item added successfully', 'success');
             loadMenuData();
         }}
         onCategoryCreated={loadMenuData}

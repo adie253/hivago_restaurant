@@ -17,7 +17,7 @@ export const OrderLabel = forwardRef<HTMLDivElement, OrderLabelProps>(({ label }
       <div className="text-center border-b border-black pb-2 mb-2">
         <h1 className="text-sm font-extrabold uppercase">{label.restaurantName}</h1>
         {label.restaurantAddress && <p className="text-[10px]">{label.restaurantAddress}</p>}
-        {label.restaurantFssai && <p className="text-[10px]">FSSAI: {label.restaurantFssai}</p>}
+        <p className="text-[10px]">FSSAI: {label.restaurantFssai || 'N/A'}</p>
       </div>
 
       {/* Order Info */}
@@ -133,7 +133,7 @@ export const OrderLabel = forwardRef<HTMLDivElement, OrderLabelProps>(({ label }
       {/* Footer */}
       <div className="text-center text-[10px] space-y-1 mt-2 text-gray-800">
         <p>This is not a tax invoice.</p>
-        {label.platformFssai && <p>Rally FSSAI: {label.platformFssai}</p>}
+        <p>Hivago FSSAI: {label.platformFssai || '11526998000419'}</p>
       </div>
     </div>
   );
