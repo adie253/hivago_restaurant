@@ -11,6 +11,12 @@ import {
   PayoutSummary
 } from '../types';
 
+import mockEarnings from './mockData/earnings.json';
+import mockHistory from './mockData/history.json';
+import mockPayoutDetail from './mockData/payout-detail.json';
+import mockGstSummary from './mockData/gst-summary.json';
+import mockTdsSummary from './mockData/tds-summary.json';
+
 /**
  * RESTAURANT PANEL APIS
  */
@@ -20,6 +26,9 @@ import {
  * Current week's running tally of money the restaurant has earned but not yet been paid out.
  */
 export const fetchEarningsSummary = async (): Promise<EarningsSummaryDto> => {
+  if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    return mockEarnings as unknown as EarningsSummaryDto;
+  }
   const response = await client.get('/restaurants/payouts/earnings');
   return response.data;
 };
@@ -29,7 +38,10 @@ export const fetchEarningsSummary = async (): Promise<EarningsSummaryDto> => {
  * Paginated history of all weekly payout batches for this restaurant owner.
  */
 export const fetchPayoutHistory = async (page = 1, pageSize = 20): Promise<PayoutDto[]> => {
-  const response = await client.get('/restaurants/payouts/', {
+  if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    return mockHistory as unknown as PayoutDto[];
+  }
+  const response = await client.get('/restaurants/payouts', {
     params: { page, pageSize }
   });
   return response.data;
@@ -40,6 +52,30 @@ export const fetchPayoutHistory = async (page = 1, pageSize = 20): Promise<Payou
  * Full breakdown of one weekly payout, including every order that fed into it.
  */
 export const fetchPayoutDetail = async (payoutId: string): Promise<PayoutDetailDto> => {
+  if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    const payout = mockHistory.find(p => p.id === payoutId) || mockHistory[0];
+    const ledgerEntries = Array.from({ length: payout.orderCount }, (_, index) => ({
+      id: `ledger-item-${payoutId}-${index}`,
+      outletId: "9db13ddb-3bb0-4710-8ca8-6d591df68084",
+      orderId: `order-id-${payoutId}-${index}`,
+      orderNumber: (1001 + index + (payout.orderCount * 3)).toString(),
+      orderAmount: payout.grossOrderAmount / payout.orderCount,
+      gstAmount: payout.totalGstCollected / payout.orderCount,
+      commissionPercentage: 20.00,
+      commissionFlatFee: 0.00,
+      commissionAmount: payout.totalCommission / payout.orderCount,
+      commissionGst: payout.totalCommissionGst / payout.orderCount,
+      tdsAmount: payout.totalTds / payout.orderCount,
+      netAmount: payout.netPayoutAmount / payout.orderCount,
+      status: "Batched",
+      payoutId: payout.id,
+      createdAt: payout.createdAt
+    }));
+    return {
+      ...payout,
+      ledgerEntries
+    } as unknown as PayoutDetailDto;
+  }
   const response = await client.get(`/restaurants/payouts/${payoutId}`);
   return response.data;
 };
@@ -48,6 +84,9 @@ export const fetchPayoutDetail = async (payoutId: string): Promise<PayoutDetailD
  * GET /api/restaurants/payouts/gst-summary
  */
 export const fetchGstSummary = async (from?: string, to?: string): Promise<GstSummaryDto> => {
+  if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    return mockGstSummary as unknown as GstSummaryDto;
+  }
   const response = await client.get('/restaurants/payouts/gst-summary', {
     params: { from, to }
   });
@@ -58,6 +97,9 @@ export const fetchGstSummary = async (from?: string, to?: string): Promise<GstSu
  * GET /api/restaurants/payouts/tds-summary
  */
 export const fetchTdsSummary = async (from?: string, to?: string): Promise<TdsSummaryDto> => {
+  if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    return mockTdsSummary as unknown as TdsSummaryDto;
+  }
   const response = await client.get('/restaurants/payouts/tds-summary', {
     params: { from, to }
   });

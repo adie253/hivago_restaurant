@@ -88,7 +88,7 @@ const MenuPage = () => {
 
   const confirmDeleteCategory = async () => {
     if (!categoryToDelete) return;
-    
+
     setIsDeletingCategory(true);
     try {
       await deleteMenuCategory(categoryToDelete);
@@ -126,16 +126,16 @@ const MenuPage = () => {
       // Match by category name or menuId
       const activeCat = categories.find(c => c.id === activeCategoryId);
       const catName = activeCat?.name.toLowerCase() || '';
-      result = result.filter(item => 
-        item.menuId === activeCategoryId || 
+      result = result.filter(item =>
+        item.menuId === activeCategoryId ||
         item.category.toLowerCase() === catName
       );
     }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(item => 
-        item.name.toLowerCase().includes(q) || 
+      result = result.filter(item =>
+        item.name.toLowerCase().includes(q) ||
         item.description?.toLowerCase().includes(q)
       );
     }
@@ -146,9 +146,9 @@ const MenuPage = () => {
   if (loading) return <MenuPageSkeleton />;
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[280px_1fr]">
+    <div className="grid gap-10 lg:grid-cols-[220px_1fr] items-start">
       {/* Categories Sidebar */}
-      <aside className="hidden lg:block">
+      <aside className="hidden lg:block sticky top-0 self-start">
         <CategorySidebar
           categories={categories}
           activeCategoryId={activeCategoryId}
@@ -156,8 +156,6 @@ const MenuPage = () => {
           onDeleteCategory={setCategoryToDelete}
           onCreateCategory={handleCreateCategory}
         />
-
-
       </aside>
 
       {/* Main Content */}
@@ -171,7 +169,7 @@ const MenuPage = () => {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <button 
+            <button
               onClick={() => setIsBulkUploadOpen(true)}
               className="flex items-center justify-center gap-2 rounded-2xl bg-white border border-slate-200 px-6 py-3.5 text-sm font-bold text-slate-700 shadow-md shadow-slate-100/50 transition-all hover:bg-slate-50 hover:shadow-lg hover:border-slate-300 active:scale-95"
             >
@@ -180,7 +178,7 @@ const MenuPage = () => {
               </svg>
               Bulk Upload
             </button>
-            <button 
+            <button
               onClick={handleAddNewItem}
               className="flex items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-3.5 text-sm font-bold text-white shadow-xl shadow-red-100 transition-all hover:bg-brand-700 hover:shadow-2xl active:scale-95"
             >
@@ -242,7 +240,7 @@ const MenuPage = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </div>
-            
+
             <h3 className="text-xl font-bold text-slate-900 mb-2">Delete Category?</h3>
             <p className="text-slate-500 text-sm leading-relaxed mb-8">
               Are you sure you want to delete this category? This will remove the category from your menu.
@@ -271,16 +269,16 @@ const MenuPage = () => {
       <AddItemModal
         isOpen={isAddItemModalOpen}
         onClose={() => {
-            setSearchParams(prev => {
-              prev.delete('add-item');
-              prev.delete('edit-item');
-              return prev;
-            });
+          setSearchParams(prev => {
+            prev.delete('add-item');
+            prev.delete('edit-item');
+            return prev;
+          });
         }}
         categories={categories}
         editItemId={editItemId}
         onItemAdded={() => {
-            loadMenuData();
+          loadMenuData();
         }}
         onCategoryCreated={loadMenuData}
       />

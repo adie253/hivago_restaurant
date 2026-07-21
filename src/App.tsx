@@ -169,7 +169,7 @@ const AppContent = () => {
             <Route
               path="/payouts"
               element={
-                <RequireAuth allowedRoles={['restaurant']}>
+                <RequireAuth allowedRoles={['restaurant', 'owner']}>
                   <PayoutsPage />
                 </RequireAuth>
               }

@@ -31,8 +31,8 @@ button, input, select, textarea {
 
 /* Premium custom scrollbar for dashboard modals and cards */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -40,7 +40,7 @@ button, input, select, textarea {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1; /* slate-300 */
+  background: #dfe3e7; /* slate-300 */
   border-radius: 9999px;
   border: 1px solid transparent;
 }
