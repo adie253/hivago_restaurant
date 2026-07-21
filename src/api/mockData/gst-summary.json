@@ -1,0 +1,47 @@
+{
+    "fromDate": "2026-07-01",
+    "toDate": "2026-07-20",
+    "orderCount": 4,
+    "grossOrderAmount": 1629.00,
+    "totalGstOnOrders": 81.45,
+    "totalCommission": 336.00,
+    "totalCommissionGst": 16.80,
+    "lineItems": [
+        {
+            "orderId": "9f17d869-9f01-49df-b29a-306135f486cb",
+            "outletId": "9db13ddb-3bb0-4710-8ca8-6d591df68084",
+            "orderAmount": 199.00,
+            "gstAmount": 9.95,
+            "commissionAmount": 50.00,
+            "commissionGst": 2.50,
+            "createdAt": "2026-07-17T13:44:47.394Z"
+        },
+        {
+            "orderId": "9f17d869-9f01-49df-b29a-306135f486cc",
+            "outletId": "9db13ddb-3bb0-4710-8ca8-6d591df68084",
+            "orderAmount": 299.00,
+            "gstAmount": 14.95,
+            "commissionAmount": 60.00,
+            "commissionGst": 3.00,
+            "createdAt": "2026-07-18T12:00:00.000Z"
+        },
+        {
+            "orderId": "9f17d869-9f01-49df-b29a-306135f486cd",
+            "outletId": "9db13ddb-3bb0-4710-8ca8-6d591df68084",
+            "orderAmount": 149.00,
+            "gstAmount": 7.45,
+            "commissionAmount": 50.00,
+            "commissionGst": 2.50,
+            "createdAt": "2026-07-18T18:30:00.000Z"
+        },
+        {
+            "orderId": "9f17d869-9f01-49df-b29a-306135f486ce",
+            "outletId": "9db13ddb-3bb0-4710-8ca8-6d591df68084",
+            "orderAmount": 980.00,
+            "gstAmount": 49.00,
+            "commissionAmount": 176.00,
+            "commissionGst": 8.80,
+            "createdAt": "2026-07-05T15:20:00.000Z"
+        }
+    ]
+}

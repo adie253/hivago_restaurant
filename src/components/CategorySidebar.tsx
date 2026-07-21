@@ -34,8 +34,8 @@ const CategorySidebar = ({ categories, activeCategoryId, onSelectCategory, onDel
   };
 
   return (
-    <div className="rounded-[32px] bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-      <div className="flex items-center justify-between px-2 pb-6">
+    <div className="rounded-[20px] bg-white p-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+      <div className="flex items-center justify-between px-3 pb-6">
         <h3 className="text-xl font-bold tracking-tight text-slate-900">Categories</h3>
         {onCreateCategory && !isAdding && (
           <button 
@@ -50,7 +50,7 @@ const CategorySidebar = ({ categories, activeCategoryId, onSelectCategory, onDel
         )}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-220px)] pr-1 custom-scrollbar">
         {isAdding && (
           <div className="mb-4 space-y-2 px-2 animate-in slide-in-from-top-2 duration-200">
             <input 
@@ -95,7 +95,7 @@ const CategorySidebar = ({ categories, activeCategoryId, onSelectCategory, onDel
           <div key={category.id} className="group relative">
             <button
               onClick={() => onSelectCategory(category.id)}
-              className={`w-full rounded-2xl px-5 py-4 text-left text-sm font-bold transition-all duration-200 pr-12 ${
+              className={`w-full rounded-2xl px-5 py-3 text-left text-sm font-bold transition-all duration-200 pr-12 ${
                 activeCategoryId === category.id
                   ? 'bg-brand-50 text-brand-600 shadow-sm'
                   : 'text-slate-500 hover:bg-slate-50'

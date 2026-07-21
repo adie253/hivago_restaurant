@@ -140,10 +140,10 @@ const DashboardPage = () => {
   }, [activeSection, orders]);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Auto Print KOT Toggle */}
           <button
             onClick={handleToggleAutoPrint}
@@ -173,7 +173,7 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {loadingStats ? (
           <>
             <StatCardSkeleton />
@@ -212,7 +212,7 @@ const DashboardPage = () => {
               key={section.key}
               type="button"
               onClick={() => setActiveSection(section.key)}
-              className={`flex items-center gap-2.5 rounded-full px-5 py-3 text-sm font-semibold transition-all duration-200 ${
+              className={`flex items-center gap-2.5 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ${
                 activeSection === section.key
                   ? 'bg-[#E7F7F0] text-[#1D915F] shadow-sm'
                   : 'bg-white text-slate-500 hover:bg-slate-50'

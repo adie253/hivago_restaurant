@@ -19,7 +19,7 @@ const MenuItemCard = ({ item, onToggle, onEdit }: MenuItemCardProps) => {
   const displayImageUrl = isValidImageUrl ? item.imageUrl : foodFallback;
 
   return (
-    <div className={`group flex items-center justify-between rounded-[28px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] ${
+    <div className={`group flex items-center justify-between rounded-[28px] p-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] ${
       item.isAvailable ? 'bg-white' : 'bg-slate-50/50 opacity-75'
     }`}>
       <div className="flex flex-1 items-center gap-4 min-w-0 mr-4">

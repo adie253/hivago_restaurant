@@ -54,7 +54,7 @@ const HistoryTable = ({ orders }: HistoryTableProps) => {
                   <td className="px-8 py-3 text-xs border-b border-slate-200 text-right">
                     <button
                       onClick={() => setSelectedOrder(order)}
-                      className="rounded-xl border border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 px-3 py-1.5 font-bold transition-all text-[11px]"
+                      className="cursor-pointer rounded-xl bg-success text-success border border-success px-3 py-1.5 font-bold transition-all text-[11px]"
                     >
                       View Details
                     </button>

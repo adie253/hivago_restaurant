@@ -11,7 +11,7 @@ import manage_outlet_icon from '../assets/manage_outlet_icon.svg';
 const menuItems = [
   { label: 'Live Orders', path: '/dashboard', img: live_orders_icon, roles: ['restaurant'] },
   { label: 'Menu', path: '/menu', img: menu_icon, roles: ['restaurant'] },
-  { label: 'Payouts', path: '/payouts', img: payout_icon, roles: ['restaurant'] },
+  { label: 'Payouts', path: '/payouts', img: payout_icon, roles: ['restaurant', 'owner'] },
   { label: 'Settings', path: '/settings', img: settings_icon, roles: ['restaurant'] },
   { label: 'My Outlets', path: '/owner/outlets', img: manage_outlet_icon, roles: ['owner'] },
   { label: 'Bank Details', path: '/owner/bank', img: payout_icon, roles: ['owner'] },

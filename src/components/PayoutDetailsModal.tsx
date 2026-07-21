@@ -64,6 +64,7 @@ const PayoutDetailsModal = ({ isOpen, onClose, payout }: PayoutDetailsModalProps
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Order</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Date</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Gross</th>
+                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">GST</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Comm.</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">TDS</th>
                     <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Net Amount</th>
@@ -79,6 +80,7 @@ const PayoutDetailsModal = ({ isOpen, onClose, payout }: PayoutDetailsModalProps
                         <p className="text-xs font-bold text-slate-400">{new Date(entry.createdAt).toLocaleDateString()}</p>
                       </td>
                       <td className="px-6 py-4 font-bold text-slate-600">{formatCurrency(entry.orderAmount)}</td>
+                      <td className="px-6 py-4 font-bold text-slate-600">{formatCurrency(entry.gstAmount)}</td>
                       <td className="px-6 py-4 font-bold text-red-400">-{formatCurrency(entry.commissionAmount + entry.commissionGst)}</td>
                       <td className="px-6 py-4 font-bold text-orange-400">-{formatCurrency(entry.tdsAmount)}</td>
                       <td className="px-6 py-4 text-right font-bold text-slate-900">{formatCurrency(entry.netAmount)}</td>
@@ -92,15 +94,22 @@ const PayoutDetailsModal = ({ isOpen, onClose, payout }: PayoutDetailsModalProps
 
         {/* Footer */}
         <div className="border-t border-slate-50 bg-slate-50/30 px-10 py-6 shrink-0 flex justify-between items-center">
-            <div className="flex items-center gap-4">
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold tracking-widest uppercase ${
-                    payout.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
-                }`}>
-                    {payout.status}
-                </span>
-                {payout.transactionReference && (
+            <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-4">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold tracking-widest uppercase ${
+                        payout.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
+                    }`}>
+                        {payout.status}
+                    </span>
+                    {payout.transactionReference && (
+                        <p className="text-xs font-bold text-slate-400">
+                            UTR: <span className="text-slate-900 uppercase">{payout.transactionReference}</span>
+                        </p>
+                    )}
+                </div>
+                {payout.notes && (
                     <p className="text-xs font-bold text-slate-400">
-                        UTR: <span className="text-slate-900 uppercase">{payout.transactionReference}</span>
+                        Notes: <span className="text-slate-600 font-semibold">{payout.notes}</span>
                     </p>
                 )}
             </div>
