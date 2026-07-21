@@ -82,7 +82,7 @@ const AppContent = () => {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         {showSidebar && (
-          <aside className={`fixed inset-y-0 left-0 z-40 w-72 flex-none bg-white lg:static lg:block ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          <aside className={`fixed inset-y-0 left-0 z-40 w-[230px] flex-none bg-white lg:static lg:block ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
             } transition-transform duration-300 ease-in-out`}>
             <Sidebar
               isOpen={sidebarOpen}

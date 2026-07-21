@@ -249,12 +249,12 @@ const PayoutsPage = () => {
     if (loading) return <PayoutsPageSkeleton />;
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-5 animate-in fade-in duration-500">
             {/* Header Section */}
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900 uppercase">Settlements</h1>
-                    <p className="text-sm font-bold text-slate-400">Track your earnings and weekly payouts</p>
+                    <p className="text-sm font-semibold text-slate-400">Track your earnings and weekly payouts</p>
                 </div>
 
                 {user?.role === 'owner' && (
@@ -309,7 +309,7 @@ const PayoutsPage = () => {
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`rounded-[18px] px-8 py-3 text-sm font-bold tracking-widest uppercase transition-all ${
+                        className={`rounded-[18px] px-8 py-2 text-xs font-bold tracking-widest uppercase transition-all ${
                             activeTab === tab 
                             ? 'bg-white text-slate-900 shadow-sm' 
                             : 'text-slate-400 hover:text-slate-600'
@@ -352,7 +352,7 @@ const PayoutsPage = () => {
 
                         {/* Recent Ledger Entries */}
                         <div className="rounded-[32px] bg-white shadow-sm border border-slate-50 overflow-hidden">
-                            <div className="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
+                            <div className="px-8 py-4 border-b border-slate-50 flex items-center justify-between">
                                 <h3 className="text-lg font-bold text-slate-900">Current Week Orders</h3>
                                 <span className="rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold text-slate-600">
                                     {earnings.orderCount} orders

@@ -159,19 +159,19 @@ const MenuPage = () => {
       </aside>
 
       {/* Main Content */}
-      <div className="space-y-10">
+      <div className="space-y-5">
         {/* Header Section */}
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Menu Management</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Menu Management</h1>
             <p className="mt-1.5 text-base font-bold text-slate-400">
               {items.length} items in All Items
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setIsBulkUploadOpen(true)}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-white border border-slate-200 px-6 py-3.5 text-sm font-bold text-slate-700 shadow-md shadow-slate-100/50 transition-all hover:bg-slate-50 hover:shadow-lg hover:border-slate-300 active:scale-95"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 shadow-md shadow-slate-100/50 transition-all hover:bg-slate-50 hover:shadow-lg hover:border-slate-300 active:scale-95"
             >
               <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -180,7 +180,7 @@ const MenuPage = () => {
             </button>
             <button
               onClick={handleAddNewItem}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-3.5 text-sm font-bold text-white shadow-xl shadow-red-100 transition-all hover:bg-brand-700 hover:shadow-2xl active:scale-95"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-2 text-sm font-bold text-white shadow-xl shadow-red-100 transition-all hover:bg-brand-700 hover:shadow-2xl active:scale-95"
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
@@ -202,7 +202,7 @@ const MenuPage = () => {
             placeholder="Search menu items..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-[24px] bg-white border border-transparent px-16 py-5 text-base font-bold text-slate-950 shadow-[0_8px_30px_rgb(0,0,0,0.04)] outline-none transition-all focus:border-brand-600/10 focus:shadow-[0_8px_30px_rgb(173,34,31,0.05)] placeholder:text-slate-400"
+            className="w-full rounded-[24px] bg-white border border-transparent px-16 py-3 text-base font-semibold text-slate-950 shadow-[0_8px_30px_rgb(0,0,0,0.04)] outline-none transition-all focus:border-brand-600/10 focus:shadow-[0_8px_30px_rgb(173,34,31,0.05)] placeholder:text-slate-400"
           />
         </div>
 
@@ -216,7 +216,7 @@ const MenuPage = () => {
             <p className="text-xl font-bold text-slate-400">No items found matching your criteria</p>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredItems.map((item) => (
               <MenuItemCard
                 key={item.id}
