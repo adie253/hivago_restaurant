@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - master
-      - dev
-      - feat/payouts-dashboard-refinements
 
 jobs:
   build-and-deploy:
