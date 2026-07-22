@@ -694,10 +694,6 @@ const SettingsPage = () => {
           {activeTab === 'account' && (
             <AccountSettingsForm 
               notifications={settings.notifications}
-              onSavePassword={async (current, newPass) => {
-                const msg = await changePassword(current, newPass);
-                showToast(msg || 'Password changed successfully', 'success');
-              }}
               onSaveNotifications={async (newNotifs) => {
                 setSettings({ ...settings, notifications: newNotifs });
                 await saveSection('notifications', () => updateNotifications(newNotifs), 'Notification preferences saved!');
