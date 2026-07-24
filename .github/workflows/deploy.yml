@@ -15,21 +15,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
       - name: Install
-        run: npm ci
-
+        run: npm install --no-audit --no-fund
       - name: Build
         run: npm run build
-
-      # NOTE: SamKirkland/FTP-Deploy-Action is FTP/FTPS (port 21), NOT SFTP.
-      # The old workflow used port 22 -> that is one reason it failed.
       - name: Deploy to Hostinger (FTPS)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
