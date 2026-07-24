@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import api from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { AuthRole } from '../types';
 
 export interface ApiError {
   message: string;
@@ -12,7 +13,7 @@ export interface ChangePasswordPayload {
   newPassword?: string;
 }
 
-export function useChangePassword(role: 'owner' | 'restaurant') {
+export function useChangePassword(role: AuthRole) {
   const { showToast } = useToast();
   // Strip '/api' prefix because api client's baseURL already includes it
   const path = role === 'owner' ? 'owners/me/password' : 'restaurants/me/password';
