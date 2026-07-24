@@ -16,6 +16,7 @@ const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<AuthRole>('restaurant');
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -135,7 +136,11 @@ const LoginPage = () => {
               />
               Remember me
             </label>
-            <button type="button" className="font-medium text-brand-600 hover:text-brand-700">
+            <button 
+              type="button" 
+              onClick={() => setShowForgotModal(true)}
+              className="font-medium text-brand-600 hover:text-brand-700"
+            >
               Forgot password?
             </button>
           </div>
@@ -149,6 +154,28 @@ const LoginPage = () => {
           </button>
         </form>
       </div>
+
+      {showForgotModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[24px] border border-slate-200 shadow-2xl w-full max-w-[400px] p-6 sm:p-8 animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-12 h-12 bg-red-50 text-[#AD221F] rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m-2-2a4 4 0 118 0v3H8v-3z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Forgot Password?</h2>
+            <p className="text-sm text-slate-500 leading-relaxed mb-6">
+              For security, self-service password reset is disabled. Please contact your system administrator or Hivago Support to reset your account.
+            </p>
+            <button
+              onClick={() => setShowForgotModal(false)}
+              className="w-full py-3 text-sm font-semibold rounded-2xl bg-[#AD221F] hover:bg-red-800 text-white shadow-md transition-all active:scale-[0.98]"
+            >
+              Okay
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

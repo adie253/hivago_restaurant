@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react';
 import { NotificationSettings } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { useChangePassword } from '../hooks/useChangePassword';
 
 interface AccountSettingsFormProps {
   notifications: NotificationSettings;
-  onSavePassword: (currentPass: string, newPass: string) => Promise<void>;
   onSaveNotifications: (settings: NotificationSettings) => Promise<void>;
   saving?: boolean;
 }
 
-const AccountSettingsForm = ({ notifications: initialNotifications, onSavePassword, onSaveNotifications, saving }: AccountSettingsFormProps) => {
+const AccountSettingsForm = ({ notifications: initialNotifications, onSaveNotifications, saving }: AccountSettingsFormProps) => {
+  const { user } = useAuth();
+  const role = user?.role || 'restaurant';
+  const changePasswordMutation = useChangePassword(role);
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -27,12 +32,18 @@ const AccountSettingsForm = ({ notifications: initialNotifications, onSavePasswo
     }
   }, [initialNotifications]);
 
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    currentPassword?: string;
+    newPassword?: string;
+    confirmPassword?: string;
+  }>({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setPasswordData(prev => ({ ...prev, [name]: value }));
-    if (passwordError) setPasswordError(null);
+    setFieldErrors(prev => ({ ...prev, [name]: undefined }));
+    setGeneralError(null);
   };
 
   const toggleNotification = (key: keyof NotificationSettings) => {
@@ -41,22 +52,66 @@ const AccountSettingsForm = ({ notifications: initialNotifications, onSavePasswo
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
+    setGeneralError(null);
+
+    // Client-side validations
+    let hasError = false;
+    const newErrors: typeof fieldErrors = {};
+
+    if (!passwordData.currentPassword) {
+      newErrors.currentPassword = 'Current password is required';
+      hasError = true;
+    }
+
+    if (!passwordData.newPassword) {
+      newErrors.newPassword = 'New password is required';
+      hasError = true;
+    } else if (passwordData.newPassword.length < 8) {
+      newErrors.newPassword = 'Password must be at least 8 characters long';
+      hasError = true;
+    } else if (passwordData.newPassword.length > 128) {
+      newErrors.newPassword = 'Password cannot exceed 128 characters';
+      hasError = true;
+    }
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordError('Passwords do not match');
-      return;
+      newErrors.confirmPassword = 'Passwords do not match';
+      hasError = true;
     }
-    if (passwordData.newPassword.length < 8) {
-      setPasswordError('Password must be at least 8 characters long');
+
+    if (hasError) {
+      setFieldErrors(newErrors);
       return;
     }
 
-    try {
-      await onSavePassword(passwordData.currentPassword, passwordData.newPassword);
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (err: any) {
-      setPasswordError(err?.message || 'Failed to change password. Please check your current password.');
-    }
-
+    changePasswordMutation.mutate({
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword,
+    }, {
+      onSuccess: () => {
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      },
+      onError: (err) => {
+        if (err.fieldErrors) {
+          const mappedErrors: typeof fieldErrors = {};
+          Object.entries(err.fieldErrors).forEach(([key, messages]) => {
+            const lowerKey = key.toLowerCase();
+            const message = messages.join(' ');
+            if (lowerKey.includes('currentpassword')) {
+              mappedErrors.currentPassword = message;
+            } else if (lowerKey.includes('newpassword')) {
+              mappedErrors.newPassword = message;
+            } else {
+              setGeneralError(message);
+            }
+          });
+          setFieldErrors(mappedErrors);
+        } else {
+          setGeneralError(err.message || 'Failed to change password. Please check your current password.');
+        }
+      }
+    });
   };
 
   const handleNotificationSubmit = async () => {
@@ -87,6 +142,9 @@ const AccountSettingsForm = ({ notifications: initialNotifications, onSavePasswo
                 className="w-full rounded-2xl bg-slate-50 border border-transparent px-5 py-4 text-base font-bold text-slate-900 outline-none transition-all focus:border-slate-100 focus:bg-white focus:shadow-sm"
                 placeholder="••••••••"
               />
+              {fieldErrors.currentPassword && (
+                <p className="text-xs font-bold text-rose-600 mt-1 px-2">{fieldErrors.currentPassword}</p>
+              )}
             </div>
             
             <div className="grid gap-6 md:grid-cols-2">
@@ -101,6 +159,9 @@ const AccountSettingsForm = ({ notifications: initialNotifications, onSavePasswo
                   className="w-full rounded-2xl bg-slate-50 border border-transparent px-5 py-4 text-base font-bold text-slate-900 outline-none transition-all focus:border-slate-100 focus:bg-white focus:shadow-sm"
                   placeholder="••••••••"
                 />
+                {fieldErrors.newPassword && (
+                  <p className="text-xs font-bold text-rose-600 mt-1 px-2">{fieldErrors.newPassword}</p>
+                )}
               </div>
               <div className="space-y-2.5">
                 <label className="text-sm font-bold text-slate-900">Confirm New Password</label>
@@ -113,20 +174,23 @@ const AccountSettingsForm = ({ notifications: initialNotifications, onSavePasswo
                   className="w-full rounded-2xl bg-slate-50 border border-transparent px-5 py-4 text-base font-bold text-slate-900 outline-none transition-all focus:border-slate-100 focus:bg-white focus:shadow-sm"
                   placeholder="••••••••"
                 />
+                {fieldErrors.confirmPassword && (
+                  <p className="text-xs font-bold text-rose-600 mt-1 px-2">{fieldErrors.confirmPassword}</p>
+                )}
               </div>
             </div>
           </div>
 
-          {passwordError && (
-            <p className="text-sm font-bold text-rose-600 px-2">{passwordError}</p>
+          {generalError && (
+            <p className="text-sm font-bold text-rose-600 px-2">{generalError}</p>
           )}
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || changePasswordMutation.isPending}
             className="rounded-2xl bg-[#AD221F] px-8 py-3 text-sm font-bold text-white shadow-xl shadow-red-100 transition-all hover:bg-red-800 hover:shadow-2xl active:scale-95 disabled:opacity-50"
           >
-            Update Password
+            {changePasswordMutation.isPending ? 'Updating Password...' : 'Update Password'}
           </button>
         </form>
       </section>
