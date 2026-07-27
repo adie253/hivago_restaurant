@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { DashboardStats } from '../types';
-import { fetchDashboardStats } from '../api/dashboardApi';
+import { NewRestaurantStats } from '../types';
+import { fetchRestaurantStats } from '../api/dashboardApi';
 
-export const useDashboardStats = () => {
+export const useDashboardStats = (range: string = 'today') => {
   const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<NewRestaurantStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +21,7 @@ export const useDashboardStats = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetchDashboardStats(user.id);
+        const response = await fetchRestaurantStats(range);
         setStats(response);
       } catch (err) {
         setError('Unable to load dashboard metrics.');
@@ -31,7 +31,11 @@ export const useDashboardStats = () => {
     };
 
     loadStats();
-  }, [user?.id]);
+  }, [user?.id, range]);
 
-  return { stats, loading, error };
+  return { stats, loading, error, refreshStats: () => {
+    if (user?.id) {
+        fetchRestaurantStats(range).then(setStats).catch(console.error);
+    }
+  }};
 };

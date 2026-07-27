@@ -1,6 +1,7 @@
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 
-const HUB_URL = `${import.meta.env.VITE_API_BASE_URL || 'https://rally-production-2004.up.railway.app/api'}/hubs/notifications`.replace('/api/hubs', '/hubs');
+const HUB_URL = `${import.meta.env.VITE_API_URL || 'https://rally-production-2004.up.railway.app'}/hubs/notifications`;
+
 
 class SignalRService {
   private connection: HubConnection | null = null;
@@ -11,15 +12,19 @@ class SignalRService {
   }
 
   public async start(): Promise<void> {
-    if (this.connection) return;
+    if (this.connection && this.connection.state !== 'Disconnected') return;
 
-    const token = localStorage.getItem('hivago_access_token');
-    
+    const token = localStorage.getItem('hivago_access_token') || sessionStorage.getItem('hivago_access_token');
+    if (!token) {
+      console.warn('No access token found, skipping SignalR start.');
+      return;
+    }
+
     this.connection = new HubConnectionBuilder()
       .withUrl(HUB_URL, {
-        accessTokenFactory: () => token || '',
+        accessTokenFactory: () => localStorage.getItem('hivago_access_token') || sessionStorage.getItem('hivago_access_token') || '',
       })
-      .withAutomaticReconnect()
+      .withAutomaticReconnect([2000, 5000, 10000, 30000])
       .configureLogging(LogLevel.Information)
       .build();
 

@@ -1,5 +1,13 @@
-import { DashboardStats, MenuCategory, MenuItem, Order, RestaurantProfile } from '../types';
+import { DashboardStats, NewRestaurantStats, MenuCategory, MenuItem, Order, RestaurantSettings, ProfileSettings, DietarySettings, OperationsSettings, HoursSettings, DeliverySettings, NotificationSettings, CreateMenuItemPayload, MenuItemOption, MenuItemOptionGroup, ParsedMenuCategory, ParsedMenuItem, BulkImportPayload, BulkImportResponse } from '../types';
+import axios from 'axios';
 import client from './client';
+
+export const fetchRestaurantStats = async (range: string = 'today'): Promise<NewRestaurantStats> => {
+  const response = await client.get<NewRestaurantStats>('/restaurants/me/stats', {
+    params: { range }
+  });
+  return response.data;
+};
 
 export const fetchDashboardStats = async (restaurantId: string): Promise<DashboardStats> => {
   const orders = await fetchOrders(restaurantId, { activeOnly: false, pageSize: 100 });
@@ -27,29 +35,84 @@ interface FetchOrdersOptions {
   pageSize?: number;
 }
 
-const normalizeStatus = (status?: string): Order['status'] => {
-  if (!status) return 'PREPARING';
-  const normalized = status.toLowerCase();
+export const normalizeStatus = (status?: string | number): Order['status'] => {
+  if (status === undefined || status === null) return 'PENDING';
+  const normalized = String(status).trim().toLowerCase();
 
-  if (normalized.includes('ready')) return 'READY';
-  if (normalized.includes('picked')) return 'PICKED_UP';
-  if (normalized === 'delivered') return 'DELIVERED';
-  if (normalized === 'rejected' || normalized === 'cancelled') return 'REJECTED';
+  // 1. Check numeric representations first (C# enum integers)
+  if (normalized === '0' || normalized === '1' || normalized === '2') return 'PENDING';
+  if (normalized === '3') return 'PREPARING';
+  if (normalized === '4') return 'READY';
+  if (normalized === '5') return 'PICKED_UP';
+  if (normalized === '6') return 'DELIVERED';
+  if (normalized === '7') return 'REJECTED';
+  if (normalized === '8' || normalized === '9') return 'CANCELLED';
+  if (normalized === '10' || normalized === '11') return 'REFUNDING';
+
+  // 2. Check exact enum names & display names or partial terms
+  if (
+    normalized.includes('ready') || 
+    normalized === 'readyforpickup' || 
+    normalized === 'ready for pickup'
+  ) {
+    return 'READY';
+  }
   
-  // "Confirmed" usually means the kitchen is preparing it
-  if (normalized === 'confirmed' || normalized === 'preparing') return 'PREPARING';
+  if (
+    normalized.includes('picked') || 
+    normalized === 'pickedup' || 
+    normalized === 'picked up'
+  ) {
+    return 'PICKED_UP';
+  }
+  
+  if (normalized === 'delivered') return 'DELIVERED';
+  
+  if (
+    normalized === 'rejected' || 
+    normalized.includes('rejected')
+  ) {
+    return 'REJECTED';
+  }
+  
+  if (
+    normalized === 'cancelled' || 
+    normalized === 'failed' || 
+    normalized.includes('cancelled') || 
+    normalized.includes('failed')
+  ) {
+    return 'CANCELLED';
+  }
+  
+  if (
+    normalized === 'refunding' || 
+    normalized === 'refunded' || 
+    normalized.includes('refund')
+  ) {
+    return 'REFUNDING';
+  }
+  
+  if (normalized === 'preparing') return 'PREPARING';
+  
+  if (
+    normalized.includes('pending') || 
+    normalized.includes('paid') || 
+    normalized === 'confirmed'
+  ) {
+    return 'PENDING';
+  }
 
-
-  return 'PREPARING';
+  return 'PENDING';
 };
 
-const normalizePickupType = (pickupType?: string): Order['pickupType'] => {
-  if (!pickupType) return 'PICKUP';
+const normalizePickupType = (type?: string): Order['pickupType'] => {
+  if (!type) return 'PICKUP';
 
-  const normalized = pickupType.toLowerCase();
+  const normalized = type.toLowerCase();
 
   if (normalized.includes('delivery')) return 'DELIVERY';
   if (normalized.includes('dine')) return 'DINE_IN';
+  if (normalized.includes('pickup')) return 'PICKUP';
 
   return 'PICKUP';
 };
@@ -76,8 +139,8 @@ const parseNumber = (value: unknown): number => {
   return 0;
 };
 
-const normalizeOrder = (raw: Record<string, unknown>): Order => {
-  const statusRaw = String(raw.status ?? raw.statusDisplay ?? 'PREPARING');
+export const normalizeOrder = (raw: Record<string, unknown>): Order => {
+  const statusRaw = (raw.status ?? raw.statusDisplay ?? 'PREPARING') as string | number;
   const normalizedStatus = normalizeStatus(statusRaw);
 
   const pricing = (raw.pricing as Record<string, unknown>) || {};
@@ -95,17 +158,18 @@ const normalizeOrder = (raw: Record<string, unknown>): Order => {
     quantity: Number(item.quantity ?? 1),
     price: parseNumber(item.unitPrice ?? item.price ?? 0),
     imageUrl: String(item.imageUrl ?? ''),
-    description: String(item.itemDescription ?? item.description ?? '')
+    description: String(item.itemDescription ?? item.description ?? ''),
+    specialInstructions: item.specialInstructions ? String(item.specialInstructions) : undefined
   }));
 
   return {
-    id: String(raw.id ?? ''),
-    orderNumber: String(raw.orderNumber ?? raw.id ?? ''),
+    id: String(raw.id ?? raw.orderId ?? ''),
+    orderNumber: String(raw.orderNumber ?? raw.id ?? raw.orderId ?? ''),
     status: normalizedStatus,
     customerName: String(raw.customerName ?? raw.restaurantName ?? 'Guest'),
     customerPhone: String(raw.customerPhone ?? raw.restaurantPhone ?? ''),
     customerNote: String(raw.specialInstructions ?? raw.customerNote ?? '') || undefined,
-    pickupType: normalizePickupType(String(raw.pickupType ?? (deliveryInfo ? 'DELIVERY' : 'PICKUP'))),
+    pickupType: normalizePickupType(String(raw.fulfillmentType ?? raw.pickupType ?? (deliveryInfo ? 'DELIVERY' : 'PICKUP'))),
     createdAt: String(raw.createdAt ?? new Date().toISOString()),
     total: parseNumber(pricing.total ?? raw.total ?? raw.totalDisplay),
     subTotal: parseNumber(pricing.subTotal ?? pricing.itemsTotal ?? 0),
@@ -113,14 +177,25 @@ const normalizeOrder = (raw: Record<string, unknown>): Order => {
     discount: parseNumber(pricing.discount ?? pricing.discountTotal ?? 0),
     deliveryETA: String(deliveryInfo.estimatedTimeDisplay ?? raw.estimatedTimeDisplay ?? ''),
     items: normalizedItems,
+    totalItems: typeof raw.totalItems === 'number' ? raw.totalItems : undefined,
     address: String(deliveryAddress.formattedAddress ?? raw.address ?? ''),
     paymentVerified,
     riderName: String(deliveryInfo.riderName ?? ''),
     riderPhone: String(deliveryInfo.riderPhone ?? ''),
     riderStatus: deliveryInfo.riderId ? 'is on the way' : undefined,
-    otp: String(raw.paymentId).slice(-4) // Mock OTP from paymentId for now
+    otp: String(raw.paymentId).slice(-4), // Mock OTP from paymentId for now
+    paymentStatus: String(raw.paymentStatus ?? ''),
+    paymentStatusDisplay: String(raw.paymentStatusDisplay ?? raw.paymentStatus ?? ''),
+    confirmedAt: raw.confirmedAt ? String(raw.confirmedAt) : undefined,
+    preparingAt: raw.preparingAt ? String(raw.preparingAt) : undefined,
+    readyAt: raw.readyAt ? String(raw.readyAt) : undefined,
+    pickedUpAt: raw.pickedUpAt ? String(raw.pickedUpAt) : undefined,
+    deliveredAt: raw.deliveredAt ? String(raw.deliveredAt) : undefined,
+    cancelledAt: raw.cancelledAt ? String(raw.cancelledAt) : undefined,
+    rejectedAt: raw.rejectedAt ? String(raw.rejectedAt) : undefined,
+    cancellationReason: raw.cancellationReason ? String(raw.cancellationReason) : (raw.cancelReason ? String(raw.cancelReason) : (raw.reason && normalizedStatus === 'CANCELLED' ? String(raw.reason) : undefined)),
+    rejectionReason: raw.rejectionReason ? String(raw.rejectionReason) : (raw.rejectReason ? String(raw.rejectReason) : (raw.reason && normalizedStatus === 'REJECTED' ? String(raw.reason) : undefined)),
   };
-
 };
 
 
@@ -158,7 +233,7 @@ export const fetchOrders = async (
   const orders: Order[] = [];
 
   while (true) {
-    const response = await client.get<unknown>(`/orders/restaurant/${restaurantId}`, {
+    const response = await client.get<unknown>(`orders/restaurant/${restaurantId}`, {
       params: { activeOnly, page: currentPage, pageSize }
     });
 
@@ -170,6 +245,7 @@ export const fetchOrders = async (
     currentPage += 1;
   }
 
+  /*
   // Inject a demo order for testing "Picked up" section redesign
   const demoOrder: Order = {
     id: 'demo-pickup-id',
@@ -198,6 +274,7 @@ export const fetchOrders = async (
   };
 
   orders.unshift(demoOrder);
+  */
 
 
   return orders;
@@ -206,208 +283,293 @@ export const fetchOrders = async (
 
 
 export const fetchOrderById = async (orderId: string): Promise<Order> => {
-  const response = await client.get<Record<string, unknown>>(`/orders/${orderId}`);
-  
+  const response = await client.get<Record<string, unknown>>(`orders/${orderId}`);
+
   // If the response data is an object with a 'data' property (common wrapper)
   const rawData = response.data.data ? (response.data.data as Record<string, unknown>) : response.data;
-  
+
   return normalizeOrder(rawData);
 };
 
-export const confirmOrder = async (orderId: string): Promise<void> => {
-  await client.put(`/orders/${orderId}/confirm`);
+export const confirmOrder = async (orderId: string): Promise<Order> => {
+  const response = await client.put(`orders/${orderId}/confirm`, {});
+  return normalizeOrder(response.data.data || response.data);
 };
 
-export const rejectOrder = async (orderId: string): Promise<void> => {
-  await client.put(`/orders/${orderId}/reject`);
+export const rejectOrder = async (orderId: string, reason: string): Promise<Order> => {
+  const response = await client.put(`orders/${orderId}/reject`, { reason });
+  const order = normalizeOrder(response.data.data || response.data);
+  order.status = 'REJECTED';
+  return order;
 };
 
-export const preparingOrder = async (orderId: string): Promise<void> => {
-  await client.put(`/orders/${orderId}/preparing`);
+export const preparingOrder = async (orderId: string, prepTime?: number, deliveryPartner?: 'HIVAGO' | 'RESTAURANT'): Promise<Order> => {
+  const response = await client.put(`orders/${orderId}/preparing`, {
+    prepTime,
+    deliveryPartner
+  });
+  const order = normalizeOrder(response.data.data || response.data);
+  order.status = 'PREPARING';
+  return order;
 };
 
-export const readyOrder = async (orderId: string): Promise<void> => {
-  await client.put(`/orders/${orderId}/ready`);
+
+export const readyOrder = async (orderId: string): Promise<Order> => {
+  const response = await client.put(`orders/${orderId}/ready`, {});
+  const order = normalizeOrder(response.data.data || response.data);
+  order.status = 'READY';
+  return order;
 };
 
-// Menu Management APIs (Unified Catalog Endpoint)
-export const fetchFullMenu = async (restaurantId: string): Promise<{ categories: MenuCategory[], items: MenuItem[] }> => {
-  try {
-    const response = await client.get(`/catalog/restaurants/${restaurantId}/menu`);
-    const data = response.data;
-    console.log('Full Menu Data:', data);
-    
-    // The endpoint is "Get full menu with items and options"
-    // Usually returns a list of menus (categories) each containing items
-    const rawMenus = Array.isArray(data) ? data : (data.menus ?? data.items ?? data.data ?? []);
-    
-    const categories: MenuCategory[] = [];
-    const items: MenuItem[] = [];
-    
-    rawMenus.forEach((menu: any) => {
-      const categoryId = String(menu.id ?? menu.menuId ?? '');
-      const categoryName = String(menu.name ?? menu.menuName ?? 'Other');
-      
-      categories.push({
-        id: categoryId,
-        name: categoryName
-      });
-      
-      if (Array.isArray(menu.items)) {
-        menu.items.forEach((item: any) => {
-          items.push({
-            id: String(item.id ?? item.menuItemId ?? ''),
-            name: String(item.name ?? item.itemName ?? 'Unknown Item'),
-            price: parseNumber(item.price ?? item.unitPrice ?? 0),
-            description: String(item.description ?? item.itemDescription ?? ''),
-            imageUrl: String(item.imageUrl ?? ''),
-            category: categoryName,
-            isVeg: parseBoolean(item.isVeg ?? item.isVegetarian ?? true),
-            isAvailable: parseBoolean(item.isAvailable ?? item.available ?? true),
-            menuId: categoryId
-          });
-        });
-      }
-    });
+export const customerPickupOrder = async (orderId: string): Promise<Order> => {
+  const response = await client.put(`orders/${orderId}/customer-pickup`, {});
+  const order = normalizeOrder(response.data.data || response.data);
+  order.status = 'DELIVERED';
+  return order;
+};
 
-    // If we got real data, return it
-    if (categories.length > 0) {
-      return { categories, items };
-    }
-    
-    // Fallback to empty defaults if successful but empty
-    throw new Error('Empty menu');
-  } catch (err) {
-    console.warn('Falling back to mock menu data', err);
-    // Return mock data if API fails
-    const mockCategories = [
-      { id: 'cat-1', name: 'Appetizers' },
-      { id: 'cat-2', name: 'Main Course' },
-      { id: 'cat-3', name: 'Breads' },
-      { id: 'cat-4', name: 'Desserts' },
-      { id: 'cat-5', name: 'Beverages' }
-    ];
-    
-    const mockItems = [
-      { id: 'm-1', name: 'Chicken Tikka Masala', price: 340, category: 'Main Course', isVeg: false, isAvailable: true, menuId: 'cat-2', imageUrl: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=400&h=400&fit=crop' },
-      { id: 'm-2', name: 'Paneer Tikka', price: 280, category: 'Appetizers', isVeg: true, isAvailable: true, menuId: 'cat-1', imageUrl: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=400&h=400&fit=crop' },
-      { id: 'm-3', name: 'Butter Chicken', price: 360, category: 'Main Course', isVeg: false, isAvailable: true, menuId: 'cat-2', imageUrl: 'https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=400&h=400&fit=crop' },
-      { id: 'm-4', name: 'Garlic Naan', price: 60, category: 'Breads', isVeg: true, isAvailable: true, menuId: 'cat-3', imageUrl: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&h=400&fit=crop' },
-      { id: 'm-5', name: 'Mango Lassi', price: 120, category: 'Beverages', isVeg: true, isAvailable: true, menuId: 'cat-5', imageUrl: 'https://images.unsplash.com/photo-1546173159-315724a31696?w=400&h=400&fit=crop' }
-    ];
-    
-    return { categories: mockCategories, items: mockItems };
+// Settings & Profile APIs
+export const fetchRestaurantSettings = async (): Promise<RestaurantSettings> => {
+  const response = await client.get('/restaurants/me/details');
+  return response.data.data ?? response.data;
+};
+
+export const updateProfile = async (data: Partial<ProfileSettings>): Promise<string> => {
+  const payload = { ...data };
+  if (payload.phone) {
+    const digitsOnly = payload.phone.replace(/\D/g, '');
+    payload.phone = digitsOnly.slice(-10);
   }
+  const res = await client.patch('/restaurants/me/profile', payload);
+  return res.data?.message || 'Profile updated successfully';
 };
 
-// Legacy compatibility or fallback helpers if needed separately
-export const fetchMenuCategories = async (restaurantId: string): Promise<MenuCategory[]> => {
-  const { categories } = await fetchFullMenu(restaurantId);
-  return categories;
+export const updateDietary = async (data: Partial<DietarySettings>): Promise<string> => {
+  const res = await client.patch('/restaurants/me/dietary', data);
+  return res.data?.message || 'Dietary settings updated successfully';
 };
 
-export const fetchMenuItems = async (restaurantId: string): Promise<MenuItem[]> => {
-  const { items } = await fetchFullMenu(restaurantId);
-  return items;
+export const fetchOperations = async (): Promise<OperationsSettings> => {
+  const res = await client.get('/restaurants/me/operations');
+  return res.data?.data || res.data;
 };
+
+export const updateOperations = async (data: Partial<OperationsSettings>): Promise<string> => {
+  const res = await client.patch('/restaurants/me/operations', data);
+  return res.data?.message || 'Operations updated successfully';
+};
+
+export const updateHours = async (data: Partial<HoursSettings>): Promise<string> => {
+  const res = await client.patch('/restaurants/me/hours', data);
+  return res.data?.message || 'Business hours updated successfully';
+};
+
+export const updateDelivery = async (data: Partial<DeliverySettings>): Promise<string> => {
+  const res = await client.patch('/restaurants/me/delivery', data);
+  return res.data?.message || 'Delivery settings updated successfully';
+};
+
+export const updateNotifications = async (data: Partial<NotificationSettings>): Promise<string> => {
+  const res = await client.patch('/restaurants/me/notifications', data);
+  return res.data?.message || 'Notification preferences updated successfully';
+};
+
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<string> => {
+  const res = await client.patch('/restaurants/me/password', { currentPassword, newPassword });
+  return res.data?.message || 'Password changed successfully';
+};
+
+// Logo upload might be kept or changed. Based on spec, it's not strictly mentioned in the 7 PATCH.
+// We'll leave the old one but point to /restaurants/me/logo just in case, or drop it if not needed.
+// Actually, I'll keep the legacy path until requested otherwise, but spec didn't mention logo.
+export const uploadRestaurantLogo = async (restaurantId: string, file: File): Promise<{ logoUrl: string }> => {
+  // 1. Get upload URL
+  const urlRes = await client.post<any>(
+    `/users/restaurants/${restaurantId}/logo/upload-url`,
+    { contentType: 'image/jpeg' }
+  );
+  
+  const responseData = urlRes.data.data || urlRes.data;
+  const { uploadUrl, fileKey } = responseData;
+
+  console.log('File to upload:', file);
+  console.log('File Name:', file.name);
+  console.log('Upload URL:', uploadUrl);
+
+  // 2. Upload to S3/R2 (Use a clean axios call to avoid global interceptors/headers)
+  const uploadResponse = await axios.put(uploadUrl, file, {
+    headers: {
+      'Content-Type': 'image/jpeg'
+    }
+  });
+
+  if (uploadResponse.status < 200 || uploadResponse.status >= 300) {
+    throw new Error('Failed to upload image to storage');
+  }
+
+  // 3. Confirm upload
+  const confirmRes = await client.patch<any>(
+    `/users/restaurants/${restaurantId}/logo/confirm`,
+    { fileKey }
+  );
+
+  return confirmRes.data.data || confirmRes.data;
+};
+
+// Menu Item Operations
+export const createMenuCategory = async (name: string): Promise<MenuCategory> => {
+  const response = await client.post('/restaurant/menus', { name });
+  return response.data.data || response.data;
+};
+
+export const deleteMenuCategory = async (menuId: string): Promise<void> => {
+  await client.delete(`/restaurant/menus/${menuId}`);
+};
+
+
+export const fetchMenuItemDetails = async (itemId: string): Promise<MenuItem> => {
+  const response = await client.get(`/items/${itemId}`);
+  const item = response.data.data || response.data;
+  return {
+    ...item,
+    price: parseNumber(item.basePrice ?? item.price ?? 0),
+    isVeg: parseBoolean(item.isVegetarian ?? item.isVeg ?? true)
+  };
+};
+
+export const createMenuItem = async (payload: CreateMenuItemPayload): Promise<MenuItem> => {
+  const response = await client.post('/restaurant/items', payload);
+  const item = response.data.data || response.data;
+  return item;
+};
+
+export const updateMenuItem = async (itemId: string, payload: Partial<CreateMenuItemPayload>): Promise<void> => {
+  await client.put(`/restaurant/items/${itemId}`, payload);
+};
+
+export const createOptionGroup = async (itemId: string, payload: any): Promise<MenuItemOptionGroup> => {
+  const response = await client.post(`/items/${itemId}/option-groups`, payload);
+  return response.data.data || response.data;
+};
+
+export const updateOptionGroup = async (itemId: string, groupId: string, payload: any): Promise<void> => {
+  await client.put(`/items/${itemId}/option-groups/${groupId}`, payload);
+};
+
+export const deleteOptionGroup = async (itemId: string, groupId: string): Promise<void> => {
+  await client.delete(`/items/${itemId}/option-groups/${groupId}`);
+};
+
+export const createOption = async (groupId: string, payload: any): Promise<MenuItemOption> => {
+  const response = await client.post(`/restaurant/option-groups/${groupId}/options`, payload);
+  return response.data.data || response.data;
+};
+
+export const updateOption = async (optionId: string, payload: any): Promise<void> => {
+  await client.put(`/restaurant/options/${optionId}`, payload);
+};
+
+export const deleteOption = async (optionId: string): Promise<void> => {
+  await client.delete(`/restaurant/options/${optionId}`);
+};
+
+// Delete a menu item
+export const deleteMenuItem = async (itemId: string): Promise<void> => {
+  await client.delete(`/restaurant/items/${itemId}`);
+};
+
+// 1 & 2. Get upload URL & upload directly to S3/Cloudflare R2 (returns fileKey)
+export const uploadMenuItemImageToStorage = async (itemId: string, file: File): Promise<string> => {
+  const urlRes = await client.post<any>(
+    `/catalog/menu-items/${itemId}/image/upload-url`,
+    { contentType: 'image/jpeg' }
+  );
+  
+  const responseData = urlRes.data.data || urlRes.data;
+  const { uploadUrl, fileKey } = responseData;
+
+  const uploadResponse = await axios.put(uploadUrl, file, {
+    headers: {
+      'Content-Type': 'image/jpeg'
+    }
+  });
+
+  if (uploadResponse.status < 200 || uploadResponse.status >= 300) {
+    throw new Error('Failed to upload menu item image to storage');
+  }
+
+  return fileKey;
+};
+
+// 3. Confirm upload on backend
+export const confirmMenuItemImage = async (itemId: string, fileKey: string): Promise<{ imageUrl: string }> => {
+  const confirmRes = await client.patch<any>(
+    `/catalog/menu-items/${itemId}/image/confirm`,
+    { fileKey }
+  );
+
+  return confirmRes.data.data || confirmRes.data;
+};
+
+// Kept for backward compatibility
+export const uploadMenuItemImage = async (itemId: string, file: File): Promise<{ imageUrl: string }> => {
+  const fileKey = await uploadMenuItemImageToStorage(itemId, file);
+  return confirmMenuItemImage(itemId, fileKey);
+};
+
+export const fetchFullMenu = async (restaurantId: string): Promise<{ categories: MenuCategory[], items: MenuItem[] }> => {
+  const response = await client.get(`catalog/restaurants/${restaurantId}/menu`);
+  const data = response.data.data || response.data;
+  const menus = Array.isArray(data.menus) ? data.menus : [];
+
+  // Sort menus by displayOrder
+  const sortedMenus = [...menus].sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+  const categories: MenuCategory[] = sortedMenus.map((m: any) => ({
+    id: m.menuId || m.id,
+    name: m.name
+  }));
+
+  const items: MenuItem[] = sortedMenus.flatMap((m: any) =>
+    (m.items || []).map((item: any) => ({
+      ...item,
+      menuId: m.menuId || m.id,
+      category: m.name,
+      price: parseNumber(item.basePrice ?? item.price ?? 0),
+      isVeg: parseBoolean(item.isVegetarian ?? item.isVeg ?? true)
+    }))
+  );
+
+  return { categories, items };
+};
+
+
+
 
 export const toggleItemAvailability = async (itemId: string, isAvailable: boolean): Promise<void> => {
   await client.patch(`/restaurant/items/${itemId}/availability`, { isAvailable });
 };
 
-// Settings & Profile APIs
-export const fetchRestaurantProfile = async (restaurantId: string): Promise<RestaurantProfile> => {
-  try {
-    const response = await client.get(`/restaurants/profile/${restaurantId}`);
-    const data = response.data.data ?? response.data;
-    
-    return {
-      id: String(data.id ?? restaurantId),
-      name: String(data.name ?? data.restaurantName ?? ''),
-      phone: String(data.phone ?? data.restaurantPhone ?? ''),
-      email: String(data.email ?? ''),
-      fssaiNumber: String(data.fssaiNumber ?? ''),
-      address: String(data.address ?? ''),
-      description: String(data.description ?? ''),
-      minOrderAmount: parseNumber(data.minOrderAmount ?? 0),
-      hasJainOptions: parseBoolean(data.hasJainOptions ?? false),
-      isVeganFriendly: parseBoolean(data.isVeganFriendly ?? false),
-      isPureVeg: parseBoolean(data.isPureVeg ?? false),
-      defaultPrepTime: parseNumber(data.defaultPrepTime ?? 25),
-      defaultDeliveryPartner: String(data.defaultDeliveryPartner ?? 'Hivago Delivery'),
-      isAcceptingOrders: parseBoolean(data.isAcceptingOrders ?? true),
-      isAutoAcceptEnabled: parseBoolean(data.isAutoAcceptEnabled ?? false),
-      isAutoWorkingHoursEnabled: parseBoolean(data.isAutoWorkingHoursEnabled ?? false),
-      isPickupEnabled: parseBoolean(data.isPickupEnabled ?? true),
-      isDeliveryEnabled: parseBoolean(data.isDeliveryEnabled ?? true),
-      logoUrl: String(data.logoUrl ?? ''),
-      openingHours: data.openingHours ?? {
-        monday: { isClosed: false, slots: [{ from: '09:00', to: '22:00' }] },
-        tuesday: { isClosed: false, slots: [{ from: '09:00', to: '22:00' }] },
-        wednesday: { isClosed: false, slots: [{ from: '09:00', to: '22:00' }] },
-        thursday: { isClosed: false, slots: [{ from: '09:00', to: '22:00' }] },
-        friday: { isClosed: false, slots: [{ from: '09:00', to: '22:00' }] },
-        saturday: { isClosed: false, slots: [{ from: '09:00', to: '14:00' }, { from: '17:00', to: '22:00' }] },
-        sunday: { isClosed: true, slots: [] }
-      }
-    };
-  } catch (err) {
-    console.warn('Falling back to mock profile data', err);
-    return {
-      id: restaurantId,
-      name: 'Restaurant Vaishali',
-      phone: '+91-9876543210',
-      email: 'contact@vaishali.com',
-      logoUrl: '',
-      fssaiNumber: '12345678901234',
-      address: 'Dadar West, Mumbai, Maharashtra 400028',
-      description: 'Authentic Indian cuisine serving fine delicacies since 1995.',
-      minOrderAmount: 200,
-      hasJainOptions: true,
-      isVeganFriendly: true,
-      isPureVeg: false,
-      openingHours: {
-        monday: { isClosed: false, slots: [{ from: '10:00', to: '22:00' }] },
-        tuesday: { isClosed: false, slots: [{ from: '10:00', to: '22:00' }] },
-        wednesday: { isClosed: false, slots: [{ from: '10:00', to: '22:00' }] },
-        thursday: { isClosed: false, slots: [{ from: '10:00', to: '22:00' }] },
-        friday: { isClosed: false, slots: [{ from: '10:00', to: '22:00' }] },
-        saturday: { isClosed: false, slots: [{ from: '10:00', to: '23:00' }] },
-        sunday: { isClosed: false, slots: [{ from: '10:00', to: '23:00' }] }
-      }
-    };
-  }
-};
-
-
-
-export const updateRestaurantProfile = async (restaurantId: string, data: Partial<RestaurantProfile>): Promise<void> => {
-  await client.put(`/restaurants/profile`, {
-    ...data,
-    restaurantId
+export const updateRestaurantAvailability = async (status: boolean): Promise<any> => {
+  const response = await client.put('/restaurants/me/availability', {
+    isAcceptingOrders: status,
+    isAvailable: status,
+    isActive: status
   });
-};
-
-export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
-  await client.post('/restaurants/account/change-password', { currentPassword, newPassword });
-};
-
-export const updateAccountSettings = async (data: any): Promise<void> => {
-  await client.patch('/restaurants/account/settings', data);
-};
-
-export const uploadRestaurantLogo = async (restaurantId: string, file: File): Promise<{ logoUrl: string }> => {
-  const formData = new FormData();
-  formData.append('logo', file);
-  formData.append('restaurantId', restaurantId);
-
-  const response = await client.post<{ logoUrl: string }>('/restaurants/logo/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
-
   return response.data;
 };
 
+export const fetchDeliveryCodes = async (orderId: string): Promise<{ pickupCode: string | null, dropCode: string | null } | null> => {
+  try {
+    const response = await client.get(`/delivery/orders/${orderId}/codes`);
+    return response.data;
+  } catch (error: any) {
+    if (error?.response?.status === 404) return null;
+    throw error;
+  }
+};
 
+export const bulkImportMenu = async (payload: BulkImportPayload): Promise<BulkImportResponse> => {
+  const response = await client.post<BulkImportResponse>('/restaurant/menus/bulk-import', payload);
+  return response.data;
+};

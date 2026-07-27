@@ -41,13 +41,16 @@ const RestaurantLogoForm = ({ currentLogoUrl, onUpload, uploading }: RestaurantL
         <div className="group relative flex-none h-48 w-48 overflow-hidden rounded-[32px] bg-gradient-to-br from-[#AD221F] to-[#8E1C1A] shadow-xl shadow-red-50">
           {(previewUrl || currentLogoUrl) ? (
             <img
-              src={restaurant_logo_placeholder}
+              src={previewUrl || currentLogoUrl}
               alt="Restaurant Logo"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = restaurant_logo_placeholder;
+              }}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center p-10">
-               <img src={restaurant_logo_placeholder} alt="Restaurant Logo" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+               <img src={restaurant_logo_placeholder} alt="Restaurant Logo Placeholder" className="h-full w-full object-cover opacity-50" />
             </div>
           )}
           
