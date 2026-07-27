@@ -94,6 +94,8 @@ const TimelineModal = ({ isOpen, onClose, order }: TimelineModalProps) => {
   const isCancelled = order.status === 'CANCELLED' || (!!order.cancellationReason && !order.rejectionReason);
   const isTerminated = isRejected || isCancelled;
 
+  const isDelivery = order.pickupType === 'DELIVERY';
+
   const getTimelineEvents = () => {
     const events: {
       status: OrderStatus | 'PLACED';
@@ -130,7 +132,7 @@ const TimelineModal = ({ isOpen, onClose, order }: TimelineModalProps) => {
         </svg>
       ),
       time: order.confirmedAt,
-      completed: !!order.confirmedAt
+      completed: !!order.confirmedAt || ['PREPARING', 'READY', 'PICKED_UP', 'DELIVERED'].includes(order.status)
     });
     
     // Preparing
@@ -144,50 +146,68 @@ const TimelineModal = ({ isOpen, onClose, order }: TimelineModalProps) => {
         </svg>
       ),
       time: order.preparingAt,
-      completed: !!order.preparingAt
+      completed: !!order.preparingAt || ['READY', 'PICKED_UP', 'DELIVERED'].includes(order.status)
     });
 
     // Ready
     events.push({
       status: 'READY' as OrderStatus | 'PLACED',
-      label: 'Ready for Pickup',
-      description: 'Order is packed and ready for the rider',
+      label: isDelivery ? 'Ready for Pickup' : 'Ready for Customer',
+      description: isDelivery
+        ? 'Order is packed and ready for the rider'
+        : 'Order is packed and ready for customer pickup',
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
         </svg>
       ),
       time: order.readyAt,
-      completed: !!order.readyAt
+      completed: !!order.readyAt || ['PICKED_UP', 'DELIVERED'].includes(order.status)
     });
 
-    // Out for Delivery
-    events.push({
-      status: 'PICKED_UP' as OrderStatus | 'PLACED',
-      label: 'Out for Delivery',
-      description: 'Rider has picked up the order and is on the way',
-      icon: (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      ),
-      time: order.pickedUpAt,
-      completed: !!order.pickedUpAt
-    });
+    if (isDelivery) {
+      // Out for Delivery
+      events.push({
+        status: 'PICKED_UP' as OrderStatus | 'PLACED',
+        label: 'Out for Delivery',
+        description: 'Rider has picked up the order and is on the way',
+        icon: (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        ),
+        time: order.pickedUpAt,
+        completed: !!order.pickedUpAt || order.status === 'PICKED_UP' || order.status === 'DELIVERED'
+      });
 
-    // Delivered
-    events.push({
-      status: 'DELIVERED' as OrderStatus | 'PLACED',
-      label: 'Delivered',
-      description: 'Order has been successfully delivered to the customer',
-      icon: (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 21a11.955 11.955 0 01-9.618-7.016m19.236 0A11.952 11.952 0 0012 3a11.952 11.952 0 00-9.618 4.016" />
-        </svg>
-      ),
-      time: order.deliveredAt,
-      completed: !!order.deliveredAt && order.status === 'DELIVERED'
-    });
+      // Delivered
+      events.push({
+        status: 'DELIVERED' as OrderStatus | 'PLACED',
+        label: 'Delivered',
+        description: 'Order has been successfully delivered to the customer',
+        icon: (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 21a11.955 11.955 0 01-9.618-7.016m19.236 0A11.952 11.952 0 0012 3a11.952 11.952 0 00-9.618 4.016" />
+          </svg>
+        ),
+        time: order.deliveredAt,
+        completed: (!!order.deliveredAt && order.status === 'DELIVERED') || order.status === 'DELIVERED'
+      });
+    } else {
+      // Self Pickup / Customer Pickup / Dine In
+      events.push({
+        status: 'DELIVERED' as OrderStatus | 'PLACED',
+        label: 'Picked Up by Customer',
+        description: 'Customer has collected the order from the restaurant',
+        icon: (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 21a11.955 11.955 0 01-9.618-7.016m19.236 0A11.952 11.952 0 0012 3a11.952 11.952 0 00-9.618 4.016" />
+          </svg>
+        ),
+        time: order.deliveredAt || order.pickedUpAt,
+        completed: !!order.deliveredAt || !!order.pickedUpAt || order.status === 'DELIVERED' || order.status === 'PICKED_UP'
+      });
+    }
 
     // Cancelled / Rejected (Terminal step insertion)
     if (isCancelled) {
