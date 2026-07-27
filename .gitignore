@@ -1,6 +1,20 @@
 node_modules/
 dist/
+
+# Environment files
+.env
+.env.production
+.env.development
+.env.local
+.env*.local
 .env*
+
+# Junk & Scratch files
+all_ids.txt
+api_output.txt
+scratch/
+
+# IDE & System files
 .DS_Store
 .vscode/
 src/api/mockData/
