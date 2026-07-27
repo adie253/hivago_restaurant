@@ -11,12 +11,6 @@ import {
   PayoutSummary
 } from '../types';
 
-import mockEarnings from './mockData/earnings.json';
-import mockHistory from './mockData/history.json';
-import mockPayoutDetail from './mockData/payout-detail.json';
-import mockGstSummary from './mockData/gst-summary.json';
-import mockTdsSummary from './mockData/tds-summary.json';
-
 /**
  * RESTAURANT PANEL APIS
  */
@@ -27,10 +21,18 @@ import mockTdsSummary from './mockData/tds-summary.json';
  */
 export const fetchEarningsSummary = async (): Promise<EarningsSummaryDto> => {
   if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    const mockEarnings = (await import('./mockData/earnings.json')).default;
     return mockEarnings as unknown as EarningsSummaryDto;
   }
   const response = await client.get('/restaurants/payouts/earnings');
-  return response.data;
+  const data = response.data;
+  if (data && Array.isArray(data.ledgerEntries)) {
+    data.ledgerEntries = data.ledgerEntries.map((entry: any) => ({
+      ...entry,
+      orderNumber: entry.orderNumber || entry.orderNo || entry.order_number || entry.orderCode || (entry.orderId ? (String(entry.orderId).startsWith('ORD-') ? entry.orderId : String(entry.orderId).slice(-8).toUpperCase()) : 'N/A')
+    }));
+  }
+  return data;
 };
 
 /**
@@ -39,6 +41,7 @@ export const fetchEarningsSummary = async (): Promise<EarningsSummaryDto> => {
  */
 export const fetchPayoutHistory = async (page = 1, pageSize = 20): Promise<PayoutDto[]> => {
   if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    const mockHistory = (await import('./mockData/history.json')).default;
     return mockHistory as unknown as PayoutDto[];
   }
   const response = await client.get('/restaurants/payouts', {
@@ -53,6 +56,7 @@ export const fetchPayoutHistory = async (page = 1, pageSize = 20): Promise<Payou
  */
 export const fetchPayoutDetail = async (payoutId: string): Promise<PayoutDetailDto> => {
   if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    const mockHistory = (await import('./mockData/history.json')).default;
     const payout = mockHistory.find(p => p.id === payoutId) || mockHistory[0];
     const ledgerEntries = Array.from({ length: payout.orderCount }, (_, index) => ({
       id: `ledger-item-${payoutId}-${index}`,
@@ -77,7 +81,14 @@ export const fetchPayoutDetail = async (payoutId: string): Promise<PayoutDetailD
     } as unknown as PayoutDetailDto;
   }
   const response = await client.get(`/restaurants/payouts/${payoutId}`);
-  return response.data;
+  const data = response.data;
+  if (data && Array.isArray(data.ledgerEntries)) {
+    data.ledgerEntries = data.ledgerEntries.map((entry: any) => ({
+      ...entry,
+      orderNumber: entry.orderNumber || entry.orderNo || entry.order_number || entry.orderCode || (entry.orderId ? (String(entry.orderId).startsWith('ORD-') ? entry.orderId : String(entry.orderId).slice(-8).toUpperCase()) : 'N/A')
+    }));
+  }
+  return data;
 };
 
 /**
@@ -85,6 +96,7 @@ export const fetchPayoutDetail = async (payoutId: string): Promise<PayoutDetailD
  */
 export const fetchGstSummary = async (from?: string, to?: string): Promise<GstSummaryDto> => {
   if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    const mockGstSummary = (await import('./mockData/gst-summary.json')).default;
     return mockGstSummary as unknown as GstSummaryDto;
   }
   const response = await client.get('/restaurants/payouts/gst-summary', {
@@ -98,6 +110,7 @@ export const fetchGstSummary = async (from?: string, to?: string): Promise<GstSu
  */
 export const fetchTdsSummary = async (from?: string, to?: string): Promise<TdsSummaryDto> => {
   if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+    const mockTdsSummary = (await import('./mockData/tds-summary.json')).default;
     return mockTdsSummary as unknown as TdsSummaryDto;
   }
   const response = await client.get('/restaurants/payouts/tds-summary', {
