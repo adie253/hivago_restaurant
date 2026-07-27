@@ -71,10 +71,13 @@ const PayoutDetailsModal = ({ isOpen, onClose, payout }: PayoutDetailsModalProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {payout.ledgerEntries.map((entry: PayoutLedgerDto) => (
+                  {payout.ledgerEntries.map((entry: PayoutLedgerDto) => {
+                    const displayNum = entry.orderNumber || (entry as any).orderNo || (entry as any).order_number || (entry as any).orderCode || (entry as any).orderId || entry.orderId || 'N/A';
+                    const formattedNum = String(displayNum).startsWith('#') ? displayNum : `#${displayNum}`;
+                    return (
                     <tr key={entry.orderId} className="hover:bg-slate-50/50 transition-all">
                       <td className="px-6 py-4">
-                        <p className="text-sm font-bold text-slate-900">#{entry.orderNumber}</p>
+                        <p className="text-sm font-bold text-slate-900">{formattedNum}</p>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-xs font-bold text-slate-400">{new Date(entry.createdAt).toLocaleDateString()}</p>
@@ -82,10 +85,10 @@ const PayoutDetailsModal = ({ isOpen, onClose, payout }: PayoutDetailsModalProps
                       <td className="px-6 py-4 font-bold text-slate-600">{formatCurrency(entry.orderAmount)}</td>
                       <td className="px-6 py-4 font-bold text-slate-600">{formatCurrency(entry.gstAmount)}</td>
                       <td className="px-6 py-4 font-bold text-red-400">-{formatCurrency(entry.commissionAmount + entry.commissionGst)}</td>
-                      <td className="px-6 py-4 font-bold text-orange-400">-{formatCurrency(entry.tdsAmount)}</td>
                       <td className="px-6 py-4 text-right font-bold text-slate-900">{formatCurrency(entry.netAmount)}</td>
                     </tr>
-                  ))}
+                  );
+                })}
                 </tbody>
               </table>
             </div>

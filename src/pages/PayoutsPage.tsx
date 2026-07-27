@@ -372,9 +372,12 @@ const PayoutsPage = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
-                                        {filteredLedgerEntries.map((entry) => (
-                                            <tr key={entry.orderId} className="hover:bg-slate-50/50 transition-colors">
-                                                <td className="px-8 py-4 text-sm font-bold text-slate-900">#{entry.orderNumber}</td>
+                                         {filteredLedgerEntries.map((entry) => {
+                                             const displayNum = entry.orderNumber || (entry as any).orderNo || (entry as any).order_number || (entry as any).orderCode || (entry as any).orderId || entry.orderId || 'N/A';
+                                             const formattedNum = String(displayNum).startsWith('#') ? displayNum : `#${displayNum}`;
+                                             return (
+                                             <tr key={entry.orderId} className="hover:bg-slate-50/50 transition-colors">
+                                                 <td className="px-8 py-4 text-sm font-bold text-slate-900">{formattedNum}</td>
                                                 <td className="px-8 py-4 text-sm font-bold text-slate-600">{formatCurrency(entry.orderAmount)}</td>
                                                 <td className="px-8 py-4 text-sm font-bold text-slate-600">{formatCurrency(entry.gstAmount)}</td>
                                                 <td className="px-8 py-4 text-sm font-bold text-red-400">-{formatCurrency(entry.commissionAmount + entry.commissionGst)}</td>
@@ -386,7 +389,8 @@ const PayoutsPage = () => {
                                                     </span>
                                                 </td>
                                             </tr>
-                                        ))}
+                                             );
+                                         })}
                                     </tbody>
                                 </table>
                             </div>
