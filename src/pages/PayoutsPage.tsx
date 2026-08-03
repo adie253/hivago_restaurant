@@ -55,6 +55,66 @@ const PayoutsPage = () => {
         };
     });
 
+    // Date Range for Earnings Filter
+    type PresetType = 'current-week' | 'previous-week' | 'previous-2-weeks' | 'last-30-days' | 'custom';
+    const [earningsDateRange, setEarningsDateRange] = useState({
+        from: '',
+        to: ''
+    });
+    const [activePreset, setActivePreset] = useState<PresetType>('current-week');
+    const [fetchingEarnings, setFetchingEarnings] = useState(false);
+
+    const handleSelectPreset = async (preset: PresetType) => {
+        setActivePreset(preset);
+        setFetchingEarnings(true);
+
+        const now = new Date();
+        const day = now.getDay(); // 0 is Sun, 1 is Mon...
+        const diffToCurrentMon = day === 0 ? 6 : day - 1;
+        const currentMon = new Date(now);
+        currentMon.setDate(now.getDate() - diffToCurrentMon);
+
+        let fromStr = '';
+        let toStr = '';
+
+        if (preset === 'current-week') {
+            fromStr = '';
+            toStr = '';
+        } else if (preset === 'previous-week') {
+            const prevMon = new Date(currentMon);
+            prevMon.setDate(currentMon.getDate() - 7);
+            const prevSun = new Date(currentMon);
+            prevSun.setDate(currentMon.getDate() - 1);
+            fromStr = prevMon.toISOString().split('T')[0];
+            toStr = prevSun.toISOString().split('T')[0];
+        } else if (preset === 'previous-2-weeks') {
+            const prev2Mon = new Date(currentMon);
+            prev2Mon.setDate(currentMon.getDate() - 14);
+            const prevSun = new Date(currentMon);
+            prevSun.setDate(currentMon.getDate() - 1);
+            fromStr = prev2Mon.toISOString().split('T')[0];
+            toStr = prevSun.toISOString().split('T')[0];
+        } else if (preset === 'last-30-days') {
+            const thirtyDaysAgo = new Date(now);
+            thirtyDaysAgo.setDate(now.getDate() - 30);
+            fromStr = thirtyDaysAgo.toISOString().split('T')[0];
+            toStr = now.toISOString().split('T')[0];
+        }
+
+        setEarningsDateRange({ from: fromStr, to: toStr });
+
+        try {
+            const data = await fetchEarningsSummary(fromStr || undefined, toStr || undefined);
+            setEarnings(data);
+            showToast('Earnings summary updated', 'success');
+        } catch (err) {
+            console.error('Failed to fetch earnings summary', err);
+            showToast('Failed to fetch earnings summary', 'error');
+        } finally {
+            setFetchingEarnings(false);
+        }
+    };
+
     // Filtered GST Summary based on date range selection
     const filteredGstSummary = useMemo(() => {
         if (!gstSummary) return null;
@@ -146,6 +206,37 @@ const PayoutsPage = () => {
 
         loadInitialData();
     }, []);
+
+    const handleFetchEarnings = async () => {
+        setFetchingEarnings(true);
+        try {
+            const data = await fetchEarningsSummary(
+                earningsDateRange.from || undefined, 
+                earningsDateRange.to || undefined
+            );
+            setEarnings(data);
+            showToast('Earnings summary updated', 'success');
+        } catch (err) {
+            console.error('Failed to fetch earnings summary', err);
+            showToast('Failed to fetch earnings summary', 'error');
+        } finally {
+            setFetchingEarnings(false);
+        }
+    };
+
+    const handleResetEarningsDateRange = async () => {
+        setEarningsDateRange({ from: '', to: '' });
+        setFetchingEarnings(true);
+        try {
+            const data = await fetchEarningsSummary();
+            setEarnings(data);
+            showToast('Reset to current week earnings', 'info');
+        } catch (err) {
+            console.error('Failed to fetch earnings summary', err);
+        } finally {
+            setFetchingEarnings(false);
+        }
+    };
 
     const handleFetchTaxReports = async () => {
         if (taxDateRange.from < '2026-01-01' || taxDateRange.to < '2026-01-01') {
@@ -326,6 +417,106 @@ const PayoutsPage = () => {
             <div className="space-y-8">
                 {activeTab === 'earnings' && earnings && (
                     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                        {/* Date Filter & Quick Presets Bar for Earnings */}
+                        <div className="rounded-[32px] bg-white p-6 shadow-sm border border-slate-50 space-y-4">
+                            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-50 pb-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mr-2">Quick Ranges:</span>
+                                    <button
+                                        onClick={() => handleSelectPreset('current-week')}
+                                        disabled={fetchingEarnings}
+                                        className={`rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+                                            activePreset === 'current-week' 
+                                                ? 'bg-slate-900 text-white shadow-sm' 
+                                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                        }`}
+                                    >
+                                        Current Week
+                                    </button>
+                                    <button
+                                        onClick={() => handleSelectPreset('previous-week')}
+                                        disabled={fetchingEarnings}
+                                        className={`rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+                                            activePreset === 'previous-week' 
+                                                ? 'bg-slate-900 text-white shadow-sm' 
+                                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                        }`}
+                                    >
+                                        Previous Week
+                                    </button>
+                                    <button
+                                        onClick={() => handleSelectPreset('previous-2-weeks')}
+                                        disabled={fetchingEarnings}
+                                        className={`rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+                                            activePreset === 'previous-2-weeks' 
+                                                ? 'bg-slate-900 text-white shadow-sm' 
+                                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                        }`}
+                                    >
+                                        Previous 2 Weeks
+                                    </button>
+                                    <button
+                                        onClick={() => handleSelectPreset('last-30-days')}
+                                        disabled={fetchingEarnings}
+                                        className={`rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+                                            activePreset === 'last-30-days' 
+                                                ? 'bg-slate-900 text-white shadow-sm' 
+                                                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                                        }`}
+                                    >
+                                        Last 30 Days
+                                    </button>
+                                </div>
+                                <div className="text-xs font-bold text-slate-400">
+                                    Active Period: <span className="text-slate-900 font-semibold">{earnings.periodStart || 'Mon'} - {earnings.periodEnd || 'Today'}</span>
+                                </div>
+                            </div>
+
+                            {/* Custom Date Inputs */}
+                            <div className="flex flex-wrap items-end gap-4 pt-1">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">From Date</label>
+                                    <input 
+                                        type="date" 
+                                        value={earningsDateRange.from}
+                                        onChange={(e) => {
+                                            setActivePreset('custom');
+                                            setEarningsDateRange(prev => ({ ...prev, from: e.target.value }));
+                                        }}
+                                        className="block rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-900 focus:border-[#AD221F] outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">To Date</label>
+                                    <input 
+                                        type="date" 
+                                        value={earningsDateRange.to}
+                                        onChange={(e) => {
+                                            setActivePreset('custom');
+                                            setEarningsDateRange(prev => ({ ...prev, to: e.target.value }));
+                                        }}
+                                        className="block rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-xs font-bold text-slate-900 focus:border-[#AD221F] outline-none transition-all"
+                                    />
+                                </div>
+                                <button 
+                                    onClick={handleFetchEarnings}
+                                    disabled={fetchingEarnings}
+                                    className="rounded-2xl bg-[#AD221F] px-6 py-2.5 text-xs font-bold text-white hover:bg-red-800 transition-all active:scale-95 shadow-md disabled:opacity-50 cursor-pointer"
+                                >
+                                    {fetchingEarnings ? 'Loading...' : 'Apply Custom Range'}
+                                </button>
+                                {activePreset !== 'current-week' && (
+                                    <button 
+                                        onClick={() => handleSelectPreset('current-week')}
+                                        disabled={fetchingEarnings}
+                                        className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all active:scale-95 cursor-pointer"
+                                    >
+                                        Reset (Current Week)
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
                             <div className="rounded-[32px] bg-white p-8 shadow-sm border border-slate-50">
@@ -346,14 +537,20 @@ const PayoutsPage = () => {
                             <div className="rounded-[32px] bg-gradient-to-br from-slate-900 to-slate-800 p-8 shadow-xl">
                                 <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-3">Net Earnings</p>
                                 <p className="text-3xl font-bold text-white">{formatCurrency(earnings.netEarnings)}</p>
-                                <p className="mt-2 text-xs font-bold text-white/40">Current week (Mon - Today)</p>
+                                <p className="mt-2 text-xs font-bold text-white/40">
+                                    {(earningsDateRange.from || earningsDateRange.to) 
+                                        ? `${earnings.periodStart || earningsDateRange.from} - ${earnings.periodEnd || earningsDateRange.to}` 
+                                        : 'Current week (Mon - Today)'}
+                                </p>
                             </div>
                         </div>
 
                         {/* Recent Ledger Entries */}
                         <div className="rounded-[32px] bg-white shadow-sm border border-slate-50 overflow-hidden">
                             <div className="px-8 py-4 border-b border-slate-50 flex items-center justify-between">
-                                <h3 className="text-lg font-bold text-slate-900">Current Week Orders</h3>
+                                <h3 className="text-lg font-bold text-slate-900">
+                                    {(earningsDateRange.from || earningsDateRange.to) ? 'Filtered Earnings Orders' : 'Current Week Orders'}
+                                </h3>
                                 <span className="rounded-full bg-slate-100 px-4 py-1.5 text-xs font-bold text-slate-600">
                                     {earnings.orderCount} orders
                                 </span>

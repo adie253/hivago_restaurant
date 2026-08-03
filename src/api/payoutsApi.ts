@@ -17,10 +17,14 @@ import {
 
 /**
  * GET /api/restaurants/payouts/earnings
- * Current week's running tally of money the restaurant has earned but not yet been paid out.
+ * Running tally of money the restaurant has earned but not yet been paid out for a date range (defaults to current week).
  */
-export const fetchEarningsSummary = async (): Promise<EarningsSummaryDto> => {
-  const response = await client.get('/restaurants/payouts/earnings');
+export const fetchEarningsSummary = async (from?: string, to?: string): Promise<EarningsSummaryDto> => {
+  const params: Record<string, string> = {};
+  if (from) params.from = from;
+  if (to) params.to = to;
+
+  const response = await client.get('/restaurants/payouts/earnings', { params });
   const data = response.data;
   if (data && Array.isArray(data.ledgerEntries)) {
     data.ledgerEntries = data.ledgerEntries.map((entry: any) => ({
