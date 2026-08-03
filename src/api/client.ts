@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://rally-production-2004.up.railway.app') + '/api/';
+const rawUrl = (import.meta.env.VITE_API_URL || 'https://rally-production-2004.up.railway.app').replace(/\/+$/, '');
+const API_BASE_URL = rawUrl.endsWith('/api') ? `${rawUrl}/` : `${rawUrl}/api/`;
 
 
 const client = axios.create({
