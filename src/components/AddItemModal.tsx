@@ -54,6 +54,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
   const [localCategories, setLocalCategories] = useState<MenuCategory[]>(categories);
   const [menuId, setMenuId] = useState(() => getDraftValue('menuId', categories[0]?.id || ''));
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isCategoryLoading, setIsCategoryLoading] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
   const [name, setName] = useState(() => getDraftValue('name', ''));
@@ -237,13 +238,18 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
-    setLoading(true);
+    setIsCategoryLoading(true);
     try {
       const newCat = await createMenuCategory(newCategoryName);
-      setLocalCategories([...localCategories, newCat]);
-      setMenuId(newCat.id);
+      const createdCategory = newCat || { id: Date.now().toString(), name: newCategoryName };
+      setLocalCategories(prev => {
+        const exists = prev.some(c => c.id === createdCategory.id);
+        return exists ? prev : [...prev, createdCategory];
+      });
+      setMenuId(createdCategory.id);
       setIsAddingCategory(false);
       setNewCategoryName('');
+      showToast(`Category "${createdCategory.name || newCategoryName}" created successfully!`, 'success');
       if (onCategoryCreated) {
         await onCategoryCreated();
       }
@@ -251,7 +257,7 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
       console.error(err);
       showToast(err?.response?.data?.message || err.message || 'Failed to create category', 'error');
     } finally {
-      setLoading(false);
+      setIsCategoryLoading(false);
     }
   };
 
@@ -489,9 +495,11 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ isOpen, onClose, categories
                       <button 
                         type="button" 
                         onClick={handleCreateCategory}
-                        className="rounded-xl bg-brand-600 px-4 py-2.5 text-xs font-bold text-white"
+                        disabled={isCategoryLoading}
+                        className="rounded-xl bg-brand-600 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50 flex items-center gap-1.5"
                       >
-                        ADD
+                        {isCategoryLoading && <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
+                        {isCategoryLoading ? 'ADDING...' : 'ADD'}
                       </button>
                       <button 
                         type="button" 

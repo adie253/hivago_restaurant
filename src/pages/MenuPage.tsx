@@ -28,9 +28,11 @@ const MenuPage = () => {
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
-  const loadMenuData = useCallback(async () => {
+  const loadMenuData = useCallback(async (isInitial = false) => {
     if (!user?.id) return;
-    setLoading(true);
+    if (isInitial) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const { categories, items } = await fetchFullMenu(user.id);
@@ -44,7 +46,7 @@ const MenuPage = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    loadMenuData();
+    loadMenuData(true);
   }, [user?.id, loadMenuData]);
 
 
@@ -108,8 +110,11 @@ const MenuPage = () => {
 
   const handleCreateCategory = async (name: string) => {
     try {
-      await createMenuCategory(name);
-      showToast('Category created successfully', 'success');
+      const newCat = await createMenuCategory(name);
+      showToast(`Category "${name}" created successfully!`, 'success');
+      if (newCat?.id) {
+        setActiveCategoryId(newCat.id);
+      }
       await loadMenuData();
     } catch (err: any) {
       console.error('Failed to create category', err);
