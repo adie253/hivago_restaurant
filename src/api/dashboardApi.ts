@@ -552,9 +552,7 @@ export const toggleItemAvailability = async (itemId: string, isAvailable: boolea
 
 export const updateRestaurantAvailability = async (status: boolean): Promise<any> => {
   const response = await client.put('/restaurants/me/availability', {
-    isAcceptingOrders: status,
-    isAvailable: status,
-    isActive: status
+    isAcceptingOrders: status
   });
   return response.data;
 };

@@ -12,6 +12,16 @@ export const loginOwner = async (credentials: LoginCredentials): Promise<OwnerLo
   return response.data;
 };
 
+export const sendOwnerOtp = async (phoneNumber: string): Promise<{ success: boolean; message?: string }> => {
+  const response = await client.post('/owners/otp/send', { phoneNumber });
+  return response.data;
+};
+
+export const verifyOwnerOtp = async (phoneNumber: string, otp: string): Promise<LoginResponse> => {
+  const response = await client.post<LoginResponse>('/owners/otp/verify', { phoneNumber, otp });
+  return response.data;
+};
+
 const getOwnerToken = () => {
   return localStorage.getItem('hivago_owner_access_token') || sessionStorage.getItem('hivago_owner_access_token');
 };

@@ -8,6 +8,7 @@ import AccountSettingsForm from '../components/AccountSettingsForm';
 import RestaurantLogoForm from '../components/RestaurantLogoForm';
 import { RestaurantSettings } from '../types';
 import MapPickerModal from '../components/MapPickerModal';
+import GpsConfirmationModal from '../components/GpsConfirmationModal';
 import { 
   fetchRestaurantSettings, 
   updateProfile, 
@@ -17,7 +18,8 @@ import {
   updateDelivery, 
   updateNotifications, 
   changePassword, 
-  uploadRestaurantLogo 
+  uploadRestaurantLogo,
+  updateRestaurantAvailability
 } from '../api/dashboardApi';
 
 const tabs = [
@@ -38,6 +40,8 @@ const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [savingSections, setSavingSections] = useState<Record<string, boolean>>({});
   const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [isDetectingGps, setIsDetectingGps] = useState(false);
+  const [detectedCoords, setDetectedCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -73,23 +77,35 @@ const SettingsPage = () => {
       showToast('Geolocation is not supported by your browser.', 'error');
       return;
     }
+    setIsDetectingGps(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setSettings(prev => prev ? {
-          ...prev,
-          profile: {
-            ...prev.profile,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          }
-        } : null);
-        showToast('Location coordinates detected successfully!', 'success');
+        setIsDetectingGps(false);
+        setDetectedCoords({
+          lat: Number(position.coords.latitude.toFixed(6)),
+          lng: Number(position.coords.longitude.toFixed(6))
+        });
       },
       (error) => {
+        setIsDetectingGps(false);
         console.error('Error getting location', error);
         showToast('Unable to retrieve location. Please grant permission or enter manually.', 'error');
       }
     );
+  };
+
+  const handleConfirmGps = () => {
+    if (!detectedCoords) return;
+    setSettings(prev => prev ? {
+      ...prev,
+      profile: {
+        ...prev.profile,
+        latitude: detectedCoords.lat,
+        longitude: detectedCoords.lng
+      }
+    } : null);
+    showToast('GPS coordinates updated successfully!', 'success');
+    setDetectedCoords(null);
   };
 
   const handleDietaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -280,13 +296,18 @@ const SettingsPage = () => {
                       <button
                         type="button"
                         onClick={detectLocation}
-                        className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                        disabled={isDetectingGps}
+                        className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2 disabled:opacity-50"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-4 h-4">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                        </svg>
-                        Use GPS
+                        {isDetectingGps ? (
+                          <div className="w-4 h-4 border-2 border-slate-400 border-t-[#AD221F] rounded-full animate-spin"></div>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                          </svg>
+                        )}
+                        {isDetectingGps ? 'Detecting...' : 'Use GPS'}
                       </button>
                       <button
                         type="button"
@@ -582,6 +603,8 @@ const SettingsPage = () => {
                     </div>
                   </div>
 
+                  {/* Commission Flat Fee and Commission Percentage hidden for now */}
+                  {/*
                   <div className="space-y-2.5">
                     <label className="text-sm font-bold text-slate-900">Commission Flat Fee</label>
                     <div className="relative">
@@ -621,6 +644,7 @@ const SettingsPage = () => {
                       <span className="absolute right-5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">%</span>
                     </div>
                   </div>
+                  */}
 
                   <div className="flex items-center justify-between p-5 rounded-2xl bg-white border border-transparent shadow-sm">
                     <div className="space-y-1">
@@ -635,11 +659,27 @@ const SettingsPage = () => {
 
                   <div className="flex items-center justify-between p-5 rounded-2xl bg-white border border-transparent shadow-sm">
                     <div className="space-y-1">
-                      <p className="text-sm font-bold text-slate-900">Accepting Orders</p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Main restaurant status</p>
+                      <p className="text-sm font-bold text-slate-900">Availability</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Main restaurant status (Accepting Orders)</p>
                     </div>
                     <label className="relative inline-flex h-7 w-12 flex-none items-center rounded-full transition-colors cursor-pointer" style={{ backgroundColor: settings.operations.isAcceptingOrders ? '#10B981' : '#CBD5E1' }}>
-                      <input type="checkbox" name="isAcceptingOrders" checked={settings.operations.isAcceptingOrders} onChange={handleOperationsChange} className="hidden" />
+                      <input
+                        type="checkbox"
+                        name="isAcceptingOrders"
+                        checked={settings.operations.isAcceptingOrders}
+                        onChange={async (e) => {
+                          const checked = e.target.checked;
+                          handleOperationsChange(e);
+                          try {
+                            await updateRestaurantAvailability(checked);
+                            showToast(`Restaurant availability updated: ${checked ? 'Online' : 'Offline'}`, 'info');
+                          } catch (err: any) {
+                            console.error('Failed to update availability:', err);
+                            showToast(err?.response?.data?.message || 'Failed to update availability', 'error');
+                          }
+                        }}
+                        className="hidden"
+                      />
                       <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${settings.operations.isAcceptingOrders ? 'translate-x-6' : 'translate-x-1'}`} />
                     </label>
                   </div>
@@ -657,7 +697,11 @@ const SettingsPage = () => {
 
                   <div className="md:col-span-2 pt-4">
                     <button
-                      onClick={() => saveSection('operations', () => updateOperations(settings.operations), 'Operations updated!')}
+                      onClick={() => saveSection('operations', async () => {
+                        await updateOperations(settings.operations);
+                        await updateRestaurantAvailability(settings.operations.isAcceptingOrders);
+                        return 'Operations settings saved!';
+                      }, 'Operations updated!')}
                       disabled={savingSections['operations']}
                       className="rounded-2xl bg-[#AD221F] px-8 py-3 text-sm font-bold text-white shadow-lg shadow-red-100 transition-all hover:bg-red-800 hover:shadow-xl active:scale-95 disabled:opacity-50"
                     >
@@ -740,22 +784,33 @@ const SettingsPage = () => {
       )}
 
       {settings && (
-        <MapPickerModal
-          isOpen={mapModalOpen}
-          onClose={() => setMapModalOpen(false)}
-          initialLat={settings.profile.latitude}
-          initialLng={settings.profile.longitude}
-          onConfirm={(lat, lng) => {
-            setSettings(prev => prev ? {
-              ...prev,
-              profile: {
-                ...prev.profile,
-                latitude: lat,
-                longitude: lng
-              }
-            } : null);
-          }}
-        />
+        <>
+          <MapPickerModal
+            isOpen={mapModalOpen}
+            onClose={() => setMapModalOpen(false)}
+            initialLat={settings.profile.latitude}
+            initialLng={settings.profile.longitude}
+            onConfirm={(lat, lng) => {
+              setSettings(prev => prev ? {
+                ...prev,
+                profile: {
+                  ...prev.profile,
+                  latitude: lat,
+                  longitude: lng
+                }
+              } : null);
+            }}
+          />
+          <GpsConfirmationModal
+            isOpen={!!detectedCoords}
+            onClose={() => setDetectedCoords(null)}
+            onConfirm={handleConfirmGps}
+            currentLat={settings.profile.latitude}
+            currentLng={settings.profile.longitude}
+            newLat={detectedCoords?.lat ?? 0}
+            newLng={detectedCoords?.lng ?? 0}
+          />
+        </>
       )}
     </div>
   );

@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import client from '../api/client';
-import { LoginCredentials, LoginResponse, loginRestaurant, refreshAuthToken } from '../api/authApi';
+import { LoginCredentials, LoginResponse, loginRestaurant, refreshAuthToken, verifyRestaurantOtp } from '../api/authApi';
 
 import { AuthRole } from '../types';
-import { loginOwner, switchOutlet as switchOutletApi } from '../api/ownerApi';
+import { loginOwner, verifyOwnerOtp, switchOutlet as switchOutletApi } from '../api/ownerApi';
 
 interface AuthUser {
   id: string;
@@ -26,6 +26,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   loading: boolean;
   login: (credentials: LoginCredentials, role: AuthRole, remember?: boolean) => Promise<void>;
+  loginWithOtp: (phone: string, otp: string, role: AuthRole, remember?: boolean) => Promise<void>;
   switchOutlet: (outletId: string) => Promise<void>;
   resetToOwner: () => Promise<void>;
   logout: () => void;
@@ -228,6 +229,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   };
 
+  const loginWithOtp = async (phone: string, otp: string, role: AuthRole, remember: boolean = false) => {
+    console.log(`[Auth] Attempting ${role} OTP login for ${phone} (Remember: ${remember})...`);
+    
+    let response: LoginResponse;
+    if (role === 'owner') {
+      response = await verifyOwnerOtp(phone, otp);
+    } else {
+      response = await verifyRestaurantOtp(phone, otp);
+    }
+
+    console.log('[Auth] OTP Login successful, saving tokens and user info...');
+    setAccessToken(response.accessToken);
+    setRefreshToken(response.refreshToken);
+    setAccessTokenExpiresAt(response.accessTokenExpiresAt);
+    
+    client.defaults.headers.common.Authorization = `Bearer ${response.accessToken}`;
+
+    let profileData: any = null;
+    if (role === 'owner') {
+      const { getOwnerProfile } = await import('../api/ownerApi');
+      try {
+        profileData = await getOwnerProfile();
+      } catch (err) {
+        console.error('[Auth] Failed to fetch owner profile', err);
+      }
+    }
+
+    const newUser: AuthUser = {
+      id: role === 'owner' ? (profileData?.id || (response as any).ownerId) : (response as any).restaurantId,
+      name: role === 'owner' ? (profileData?.name || response.name || 'Owner') : response.name,
+      email: role === 'owner' ? (profileData?.email || phone) : phone,
+      role,
+      originalRole: role,
+      ownerId: role === 'owner' ? (profileData?.id || (response as any).ownerId) : undefined,
+      ownerName: role === 'owner' ? (profileData?.name || response.name || 'Owner') : undefined,
+      ownerEmail: role === 'owner' ? (profileData?.email || phone) : undefined
+    };
+    setUser(newUser);
+
+    const storage = remember ? localStorage : sessionStorage;
+    storage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
+    storage.setItem(REFRESH_TOKEN_KEY, response.refreshToken);
+    storage.setItem(`${ACCESS_TOKEN_KEY}_expires_at`, response.accessTokenExpiresAt);
+    storage.setItem(USER_KEY, JSON.stringify(newUser));
+
+    if (role === 'owner') {
+      storage.setItem('hivago_owner_access_token', response.accessToken);
+    }
+  };
+
   const switchOutlet = async (outletId: string) => {
     console.log(`[Auth] Switching to outlet ${outletId}...`);
     const response = await switchOutletApi(outletId);
@@ -340,6 +391,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAuthenticated: Boolean(accessToken),
       loading,
       login,
+      loginWithOtp,
       switchOutlet,
       resetToOwner,
       logout

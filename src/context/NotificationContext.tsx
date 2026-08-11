@@ -10,6 +10,8 @@ interface NotificationContextType {
   isConnected: boolean;
   playNotification: () => void;
   stopNotification: () => void;
+  showBrowserNotification: (data: any) => void;
+  requestBrowserPermission: () => Promise<NotificationPermission | undefined>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -49,26 +51,44 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
   const [lastOrderReceived, setLastOrderReceived] = useState<any | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
 
-  // Set up global user interaction listeners to unlock Audio Context / Audio Element
+  // Set up global user interaction listeners to unlock Audio Context & request Notification permission
   useEffect(() => {
-    if (typeof window !== 'undefined' && notificationAudio && !isAudioUnlocked) {
-      window.addEventListener('click', unlockAudio);
-      window.addEventListener('touchstart', unlockAudio);
-      window.addEventListener('keydown', unlockAudio);
+    if (typeof window !== 'undefined') {
+      if (notificationAudio && !isAudioUnlocked) {
+        window.addEventListener('click', unlockAudio);
+        window.addEventListener('touchstart', unlockAudio);
+        window.addEventListener('keydown', unlockAudio);
+      }
+
+      // Request Notification permission on first user interaction if state is default
+      if ('Notification' in window && Notification.permission === 'default') {
+        const handlePermissionGesture = () => {
+          Notification.requestPermission().catch(err => {
+            console.warn('[Notification] Permission request failed:', err);
+          });
+          window.removeEventListener('click', handlePermissionGesture);
+          window.removeEventListener('touchstart', handlePermissionGesture);
+        };
+        window.addEventListener('click', handlePermissionGesture);
+        window.addEventListener('touchstart', handlePermissionGesture);
+      }
     }
+
     return () => {
       cleanupListeners();
     };
   }, []);
 
-  // Fetch settings to check if orderSound is enabled
+  // Fetch settings to check if orderSound & browserNotifications are enabled
   useEffect(() => {
     if (isAuthenticated && user?.id && user?.role === 'restaurant') {
       fetchRestaurantSettings()
         .then(settings => {
           if (settings && settings.notifications) {
             setSoundEnabled(settings.notifications.orderSound !== false);
+            setBrowserNotificationsEnabled(settings.notifications.browserNotifications !== false);
           }
         })
         .catch(err => {
@@ -76,6 +96,65 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         });
     }
   }, [isAuthenticated, user]);
+
+  const requestBrowserPermission = async (): Promise<NotificationPermission | undefined> => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        try {
+          const perm = await Notification.requestPermission();
+          return perm;
+        } catch (err) {
+          console.warn('[Notification] Error requesting browser notification permission:', err);
+        }
+      }
+      return Notification.permission;
+    }
+    return undefined;
+  };
+
+  const showBrowserNotification = (data: any) => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+
+    if (!browserNotificationsEnabled) {
+      console.log('[Notification] Browser notifications are disabled in settings.');
+      return;
+    }
+
+    const triggerNativeNotification = () => {
+      try {
+        const orderNum = data.orderNumber || data.orderNo || data.orderCode || data.id || '';
+        const formattedNum = String(orderNum).startsWith('#') ? orderNum : `#${orderNum}`;
+        const amount = data.totalAmount || data.price || data.grossAmount || data.pricing?.finalTotal;
+        const bodyText = amount 
+          ? `New order received for ₹${amount}. Tap to view order details.` 
+          : 'A new order has arrived on your dashboard. Tap to view order details.';
+
+        const notification = new Notification(`🔔 New Order ${formattedNum}`, {
+          body: bodyText,
+          icon: '/favicon.ico',
+          tag: `new-order-${data.orderId || data.id || orderNum}`,
+          requireInteraction: true
+        });
+
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      } catch (err) {
+        console.error('[Notification] Error creating native browser notification:', err);
+      }
+    };
+
+    if (Notification.permission === 'granted') {
+      triggerNativeNotification();
+    } else if (Notification.permission === 'default') {
+      Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') {
+          triggerNativeNotification();
+        }
+      });
+    }
+  };
 
   useEffect(() => {
     if (isAuthenticated && user?.id) {
@@ -92,6 +171,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         setLastOrderReceived(data);
         showToast(`New Order #${data.orderNumber} received!`, 'info');
         playNotification();
+        showBrowserNotification(data);
       });
 
       return () => {
@@ -103,7 +183,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       signalRService.stop();
       setIsConnected(false);
     }
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, user?.id, browserNotificationsEnabled, soundEnabled]);
 
   const playNotification = () => {
     if (!soundEnabled) {
@@ -151,7 +231,15 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
   };
 
   return (
-    <NotificationContext.Provider value={{ lastOrderReceived, clearLastOrderReceived, isConnected, playNotification, stopNotification }}>
+    <NotificationContext.Provider value={{
+      lastOrderReceived,
+      clearLastOrderReceived,
+      isConnected,
+      playNotification,
+      stopNotification,
+      showBrowserNotification,
+      requestBrowserPermission
+    }}>
       {children}
     </NotificationContext.Provider>
   );
@@ -164,4 +252,3 @@ export const useNotifications = () => {
   }
   return context;
 };
-

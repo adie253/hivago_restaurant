@@ -57,35 +57,37 @@ const PayoutDetailsModal = ({ isOpen, onClose, payout }: PayoutDetailsModalProps
 
           {/* Table */}
           <div className="px-10 pb-10">
-            <div className="overflow-hidden rounded-3xl border border-slate-50 bg-white shadow-sm">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto rounded-3xl border border-slate-50 bg-white shadow-sm">
+              <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr className="border-b border-slate-50 bg-slate-50/50">
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Order</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Date</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Gross</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">GST</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Comm.</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">TDS</th>
-                    <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Net Amount</th>
+                    <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">Order</th>
+                    <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">Date</th>
+                    <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap text-right">Gross</th>
+                    <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap text-right">GST</th>
+                    <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap text-right">Comm.</th>
+                    <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap text-right">TDS</th>
+                    <th className="px-5 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap text-right">Net Amount</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {payout.ledgerEntries.map((entry: PayoutLedgerDto) => {
                     const displayNum = entry.orderNumber || (entry as any).orderNo || (entry as any).order_number || (entry as any).orderCode || (entry as any).orderId || entry.orderId || 'N/A';
                     const formattedNum = String(displayNum).startsWith('#') ? displayNum : `#${displayNum}`;
+                    const tdsValue = entry.tdsAmount ?? (entry as any).tds ?? (entry as any).totalTds ?? 0;
                     return (
-                    <tr key={entry.orderId} className="hover:bg-slate-50/50 transition-all">
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-bold text-slate-900">{formattedNum}</p>
+                    <tr key={entry.orderId} className="hover:bg-slate-50/50 transition-all font-semibold">
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <p className="text-sm font-semibold text-slate-900">{formattedNum}</p>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="text-xs font-bold text-slate-400">{new Date(entry.createdAt).toLocaleDateString()}</p>
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <p className="text-xs font-semibold text-slate-400">{new Date(entry.createdAt).toLocaleDateString()}</p>
                       </td>
-                      <td className="px-6 py-4 font-bold text-slate-600">{formatCurrency(entry.orderAmount)}</td>
-                      <td className="px-6 py-4 font-bold text-slate-600">{formatCurrency(entry.gstAmount)}</td>
-                      <td className="px-6 py-4 font-bold text-red-400">-{formatCurrency(entry.commissionAmount + entry.commissionGst)}</td>
-                      <td className="px-6 py-4 text-right font-bold text-slate-900">{formatCurrency(entry.netAmount)}</td>
+                      <td className="px-5 py-4 text-slate-600 whitespace-nowrap text-right">{formatCurrency(entry.orderAmount)}</td>
+                      <td className="px-5 py-4 text-slate-600 whitespace-nowrap text-right">{formatCurrency(entry.gstAmount)}</td>
+                      <td className="px-5 py-4 text-red-500 whitespace-nowrap text-right">-{formatCurrency(entry.commissionAmount + entry.commissionGst)}</td>
+                      <td className="px-5 py-4 text-red-500 whitespace-nowrap text-right">{tdsValue > 0 ? `-${formatCurrency(tdsValue)}` : formatCurrency(tdsValue)}</td>
+                      <td className="px-5 py-4 text-right font-semibold text-slate-900 whitespace-nowrap">{formatCurrency(entry.netAmount)}</td>
                     </tr>
                   );
                 })}

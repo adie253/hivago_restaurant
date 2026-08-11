@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NotificationSettings } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { useChangePassword } from '../hooks/useChangePassword';
 
 interface AccountSettingsFormProps {
@@ -11,7 +12,9 @@ interface AccountSettingsFormProps {
 
 const AccountSettingsForm = ({ notifications: initialNotifications, onSaveNotifications, saving }: AccountSettingsFormProps) => {
   const { user } = useAuth();
+  const { requestBrowserPermission } = useNotifications();
   const role = user?.role || 'restaurant';
+  const isOwner = role === 'owner' || user?.originalRole === 'owner';
   const changePasswordMutation = useChangePassword(role);
 
   const [passwordData, setPasswordData] = useState({
@@ -47,7 +50,11 @@ const AccountSettingsForm = ({ notifications: initialNotifications, onSaveNotifi
   };
 
   const toggleNotification = (key: keyof NotificationSettings) => {
-    setNotificationSettings(prev => ({ ...prev, [key]: !prev[key] }));
+    const nextVal = !notificationSettings[key];
+    setNotificationSettings(prev => ({ ...prev, [key]: nextVal }));
+    if (key === 'browserNotifications' && nextVal) {
+      requestBrowserPermission();
+    }
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -119,9 +126,9 @@ const AccountSettingsForm = ({ notifications: initialNotifications, onSaveNotifi
   };
 
   const notificationToggles = [
-    { id: 'emailAlerts', label: 'Email Alerts', description: 'Receive daily reports and important account updates via email' },
-    { id: 'orderSound', label: 'Order Sound', description: 'Play a sound when a new order arrives on the dashboard' },
-    { id: 'browserNotifications', label: 'Browser Notifications', description: 'Receive desktop alerts even when the tab is hidden' },
+    { id: 'emailAlerts', label: 'Email Alerts', description: 'Receive daily reports and important account updates via email', comingSoon: true },
+    { id: 'orderSound', label: 'Order Sound', description: 'Play a sound when a new order arrives on the dashboard', comingSoon: false },
+    { id: 'browserNotifications', label: 'Browser Notifications', description: 'Receive desktop alerts even when the tab is hidden', comingSoon: false },
   ] as const;
 
   return (
@@ -200,18 +207,30 @@ const AccountSettingsForm = ({ notifications: initialNotifications, onSaveNotifi
         <h2 className="text-xl font-bold tracking-tight text-slate-900 px-2">Notification Preferences</h2>
         <div className="space-y-1 divide-y divide-slate-50 max-w-2xl bg-white p-6 rounded-[32px] border border-slate-50 shadow-[0_4px_25px_rgba(0,0,0,0.02)]">
           {notificationToggles.map((row) => {
-            const isChecked = notificationSettings[row.id];
+            const isChecked = !row.comingSoon && notificationSettings[row.id];
             return (
               <div key={row.id} className="flex items-center justify-between py-5 first:pt-0 last:pb-4">
                 <div className="space-y-1 pr-4">
-                  <h4 className="text-base font-bold text-slate-900">{row.label}</h4>
+                  <div className="flex items-center gap-2.5">
+                    <h4 className="text-base font-bold text-slate-900">{row.label}</h4>
+                    {row.comingSoon && (
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider bg-amber-50 text-amber-600 px-2.5 py-0.5 rounded-full border border-amber-200/60">
+                        Coming Soon
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs font-bold text-slate-400">{row.description}</p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => toggleNotification(row.id as any)}
+                  disabled={row.comingSoon}
+                  onClick={() => !row.comingSoon && toggleNotification(row.id as any)}
                   className={`relative inline-flex h-6 w-11 flex-none items-center rounded-full transition-colors duration-200 focus:outline-none ${
-                    isChecked ? 'bg-emerald-500' : 'bg-slate-200'
+                    row.comingSoon
+                      ? 'bg-slate-200 cursor-not-allowed opacity-60'
+                      : isChecked
+                      ? 'bg-emerald-500'
+                      : 'bg-slate-200'
                   }`}
                 >
                   <span
@@ -236,21 +255,7 @@ const AccountSettingsForm = ({ notifications: initialNotifications, onSaveNotifi
         </div>
       </section>
 
-      {/* Danger Zone */}
-      <section className="space-y-6 pt-10 border-t border-slate-50">
-        <h2 className="text-xl font-bold tracking-tight text-rose-600 px-2">Danger Zone</h2>
-        <div className="rounded-3xl border border-rose-100 bg-rose-50/50 p-8 max-w-2xl space-y-4">
-            <div className="space-y-1">
-                <h4 className="text-base font-bold text-slate-900">Deactivate Account</h4>
-                <p className="text-sm font-bold text-slate-500 leading-relaxed">
-                    Temporarily disable your restaurant's presence on Hivago. You can reactivate it at any time.
-                </p>
-            </div>
-            <button className="rounded-2xl border-2 border-rose-200 bg-white px-6 py-2.5 text-sm font-bold text-rose-600 transition-all hover:bg-rose-600 hover:text-white hover:border-rose-600 active:scale-95">
-                Deactivate Account
-            </button>
-        </div>
-      </section>
+
     </div>
   );
 };
