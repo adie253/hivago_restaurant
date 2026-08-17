@@ -11,6 +11,7 @@ import { useToast } from '../context/ToastContext';
 import { Order, OrderSectionKey } from '../types';
 import { useAutoPrintKot } from '../hooks/useAutoPrintKot';
 import { KitchenTicket } from '../components/orders/KitchenTicket';
+import { NotificationBanner } from '../components/NotificationBanner';
 
 import todays_orders_icon from '../assets/todays_orders_icon.svg';
 import todays_revenue_icon from '../assets/todays_revenue_icon.svg';
@@ -141,6 +142,7 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-5">
+      <NotificationBanner />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
         <div className="flex flex-wrap items-center gap-2">

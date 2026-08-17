@@ -6,7 +6,7 @@ import { fetchOrders, normalizeOrder } from '../api/dashboardApi';
 
 export const useOrders = () => {
   const { user } = useAuth();
-  const { lastOrderReceived, clearLastOrderReceived, stopNotification } = useNotifications();
+  const { lastOrderReceived, clearLastOrderReceived, stopNotification, playNotification, showBrowserNotification } = useNotifications();
   const [orders, setOrders] = useState<Order[]>([]);
   const [newOrder, setNewOrderState] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +46,8 @@ export const useOrders = () => {
         const newlyArrived = latestOrders.find(order => !previousIds.has(order.id));
         if (newlyArrived && newlyArrived.status === 'PENDING') {
           setNewOrder(newlyArrived);
+          playNotification();
+          showBrowserNotification(newlyArrived);
         }
       }
 
@@ -105,7 +107,14 @@ export const useOrders = () => {
   }, [lastOrderReceived]);
 
   const updateLocalOrder = (updatedOrder: Order) => {
-    setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+    setOrders(prev => {
+      const next = prev.map(o => o.id === updatedOrder.id ? updatedOrder : o);
+      const remainingPending = next.filter(o => o.status === 'PENDING');
+      if (remainingPending.length === 0) {
+        stopNotification();
+      }
+      return next;
+    });
   };
 
   return { orders, newOrder, setNewOrder, refreshOrders, updateLocalOrder, loading, error };
