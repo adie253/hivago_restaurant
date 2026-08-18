@@ -94,18 +94,66 @@ const SettingsPage = () => {
     );
   };
 
-  const handleConfirmGps = () => {
+  const fetchAddressFromCoords = async (lat: number, lng: number): Promise<string | null> => {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
+        headers: {
+          'Accept-Language': 'en-US,en'
+        }
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data?.display_name || null;
+    } catch (err) {
+      console.error('Failed to reverse geocode address:', err);
+      return null;
+    }
+  };
+
+  const handleConfirmGps = async () => {
     if (!detectedCoords) return;
+    const lat = detectedCoords.lat;
+    const lng = detectedCoords.lng;
+
     setSettings(prev => prev ? {
       ...prev,
       profile: {
         ...prev.profile,
-        latitude: detectedCoords.lat,
-        longitude: detectedCoords.lng
+        latitude: lat,
+        longitude: lng
       }
     } : null);
-    showToast('GPS coordinates updated successfully!', 'success');
+
     setDetectedCoords(null);
+    showToast('GPS coordinates updated successfully!', 'success');
+
+    const address = await fetchAddressFromCoords(lat, lng);
+    if (address) {
+      setSettings(prev => prev ? {
+        ...prev,
+        profile: {
+          ...prev.profile,
+          addressLine: address
+        }
+      } : null);
+      showToast('Address updated automatically based on GPS location!', 'info');
+    }
+  };
+
+  const handleLocationBlur = async () => {
+    if (settings?.profile.latitude && settings?.profile.longitude) {
+      const address = await fetchAddressFromCoords(settings.profile.latitude, settings.profile.longitude);
+      if (address) {
+        setSettings(prev => prev ? {
+          ...prev,
+          profile: {
+            ...prev.profile,
+            addressLine: address
+          }
+        } : null);
+        showToast('Address updated based on coordinates!', 'info');
+      }
+    }
   };
 
   const handleDietaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -253,6 +301,7 @@ const SettingsPage = () => {
                       inputMode="decimal"
                       placeholder="e.g. 18.58278"
                       value={settings.profile.latitude ?? ''}
+                      onBlur={handleLocationBlur}
                       onChange={(e) => {
                         const val = e.target.value.replace(/[^0-9.-]/g, '');
                         const parts = val.split('.');
@@ -274,6 +323,7 @@ const SettingsPage = () => {
                       inputMode="decimal"
                       placeholder="e.g. 73.98157"
                       value={settings.profile.longitude ?? ''}
+                      onBlur={handleLocationBlur}
                       onChange={(e) => {
                         const val = e.target.value.replace(/[^0-9.-]/g, '');
                         const parts = val.split('.');
@@ -790,15 +840,32 @@ const SettingsPage = () => {
             onClose={() => setMapModalOpen(false)}
             initialLat={settings.profile.latitude}
             initialLng={settings.profile.longitude}
-            onConfirm={(lat, lng) => {
+            onConfirm={async (lat, lng) => {
+              const roundedLat = Number(lat.toFixed(6));
+              const roundedLng = Number(lng.toFixed(6));
+
               setSettings(prev => prev ? {
                 ...prev,
                 profile: {
                   ...prev.profile,
-                  latitude: lat,
-                  longitude: lng
+                  latitude: roundedLat,
+                  longitude: roundedLng
                 }
               } : null);
+
+              showToast('Map location updated!', 'success');
+
+              const address = await fetchAddressFromCoords(roundedLat, roundedLng);
+              if (address) {
+                setSettings(prev => prev ? {
+                  ...prev,
+                  profile: {
+                    ...prev.profile,
+                    addressLine: address
+                  }
+                } : null);
+                showToast('Address updated automatically from map pin!', 'info');
+              }
             }}
           />
           <GpsConfirmationModal
