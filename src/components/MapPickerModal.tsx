@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { searchLocation } from '../api/dashboardApi';
 
 declare global {
   interface Window {
@@ -189,13 +190,12 @@ const MapPickerModal = ({ isOpen, onClose, initialLat, initialLng, onConfirm }: 
     }
   };
 
-  // Address Search Trigger using free Nominatim OpenStreetMap API
+  // Address Search Trigger using backend proxy & fallback
   const handleSearch = async (queryStr: string) => {
     if (!queryStr.trim()) return;
     setIsSearching(true);
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&limit=5`);
-      const data = await response.json();
+      const data = await searchLocation(queryStr);
       setSuggestions(data);
     } catch (err) {
       console.error('Search request failed', err);

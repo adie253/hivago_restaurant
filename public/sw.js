@@ -1,18 +1,15 @@
 // Service Worker for Hivago Restaurant Dashboard Notifications
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker...');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker...');
   event.waitUntil(self.clients.claim());
 });
 
 // Handle notification clicks: focus open window or open a new one
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.notification);
   event.notification.close();
 
   const targetUrl = event.notification.data?.url || '/';
@@ -30,3 +27,4 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+

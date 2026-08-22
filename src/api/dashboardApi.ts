@@ -571,3 +571,63 @@ export const bulkImportMenu = async (payload: BulkImportPayload): Promise<BulkIm
   const response = await client.post<BulkImportResponse>('/restaurant/menus/bulk-import', payload);
   return response.data;
 };
+
+/**
+ * Reverse geocode latitude and longitude to a human-readable display address.
+ * Routes through backend proxy endpoint first, falling back to direct geocoding service
+ * with compliant headers (User-Agent, Accept-Language).
+ */
+export const reverseGeocode = async (lat: number, lng: number): Promise<string | null> => {
+  try {
+    const response = await client.get('/location/reverse-geocode', {
+      params: { lat, lng }
+    });
+    return response.data?.address || response.data?.display_name || response.data?.data?.address || null;
+  } catch {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
+        headers: {
+          'User-Agent': 'HivagoRestaurant/1.0 (contact@hivago.com)',
+          'Accept-Language': 'en-US,en'
+        }
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data?.display_name || null;
+    } catch (err) {
+      console.error('Failed to reverse geocode address:', err);
+      return null;
+    }
+  }
+};
+
+/**
+ * Search location query string for coordinate suggestions.
+ * Routes through backend proxy endpoint first, falling back to direct geocoding service
+ * with compliant headers (User-Agent, Accept-Language).
+ */
+export const searchLocation = async (queryStr: string): Promise<any[]> => {
+  if (!queryStr.trim()) return [];
+  try {
+    const response = await client.get('/location/geocode', {
+      params: { query: queryStr, limit: 5 }
+    });
+    return response.data?.suggestions || response.data?.data || response.data || [];
+  } catch {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&limit=5`, {
+        headers: {
+          'User-Agent': 'HivagoRestaurant/1.0 (contact@hivago.com)',
+          'Accept-Language': 'en-US,en'
+        }
+      });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.error('Failed to search location:', err);
+      return [];
+    }
+  }
+};
+

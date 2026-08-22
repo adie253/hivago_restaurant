@@ -19,10 +19,70 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const NOTIFICATION_SOUND_URL = 'https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3';
-const notificationAudio = typeof window !== 'undefined' ? new Audio(NOTIFICATION_SOUND_URL) : null;
+const PRIMARY_NOTIFICATION_SOUND_URL = 'https://assets.mixkit.co/active_storage/sfx/1356/1356-preview.mp3';
+const FALLBACK_NOTIFICATION_SOUND_URL = '/sounds/order_notification.mp3';
+
+const notificationAudio = typeof window !== 'undefined' ? new Audio(PRIMARY_NOTIFICATION_SOUND_URL) : null;
 let isAudioUnlocked = false;
 let fallbackAudioInstance: HTMLAudioElement | null = null;
+let webAudioIntervalRef: any = null;
+let audioCtxInstance: AudioContext | null = null;
+
+const playWebAudioChime = () => {
+  try {
+    const AudioCtx = typeof window !== 'undefined' ? (window.AudioContext || (window as any).webkitAudioContext) : null;
+    if (!AudioCtx) return;
+    if (!audioCtxInstance) {
+      audioCtxInstance = new AudioCtx();
+    }
+    if (audioCtxInstance.state === 'suspended') {
+      audioCtxInstance.resume();
+    }
+
+    stopWebAudioChime();
+
+    const triggerChimeBeep = () => {
+      if (!audioCtxInstance) return;
+      const now = audioCtxInstance.currentTime;
+
+      // Tone 1: High crisp alert chime
+      const osc1 = audioCtxInstance.createOscillator();
+      const gain1 = audioCtxInstance.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(880, now);
+      gain1.gain.setValueAtTime(0.3, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc1.connect(gain1);
+      gain1.connect(audioCtxInstance.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.3);
+
+      // Tone 2: Secondary harmony tone
+      const osc2 = audioCtxInstance.createOscillator();
+      const gain2 = audioCtxInstance.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1174.66, now + 0.15);
+      gain2.gain.setValueAtTime(0.3, now + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc2.connect(gain2);
+      gain2.connect(audioCtxInstance.destination);
+      osc2.start(now + 0.15);
+      osc2.stop(now + 0.45);
+    };
+
+    triggerChimeBeep();
+    webAudioIntervalRef = setInterval(triggerChimeBeep, 800);
+  } catch (err) {
+    console.error('[Notification] Web Audio chime fallback error:', err);
+  }
+};
+
+const stopWebAudioChime = () => {
+  if (webAudioIntervalRef) {
+    clearInterval(webAudioIntervalRef);
+    webAudioIntervalRef = null;
+  }
+};
 
 const unlockAudio = () => {
   if (isAudioUnlocked || !notificationAudio) return;
@@ -33,7 +93,6 @@ const unlockAudio = () => {
       notificationAudio.pause();
       notificationAudio.volume = 1;
       isAudioUnlocked = true;
-      console.log('[Notification] Audio element successfully unlocked.');
       cleanupListeners();
     })
     .catch(err => {
@@ -70,8 +129,8 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
   // Register Service Worker for robust background/OS desktop notifications
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').then((reg) => {
-        console.log('[Notification] Service Worker registered successfully with scope:', reg.scope);
+      navigator.serviceWorker.register('/sw.js').then(() => {
+        // Service worker registered
       }).catch((err) => {
         console.warn('[Notification] Service Worker registration failed:', err);
       });
@@ -103,7 +162,6 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     const handleVisibilityOrFocus = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         if (isAuthenticated && user?.id && !signalRService.isConnected()) {
-          console.log('[Notification] Tab became active. Reconnecting SignalR...');
           signalRService.start().then(() => setIsConnected(true)).catch(err => {
             console.error('[Notification] Reconnect error:', err);
           });
@@ -186,7 +244,6 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     if (typeof window === 'undefined' || !('Notification' in window)) return;
 
     if (!browserNotificationsEnabled) {
-      console.log('[Notification] Browser notifications are disabled in settings.');
       return;
     }
 
@@ -197,7 +254,6 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       ? `New order received for ₹${amount}. Click to open dashboard.` 
       : 'A new order has arrived on your dashboard. Click to view details.';
 
-    // Start title blinking in browser tab bar if document is hidden or window is not focused
     if (document.hidden || !document.hasFocus()) {
       startTitleBlinking(formattedNum);
     }
@@ -215,7 +271,6 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
           data: { url: window.location.origin }
         };
 
-        // Option 1: Use Service Worker registration if active (most reliable when minimized)
         if ('serviceWorker' in navigator) {
           try {
             const reg = await navigator.serviceWorker.ready;
@@ -228,7 +283,6 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
           }
         }
 
-        // Option 2: Fallback to standard window Notification constructor
         const notification = new Notification(title, options);
         notification.onclick = () => {
           window.focus();
@@ -256,16 +310,13 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (isAuthenticated && user?.id) {
-      console.log('[Notification] Starting SignalR connection for restaurant:', user.id);
       signalRService.start().then(() => {
-        console.log('[Notification] SignalR connected successfully.');
         setIsConnected(true);
       }).catch(err => {
         console.error('[Notification] SignalR connection failed:', err);
       });
 
       const unsubscribe = signalRService.onNewOrder((data) => {
-        console.log('[Notification] New order received via SignalR:', data);
         setLastOrderReceived(data);
         showToast(`New Order #${data.orderNumber} received!`, 'info');
         playNotification();
@@ -285,48 +336,51 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
   const playNotification = () => {
     if (!soundEnabled) {
-      console.log('[Notification] Sound notification is disabled in settings.');
       return;
     }
 
-    // Stop any existing playing sound first to avoid overlapping double ringtones
     stopNotification();
 
-    if (!notificationAudio) return;
+    function tryFallbackAudio() {
+      try {
+        if (fallbackAudioInstance) {
+          fallbackAudioInstance.pause();
+          fallbackAudioInstance = null;
+        }
+        fallbackAudioInstance = new Audio(FALLBACK_NOTIFICATION_SOUND_URL);
+        fallbackAudioInstance.loop = true;
+        fallbackAudioInstance.volume = 1;
+        fallbackAudioInstance.play().catch(() => {
+          playWebAudioChime();
+        });
+      } catch {
+        playWebAudioChime();
+      }
+    }
+
+    if (!notificationAudio) {
+      tryFallbackAudio();
+      return;
+    }
 
     try {
-      console.log('[Notification] Attempting to play sound. Unlocked:', isAudioUnlocked);
       notificationAudio.currentTime = 0;
       notificationAudio.volume = 1;
-      notificationAudio.loop = true; // Loop continuously (like Zomato)
+      notificationAudio.loop = true;
 
       const playPromise = notificationAudio.play();
       if (playPromise !== undefined) {
-        playPromise.catch(e => {
-          console.warn('[Notification] Primary audio playback blocked or failed:', e);
-          // Fallback: try to play a fresh Audio object and track it
-          try {
-            if (fallbackAudioInstance) {
-              fallbackAudioInstance.pause();
-              fallbackAudioInstance = null;
-            }
-            fallbackAudioInstance = new Audio(NOTIFICATION_SOUND_URL);
-            fallbackAudioInstance.loop = true;
-            fallbackAudioInstance.volume = 1;
-            fallbackAudioInstance.play().catch(err => console.error('[Notification] Fallback audio playback failed:', err));
-          } catch (fallbackErr) {
-            console.error('[Notification] Failed to initialize fallback audio:', fallbackErr);
-          }
+        playPromise.catch(() => {
+          tryFallbackAudio();
         });
       }
-    } catch (err) {
-      console.error('[Notification] Failed to play notification sound', err);
+    } catch {
+      tryFallbackAudio();
     }
   };
 
   const stopNotification = () => {
     try {
-      console.log('[Notification] Stopping looping notification sound.');
       if (notificationAudio) {
         notificationAudio.loop = false;
         notificationAudio.pause();
@@ -338,6 +392,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         fallbackAudioInstance.currentTime = 0;
         fallbackAudioInstance = null;
       }
+      stopWebAudioChime();
       if (titleIntervalRef.current) {
         clearInterval(titleIntervalRef.current);
         titleIntervalRef.current = null;
@@ -377,4 +432,3 @@ export const useNotifications = () => {
   }
   return context;
 };
-
