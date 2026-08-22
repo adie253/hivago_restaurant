@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { SettingsPageSkeleton } from '../components/Skeletons';
 import { useToast } from '../context/ToastContext';
@@ -19,7 +19,8 @@ import {
   updateNotifications, 
   changePassword, 
   uploadRestaurantLogo,
-  updateRestaurantAvailability
+  updateRestaurantAvailability,
+  reverseGeocode
 } from '../api/dashboardApi';
 
 const tabs = [
@@ -43,6 +44,9 @@ const SettingsPage = () => {
   const [isDetectingGps, setIsDetectingGps] = useState(false);
   const [detectedCoords, setDetectedCoords] = useState<{ lat: number; lng: number } | null>(null);
 
+  const lastGeocodedCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
+  const isGeocodingRef = useRef<boolean>(false);
+
   useEffect(() => {
     const loadSettings = async () => {
       setLoading(true);
@@ -65,10 +69,13 @@ const SettingsPage = () => {
   };
 
   const handleLocationChange = (name: 'latitude' | 'longitude', value: string) => {
-    const parsed = value === '' ? null : Number(value);
+    const num = value === '' ? null : Number(value);
     setSettings(prev => prev ? {
       ...prev,
-      profile: { ...prev.profile, [name]: Number.isNaN(parsed) ? null : parsed }
+      profile: {
+        ...prev.profile,
+        [name]: num
+      }
     } : null);
   };
 
@@ -94,19 +101,33 @@ const SettingsPage = () => {
     );
   };
 
-  const fetchAddressFromCoords = async (lat: number, lng: number): Promise<string | null> => {
+  const performReverseGeocode = async (lat: number, lng: number, toastMessage: string = 'Address updated based on coordinates!') => {
+    if (
+      lastGeocodedCoordsRef.current?.lat === lat &&
+      lastGeocodedCoordsRef.current?.lng === lng
+    ) {
+      return;
+    }
+    if (isGeocodingRef.current) return;
+
+    isGeocodingRef.current = true;
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {
-        headers: {
-          'Accept-Language': 'en-US,en'
-        }
-      });
-      if (!response.ok) return null;
-      const data = await response.json();
-      return data?.display_name || null;
+      const address = await reverseGeocode(lat, lng);
+      if (address) {
+        lastGeocodedCoordsRef.current = { lat, lng };
+        setSettings(prev => prev ? {
+          ...prev,
+          profile: {
+            ...prev.profile,
+            addressLine: address
+          }
+        } : null);
+        showToast(toastMessage, 'info');
+      }
     } catch (err) {
-      console.error('Failed to reverse geocode address:', err);
-      return null;
+      console.error('Failed to update address from coordinates:', err);
+    } finally {
+      isGeocodingRef.current = false;
     }
   };
 
@@ -127,32 +148,12 @@ const SettingsPage = () => {
     setDetectedCoords(null);
     showToast('GPS coordinates updated successfully!', 'success');
 
-    const address = await fetchAddressFromCoords(lat, lng);
-    if (address) {
-      setSettings(prev => prev ? {
-        ...prev,
-        profile: {
-          ...prev.profile,
-          addressLine: address
-        }
-      } : null);
-      showToast('Address updated automatically based on GPS location!', 'info');
-    }
+    await performReverseGeocode(lat, lng, 'Address updated automatically based on GPS location!');
   };
 
   const handleLocationBlur = async () => {
     if (settings?.profile.latitude && settings?.profile.longitude) {
-      const address = await fetchAddressFromCoords(settings.profile.latitude, settings.profile.longitude);
-      if (address) {
-        setSettings(prev => prev ? {
-          ...prev,
-          profile: {
-            ...prev.profile,
-            addressLine: address
-          }
-        } : null);
-        showToast('Address updated based on coordinates!', 'info');
-      }
+      await performReverseGeocode(settings.profile.latitude, settings.profile.longitude);
     }
   };
 
@@ -301,7 +302,6 @@ const SettingsPage = () => {
                       inputMode="decimal"
                       placeholder="e.g. 18.58278"
                       value={settings.profile.latitude ?? ''}
-                      onBlur={handleLocationBlur}
                       onChange={(e) => {
                         const val = e.target.value.replace(/[^0-9.-]/g, '');
                         const parts = val.split('.');
@@ -323,7 +323,6 @@ const SettingsPage = () => {
                       inputMode="decimal"
                       placeholder="e.g. 73.98157"
                       value={settings.profile.longitude ?? ''}
-                      onBlur={handleLocationBlur}
                       onChange={(e) => {
                         const val = e.target.value.replace(/[^0-9.-]/g, '');
                         const parts = val.split('.');
@@ -343,6 +342,19 @@ const SettingsPage = () => {
                       <p className="text-xs font-bold text-slate-400">Pinpoint your exact restaurant coordinates on the map or detect via GPS</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
+                      {settings.profile.latitude != null && settings.profile.longitude != null && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (settings.profile.latitude && settings.profile.longitude) {
+                              performReverseGeocode(settings.profile.latitude, settings.profile.longitude);
+                            }
+                          }}
+                          className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-2"
+                        >
+                          Update Address from Coords
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={detectLocation}
@@ -854,18 +866,7 @@ const SettingsPage = () => {
               } : null);
 
               showToast('Map location updated!', 'success');
-
-              const address = await fetchAddressFromCoords(roundedLat, roundedLng);
-              if (address) {
-                setSettings(prev => prev ? {
-                  ...prev,
-                  profile: {
-                    ...prev.profile,
-                    addressLine: address
-                  }
-                } : null);
-                showToast('Address updated automatically from map pin!', 'info');
-              }
+              await performReverseGeocode(roundedLat, roundedLng, 'Address updated automatically from map pin!');
             }}
           />
           <GpsConfirmationModal
