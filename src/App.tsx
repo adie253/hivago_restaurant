@@ -73,7 +73,7 @@ const AppContent = () => {
     <div className="flex h-screen flex-col overflow-hidden bg-slate-50">
       {/* 🔥 Navbar (fixed on top) */}
       {showSidebar && (
-        <header className="sticky top-0 z-50 flex-none">
+        <header className="w-full shrink-0 z-50">
           <Navbar onToggleSidebar={() => setSidebarOpen(prev => !prev)} />
         </header>
       )}

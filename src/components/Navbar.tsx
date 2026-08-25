@@ -121,7 +121,7 @@ const Navbar = ({ onToggleSidebar }: NavbarProps) => {
     };
 
     return (
-        <nav className="bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-3.5 shadow-lg sm:px-8">
+        <nav className="bg-[#AD221F] px-4 py-3.5 shadow-md sm:px-8">
             <div className="mx-auto flex items-center justify-between">
                 <div className="flex items-center gap-6">
                     <button
