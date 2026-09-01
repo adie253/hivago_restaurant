@@ -6,6 +6,7 @@ const HUB_URL = `${import.meta.env.VITE_API_URL || 'https://rally-production-200
 class SignalRService {
   private connection: HubConnection | null = null;
   private onNewOrderCallbacks: Array<(data: any) => void> = [];
+  private onNotificationCallbacks: Array<(data: any) => void> = [];
 
   constructor() {
     // Note: Connection is built but not started until start() is called
@@ -28,9 +29,23 @@ class SignalRService {
       .configureLogging(LogLevel.Information)
       .build();
 
-    this.connection.on('NewOrderReceived', (data) => {
+    const handleOrderEvent = (data: any) => {
       this.onNewOrderCallbacks.forEach(cb => cb(data));
-    });
+    };
+
+    const handleNotificationEvent = (data: any) => {
+      this.onNotificationCallbacks.forEach(cb => cb(data));
+    };
+
+    // Listen for order events
+    this.connection.on('NewOrderReceived', handleOrderEvent);
+    this.connection.on('NewOrder', handleOrderEvent);
+    this.connection.on('OrderReceived', handleOrderEvent);
+
+    // Listen for general notification events
+    this.connection.on('ReceiveNotification', handleNotificationEvent);
+    this.connection.on('NotificationReceived', handleNotificationEvent);
+    this.connection.on('NewNotification', handleNotificationEvent);
 
     try {
       await this.connection.start();
@@ -52,6 +67,13 @@ class SignalRService {
     this.onNewOrderCallbacks.push(callback);
     return () => {
       this.onNewOrderCallbacks = this.onNewOrderCallbacks.filter(c => c !== callback);
+    };
+  }
+
+  public onNotification(callback: (data: any) => void): () => void {
+    this.onNotificationCallbacks.push(callback);
+    return () => {
+      this.onNotificationCallbacks = this.onNotificationCallbacks.filter(c => c !== callback);
     };
   }
 
