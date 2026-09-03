@@ -12,13 +12,18 @@ import { useKotPrint, useLabelPrint } from '../hooks/usePrintDoc';
 import { KitchenTicket } from './orders/KitchenTicket';
 import { OrderLabel } from './orders/OrderLabel';
 
+import { getCachedOrderDetail, saveOrderDetailToCache } from '../utils/orderCache';
+
 interface OrderCardProps {
   order: Order;
   onUpdate?: (updatedOrder: Order) => void;
 }
 
 const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
-  const [order, setOrder] = useState<Order>(initialOrder);
+  const [order, setOrder] = useState<Order>(() => {
+    const cachedDetail = getCachedOrderDetail(initialOrder.id);
+    return cachedDetail ? { ...initialOrder, ...cachedDetail } as Order : initialOrder;
+  });
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const { showToast } = useToast();
@@ -87,42 +92,45 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
   };
 
   useEffect(() => {
+    // Hydrate from cache immediately if present
+    const cached = getCachedOrderDetail(initialOrder.id);
+    const mergedInitial = cached ? { ...initialOrder, ...cached } : initialOrder;
+
     // Sync local state with prop when it changes (especially status)
-    // We must merge carefully to avoid overwriting rich details fetched by loadFullDetails with minimal summary data
     setOrder(prev => ({
       ...prev,
-      ...initialOrder,
-      customerPhone: initialOrder.customerPhone || prev.customerPhone,
-      address: initialOrder.address || prev.address,
-      customerName: initialOrder.customerName || prev.customerName,
-      customerNote: initialOrder.customerNote || prev.customerNote,
-      paymentStatus: initialOrder.paymentStatus || prev.paymentStatus,
-      paymentStatusDisplay: initialOrder.paymentStatusDisplay || prev.paymentStatusDisplay,
-      riderName: initialOrder.riderName || prev.riderName,
-      riderPhone: initialOrder.riderPhone || prev.riderPhone,
-      otp: initialOrder.otp || prev.otp,
-      items: (initialOrder.items && initialOrder.items.length > 0) ? initialOrder.items : prev.items
+      ...mergedInitial,
+      customerPhone: mergedInitial.customerPhone || prev.customerPhone,
+      address: mergedInitial.address || prev.address,
+      customerName: mergedInitial.customerName || prev.customerName,
+      customerNote: mergedInitial.customerNote || prev.customerNote,
+      paymentStatus: mergedInitial.paymentStatus || prev.paymentStatus,
+      paymentStatusDisplay: mergedInitial.paymentStatusDisplay || prev.paymentStatusDisplay,
+      riderName: mergedInitial.riderName || prev.riderName,
+      riderPhone: mergedInitial.riderPhone || prev.riderPhone,
+      otp: mergedInitial.otp || prev.otp,
+      items: (mergedInitial.items && mergedInitial.items.length > 0) ? mergedInitial.items : prev.items
     }));
 
     const loadFullDetails = async () => {
+      const currentItems = mergedInitial.items || order.items;
       // If items are missing AND we haven't fetched them for this ID yet
-      const needsFetch = (!initialOrder.items || initialOrder.items.length === 0) && !fetchedIdsRef.current.has(initialOrder.id);
+      const needsFetch = (!currentItems || currentItems.length === 0) && !fetchedIdsRef.current.has(initialOrder.id);
       
       if (needsFetch) {
         // Add a small random delay to spread out requests when many cards mount at once
-        await new Promise(resolve => setTimeout(resolve, Math.random() * 2000));
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 1500));
         
-        // Check again after delay (in case it was fetched elsewhere or component unmounted)
         if (fetchedIdsRef.current.has(initialOrder.id)) return;
 
         setLoading(true);
         try {
           const fullOrder = await fetchOrderById(initialOrder.id);
           setOrder(fullOrder);
+          saveOrderDetailToCache(initialOrder.id, fullOrder);
           fetchedIdsRef.current.add(initialOrder.id);
         } catch (err: any) {
           console.error(`Failed to fetch details for order ${initialOrder.id}`, err);
-          showToast('Unable to load full order details', 'error');
         } finally {
           setLoading(false);
         }

@@ -4,12 +4,17 @@ import { NewRestaurantStats } from '../types';
 import { fetchRestaurantStats } from '../api/dashboardApi';
 
 export const useDashboardStats = (range: string = 'today') => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<NewRestaurantStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+
     if (!user?.id) {
       setStats(null);
       setLoading(false);
@@ -31,9 +36,9 @@ export const useDashboardStats = (range: string = 'today') => {
     };
 
     loadStats();
-  }, [user?.id, range]);
+  }, [user?.id, range, authLoading]);
 
-  return { stats, loading, error, refreshStats: () => {
+  return { stats, loading: loading || authLoading, error, refreshStats: () => {
     if (user?.id) {
         fetchRestaurantStats(range).then(setStats).catch(console.error);
     }
