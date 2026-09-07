@@ -18,15 +18,49 @@ import todays_revenue_icon from '../assets/todays_revenue_icon.svg';
 import prep_time_icon from '../assets/prep_time_icon.svg';
 import rejection_rate_icon from '../assets/rejection_rate_icon.svg';
 
+import pending_icon from '../assets/pending_icon.svg';
 import preparing_icon from '../assets/preparing_icon.svg';
 import ready_ordres_icon from '../assets/ready_ordres_icon.svg';
 import order_history_icon from '../assets/order_history_icon.svg';
 
+const PendingIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" />
+    <polyline points="12 7 12 12 15 15" />
+  </svg>
+);
+
+const PreparingIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 13.8a4.5 4.5 0 1 1 2.6-8.3 5 5 0 0 1 6.8 0 4.5 4.5 0 1 1 2.6 8.3" />
+    <path d="M6 13.8h12v4a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-4z" />
+    <line x1="10" y1="17.8" x2="10" y2="19.8" />
+    <line x1="14" y1="17.8" x2="14" y2="19.8" />
+  </svg>
+);
+
+const ReadyIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);
+
+const HistoryIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <line x1="10" y1="9" x2="8" y2="9" />
+  </svg>
+);
+
 const orderSections = [
-  { key: 'PENDING', label: 'Pending', icon: preparing_icon, color: 'text-amber-600', bg: 'bg-amber-50' },
-  { key: 'PREPARING', label: 'Preparing', icon: preparing_icon, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-  { key: 'READY', label: 'Ready', icon: ready_ordres_icon, color: 'text-slate-500', bg: 'bg-slate-50' },
-  { key: 'HISTORY', label: 'Order History', icon: order_history_icon, color: 'text-slate-500', bg: 'bg-slate-50' }
+  { key: 'PENDING', label: 'Pending', Icon: PendingIcon, color: 'text-amber-600', bg: 'bg-amber-50' },
+  { key: 'PREPARING', label: 'Preparing', Icon: PreparingIcon, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { key: 'READY', label: 'Ready', Icon: ReadyIcon, color: 'text-slate-500', bg: 'bg-slate-50' },
+  { key: 'HISTORY', label: 'Order History', Icon: HistoryIcon, color: 'text-slate-500', bg: 'bg-slate-50' }
 ] as const;
 
 const DashboardPage = () => {
@@ -209,30 +243,30 @@ const DashboardPage = () => {
 
       <section className="space-y-6">
         <div className="flex flex-wrap items-center gap-3">
-          {orderSections.map(section => (
-            <button
-              key={section.key}
-              type="button"
-              onClick={() => setActiveSection(section.key)}
-              className={`flex items-center gap-2.5 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ${
-                activeSection === section.key
-                  ? 'bg-[#E7F7F0] text-[#1D915F] shadow-sm'
-                  : 'bg-white text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              <img 
-                src={section.icon} 
-                className={`h-5 w-5 ${activeSection === section.key ? '' : 'opacity-40 grayscale'}`} 
-                alt="" 
-              />
-              {section.label}
-              <span className={`ml-1 flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-xs font-bold ${
-                activeSection === section.key ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'
-              }`}>
-                {sectionCounts[section.key]}
-              </span>
-            </button>
-          ))}
+          {orderSections.map(section => {
+            const Icon = section.Icon;
+            const isSelected = activeSection === section.key;
+            return (
+              <button
+                key={section.key}
+                type="button"
+                onClick={() => setActiveSection(section.key)}
+                className={`flex items-center gap-2.5 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ${
+                  isSelected
+                    ? 'bg-[#E7F7F0] text-[#1D915F] shadow-sm'
+                    : 'bg-white text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <Icon className={`h-5 w-5 transition-colors ${isSelected ? 'text-[#1D915F]' : 'text-slate-400'}`} />
+                {section.label}
+                <span className={`ml-1 flex h-6 min-w-[24px] items-center justify-center rounded-full px-2 text-xs font-bold ${
+                  isSelected ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'
+                }`}>
+                  {sectionCounts[section.key]}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {loadingOrders ? (

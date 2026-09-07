@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useToast } from '../context/ToastContext';
-import { MenuCategory, ParsedMenuCategory, ParsedMenuItem, MenuItemOption, MenuItemOptionGroup } from '../types';
+import { MenuCategory, ParsedMenuCategory, ParsedMenuItem, MenuItemOption, MenuItemOptionGroup, MenuItem } from '../types';
 import { 
   bulkImportMenu, 
   createMenuCategory, 
@@ -11,6 +11,7 @@ interface BulkUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   categories: MenuCategory[];
+  existingItems?: MenuItem[];
   onUploadSuccess: () => void;
 }
 
@@ -465,6 +466,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   isOpen, 
   onClose, 
   categories, 
+  existingItems = [],
   onUploadSuccess 
 }) => {
   const { showToast } = useToast();
@@ -476,6 +478,10 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const [importStatusText, setImportStatusText] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const existingNameSet = useMemo(() => {
+    return new Set((existingItems || []).map(i => i.name.trim().toLowerCase()));
+  }, [existingItems]);
 
   if (!isOpen) return null;
 
@@ -668,20 +674,46 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       return;
     }
 
+    // Filter out duplicate items (checking existing menu items and duplicates within CSV)
+    const seenInImport = new Set<string>();
+    const uniqueItemsToImport: ParsedMenuItem[] = [];
+    let duplicateCount = 0;
+
+    for (const item of parsedItems) {
+      const nameKey = item.name.trim().toLowerCase();
+      if (!nameKey) continue;
+
+      if (existingNameSet.has(nameKey) || seenInImport.has(nameKey)) {
+        duplicateCount++;
+      } else {
+        seenInImport.add(nameKey);
+        uniqueItemsToImport.push(item);
+      }
+    }
+
+    if (uniqueItemsToImport.length === 0) {
+      showToast(`All ${parsedItems.length} item(s) in the file already exist in your menu. No new items were imported.`, "warning");
+      return;
+    }
+
+    if (duplicateCount > 0) {
+      showToast(`Skipped ${duplicateCount} duplicate item(s) already present in your menu. Importing ${uniqueItemsToImport.length} new item(s).`, "info");
+    }
+
     setStep('importing');
-    setImportStatusText("Importing items in bulk...");
+    setImportStatusText(`Importing ${uniqueItemsToImport.length} new item(s)...`);
 
     try {
       // Try using the new bulk-import API endpoint
-      const uniqueCats = Array.from(new Set(parsedItems.map(i => i.category.trim()))).map(name => ({ name }));
+      const uniqueCats = Array.from(new Set(uniqueItemsToImport.map(i => i.category.trim()))).map(name => ({ name }));
       await bulkImportMenu({
         categories: uniqueCats,
-        items: parsedItems
+        items: uniqueItemsToImport
       });
       
       setStep('success');
       onUploadSuccess();
-      showToast("Menu imported successfully!", "success");
+      showToast(`Menu imported successfully! Added ${uniqueItemsToImport.length} new items.`, "success");
     } catch (err: any) {
       // Check if endpoint is not implemented (404/405/501)
       const isUnimplemented = err.response?.status === 404 || err.response?.status === 405 || err.response?.status === 501;
@@ -690,7 +722,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         console.log("Bulk import endpoint not active. Falling back to sequential APIs.");
         try {
           // Fallback sequential execution
-          const uniqueCategoryNames = Array.from(new Set(parsedItems.map(item => item.category.trim()))).filter(Boolean);
+          const uniqueCategoryNames = Array.from(new Set(uniqueItemsToImport.map(item => item.category.trim()))).filter(Boolean);
           const categoryMap: Record<string, string> = {};
 
           // Map existing categories to avoid duplicates
@@ -709,9 +741,9 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           }
 
           // 2. Create items
-          for (let i = 0; i < parsedItems.length; i++) {
-            const item = parsedItems[i];
-            setImportStatusText(`Adding item "${item.name}" (${i + 1}/${parsedItems.length})...`);
+          for (let i = 0; i < uniqueItemsToImport.length; i++) {
+            const item = uniqueItemsToImport[i];
+            setImportStatusText(`Adding item "${item.name}" (${i + 1}/${uniqueItemsToImport.length})...`);
             const catId = categoryMap[item.category.trim().toLowerCase()];
 
             await createMenuItem({
@@ -728,7 +760,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
           setStep('success');
           onUploadSuccess();
-          showToast("Menu imported successfully via fallback adapter!", "success");
+          showToast(`Menu imported successfully! Added ${uniqueItemsToImport.length} new items.`, "success");
         } catch (fallbackErr: any) {
           console.error("Fallback sequential import failed:", fallbackErr);
           setStep('preview');

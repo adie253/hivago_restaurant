@@ -3,9 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { Order } from '../types';
 import { fetchOrders, normalizeOrder } from '../api/dashboardApi';
+import { getCachedOrders, saveOrdersToCache, updateOrderInCache } from '../utils/orderCache';
 
 export const useOrders = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { lastOrderReceived, clearLastOrderReceived, stopNotification, playNotification, showBrowserNotification } = useNotifications();
   const [orders, setOrders] = useState<Order[]>([]);
   const [newOrder, setNewOrderState] = useState<Order | null>(null);
@@ -23,12 +24,16 @@ export const useOrders = () => {
 
   const refreshOrders = async (silent = false) => {
     if (!user?.id) {
-      setOrders([]);
-      setNewOrder(null);
+      if (!authLoading) {
+        setOrders([]);
+        setNewOrder(null);
+        setLoading(false);
+      }
       return;
     }
 
-    if (!silent) {
+    // Only set loading true if we have no cached orders to show
+    if (!silent && orders.length === 0) {
       setLoading(true);
     }
     setError(null);
@@ -53,17 +58,24 @@ export const useOrders = () => {
 
       previousOrderIdsRef.current = latestOrders.map(order => order.id);
       setOrders(latestOrders);
+      saveOrdersToCache(user.id, latestOrders);
       initialLoadRef.current = true;
     } catch (err) {
-      setError('Unable to load orders.');
-    } finally {
-      if (!silent) {
-        setLoading(false);
+      // If we already have cached orders displaying, don't override with error banner unless empty
+      if (orders.length === 0) {
+        setError('Unable to load orders.');
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+
     if (!user?.id) {
       setOrders([]);
       setLoading(false);
@@ -71,14 +83,25 @@ export const useOrders = () => {
       return;
     }
 
-    refreshOrders();
+    // Attempt to hydrate instantly from cache for zero latency
+    const cached = getCachedOrders(user.id);
+    if (cached && cached.length > 0) {
+      setOrders(cached);
+      previousOrderIdsRef.current = cached.map(o => o.id);
+      initialLoadRef.current = true;
+      setLoading(false);
+      // Fetch fresh data in background without showing full skeleton
+      refreshOrders(true);
+    } else {
+      refreshOrders(false);
+    }
 
     const timer = setInterval(() => {
       refreshOrders(true);
     }, 15000);
 
     return () => clearInterval(timer);
-  }, [user?.id]);
+  }, [user?.id, authLoading]);
 
   // Handle Real-Time Updates from SignalR
   useEffect(() => {
@@ -99,7 +122,7 @@ export const useOrders = () => {
       
       // Debounce the refresh to avoid hammering the server if many updates arrive
       const timer = setTimeout(() => {
-        refreshOrders();
+        refreshOrders(true);
       }, 1000);
       
       return () => clearTimeout(timer);
@@ -115,6 +138,10 @@ export const useOrders = () => {
       }
       return next;
     });
+
+    if (user?.id) {
+      updateOrderInCache(user.id, updatedOrder);
+    }
   };
 
   return { orders, newOrder, setNewOrder, refreshOrders, updateLocalOrder, loading, error };

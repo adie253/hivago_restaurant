@@ -8,6 +8,8 @@ import { KitchenTicket } from './orders/KitchenTicket';
 import { OrderLabel } from './orders/OrderLabel';
 import pickup_icon from '../assets/pickup_icon.svg';
 import TimelineModal from './TimelineModal';
+import { useAuth } from '../context/AuthContext';
+import { getOrderSupportUrl } from '../utils/whatsapp';
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -50,6 +52,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
+  const { user } = useAuth();
   const kot = useKotPrint();
   const label = useLabelPrint();
 
@@ -314,8 +317,9 @@ export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder
                   </div>
 
                   {/* Rider Card */}
-                  {currentOrder.pickupType === 'DELIVERY' && (currentOrder.riderName || currentOrder.otp) && (
+                  {currentOrder.pickupType === 'DELIVERY' && !['DELIVERED', 'COMPLETED', 'CANCELLED', 'REJECTED'].includes((currentOrder.status || '').toUpperCase()) && (currentOrder.riderName || currentOrder.otp) && (
                     <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+
                       <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">
                         Rider & Codes
                       </h3>
@@ -347,7 +351,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder
                   {/* Help Links */}
                   <div className="flex gap-3">
                     <a
-                      href={`https://wa.me/919082220155?text=Need%20help%20with%20Order%20%23${currentOrder.orderNumber}`}
+                      href={getOrderSupportUrl({ order: currentOrder, restaurantName: user?.name, type: 'help' })}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 text-center rounded-2xl border border-slate-100 bg-white py-3.5 text-[10px] font-bold uppercase tracking-tight text-slate-500 transition-colors hover:bg-slate-50 hover:text-emerald-600"
@@ -355,7 +359,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder
                       Chat Support
                     </a>
                     <a
-                      href={`https://wa.me/919082220155?text=Issue%20with%20Order%20%23${currentOrder.orderNumber}`}
+                      href={getOrderSupportUrl({ order: currentOrder, restaurantName: user?.name, type: 'issue' })}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 text-center rounded-2xl border border-slate-100 bg-white py-3.5 text-[10px] font-bold uppercase tracking-tight text-slate-500 transition-colors hover:bg-slate-50 hover:text-emerald-600"
