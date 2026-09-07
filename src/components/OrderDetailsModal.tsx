@@ -314,8 +314,9 @@ export default function OrderDetailsModal({ isOpen, onClose, order: initialOrder
                   </div>
 
                   {/* Rider Card */}
-                  {currentOrder.pickupType === 'DELIVERY' && (currentOrder.riderName || currentOrder.otp) && (
+                  {currentOrder.pickupType === 'DELIVERY' && !['DELIVERED', 'COMPLETED', 'CANCELLED', 'REJECTED'].includes((currentOrder.status || '').toUpperCase()) && (currentOrder.riderName || currentOrder.otp) && (
                     <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+
                       <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">
                         Rider & Codes
                       </h3>

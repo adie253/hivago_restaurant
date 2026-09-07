@@ -37,9 +37,35 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
 
   const [showRejectReason, setShowRejectReason] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const [isMuted, setIsMuted] = useState(false);
   const { playNotification, stopNotification } = useNotifications();
+
+  const handleAcceptClick = async () => {
+    if (isAccepting || isRejecting) return;
+    setIsAccepting(true);
+    try {
+      await onAccept(selectedPrepTime, deliveryPartner);
+    } catch (err) {
+      console.error('Accept error:', err);
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
+  const handleRejectClick = async () => {
+    if (!rejectReason || isAccepting || isRejecting) return;
+    setIsRejecting(true);
+    try {
+      await onReject(rejectReason);
+    } catch (err) {
+      console.error('Reject error:', err);
+    } finally {
+      setIsRejecting(false);
+    }
+  };
 
   const handleMuteToggle = () => {
     if (isMuted) {
@@ -307,11 +333,21 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                         Cancel
                       </button>
                       <button
-                        onClick={() => onReject(rejectReason)}
-                        disabled={!rejectReason}
-                        className="flex-1 rounded-xl bg-red-500 py-3 text-sm font-bold text-white shadow-md shadow-red-200 hover:bg-red-600 transition-all active:scale-[0.98] disabled:opacity-50"
+                        onClick={handleRejectClick}
+                        disabled={!rejectReason || isRejecting}
+                        className="flex-1 rounded-xl bg-red-500 py-3 text-sm font-bold text-white shadow-md shadow-red-200 hover:bg-red-600 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                       >
-                        Confirm Reject
+                        {isRejecting ? (
+                          <>
+                            <svg className="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Rejecting...</span>
+                          </>
+                        ) : (
+                          'Confirm Reject'
+                        )}
                       </button>
                     </div>
                   </div>
@@ -319,6 +355,7 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowRejectReason(true)}
+                      disabled={isAccepting || isRejecting}
                       className={`flex-1 py-2 rounded-2xl border-2 text-md font-bold transition-all active:scale-[0.98] flex flex-col items-center justify-center ${timeLeft < 120
                           ? 'border-red-500 bg-red-50 text-red-600 animate-pulse'
                           : 'border-red-100 bg-white text-red-500 hover:bg-red-50'
@@ -328,10 +365,21 @@ const NewOrderOverlay = ({ order: initialOrder, onAccept, onReject, onClose }: N
                       <span className="text-[10px] opacity-70">({formatTimer(timeLeft)})</span>
                     </button>
                     <button
-                      onClick={() => onAccept(selectedPrepTime, deliveryPartner)}
-                      className="flex-[1.5] rounded-2xl bg-emerald-500 text-md font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-600 active:scale-[0.98] py-3"
+                      onClick={handleAcceptClick}
+                      disabled={isAccepting || isRejecting}
+                      className="flex-[1.5] rounded-2xl bg-emerald-500 text-md font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-600 active:scale-[0.98] py-3 flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-not-allowed"
                     >
-                      Accept order
+                      {isAccepting ? (
+                        <>
+                          <svg className="h-5 w-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Accepting order...</span>
+                        </>
+                      ) : (
+                        <span>Accept order</span>
+                      )}
                     </button>
 
                   </div>

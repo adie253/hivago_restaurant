@@ -478,6 +478,20 @@ export const deleteMenuItem = async (itemId: string): Promise<void> => {
   await client.delete(`/restaurant/items/${itemId}`);
 };
 
+// Delete all menu items and categories (delete whole menu)
+export const deleteAllMenu = async (restaurantId?: string): Promise<void> => {
+  try {
+    await client.delete('/restaurant/menus/all');
+  } catch (err: any) {
+    // Fallback: fetch menu and delete all items and categories individually
+    if (restaurantId) {
+      const { categories, items } = await fetchFullMenu(restaurantId);
+      await Promise.all(items.map(item => deleteMenuItem(item.id).catch(() => {})));
+      await Promise.all(categories.map(cat => deleteMenuCategory(cat.id).catch(() => {})));
+    }
+  }
+};
+
 // 1 & 2. Get upload URL & upload directly to S3/Cloudflare R2 (returns fileKey)
 export const uploadMenuItemImageToStorage = async (itemId: string, file: File): Promise<string> => {
   const urlRes = await client.post<any>(
