@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getGeneralSupportUrl } from '../utils/whatsapp';
 import live_orders_icon from '../assets/live_orders_icon.svg';
 import menu_icon from '../assets/menu_icon.svg';
 import payout_icon from '../assets/payout_icon.svg';
@@ -99,7 +100,7 @@ const Sidebar = ({ isOpen = false, onDismiss }: SidebarProps) => {
         </div>
 
         <a
-          href="https://wa.me/919082220155?text=Need%20HELP!"
+          href={getGeneralSupportUrl(user)}
           target="_blank"
           rel="noopener noreferrer"
           className="group flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-600 transition-all hover:bg-emerald-50 hover:text-emerald-600"
