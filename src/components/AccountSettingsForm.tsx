@@ -126,7 +126,7 @@ const AccountSettingsForm = ({ notifications: initialNotifications, onSaveNotifi
   };
 
   const notificationToggles = [
-    { id: 'emailAlerts', label: 'Email Alerts', description: 'Receive daily reports and important account updates via email', comingSoon: true },
+    { id: 'emailAlerts', label: 'Email Alerts', description: 'Receive daily reports and important account updates via email', comingSoon: false },
     { id: 'orderSound', label: 'Order Sound', description: 'Play a sound when a new order arrives on the dashboard', comingSoon: false },
     { id: 'browserNotifications', label: 'Browser Notifications', description: 'Receive desktop alerts even when the tab is hidden', comingSoon: false },
   ] as const;

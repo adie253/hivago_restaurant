@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { MenuCategory, MenuItem } from '../types';
-import { fetchFullMenu, toggleItemAvailability, deleteMenuCategory, createMenuCategory } from '../api/dashboardApi';
+import { fetchFullMenu, toggleItemAvailability, deleteMenuCategory, createMenuCategory, deleteAllMenu } from '../api/dashboardApi';
 import CategorySidebar from '../components/CategorySidebar';
 import MenuItemCard from '../components/MenuItemCard';
 import { MenuPageSkeleton } from '../components/Skeletons';
@@ -27,6 +27,9 @@ const MenuPage = () => {
 
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+
+  const [isDeleteWholeMenuOpen, setIsDeleteWholeMenuOpen] = useState(false);
+  const [isDeletingWholeMenu, setIsDeletingWholeMenu] = useState(false);
 
   const loadMenuData = useCallback(async (isInitial = false) => {
     if (!user?.id) return;
@@ -108,6 +111,24 @@ const MenuPage = () => {
     }
   };
 
+  const confirmDeleteWholeMenu = async () => {
+    setIsDeletingWholeMenu(true);
+    try {
+      await deleteAllMenu(user?.id);
+      showToast('Entire menu deleted successfully', 'success');
+      setActiveCategoryId('all');
+      setItems([]);
+      setCategories([]);
+      await loadMenuData();
+    } catch (err: any) {
+      console.error('Failed to delete whole menu', err);
+      showToast(err.message || 'Failed to delete menu. Please try again.', 'error');
+    } finally {
+      setIsDeletingWholeMenu(false);
+      setIsDeleteWholeMenuOpen(false);
+    }
+  };
+
   const handleCreateCategory = async (name: string) => {
     try {
       const newCat = await createMenuCategory(name);
@@ -174,6 +195,17 @@ const MenuPage = () => {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {(items.length > 0 || categories.length > 0) && (
+              <button
+                onClick={() => setIsDeleteWholeMenuOpen(true)}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-red-50 border border-red-200 px-4 py-2 text-sm font-bold text-red-600 shadow-sm transition-all hover:bg-red-100 hover:border-red-300 active:scale-95"
+              >
+                <svg className="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Whole Menu
+              </button>
+            )}
             <button
               onClick={() => setIsBulkUploadOpen(true)}
               className="flex items-center justify-center gap-2 rounded-2xl bg-white border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 shadow-md shadow-slate-100/50 transition-all hover:bg-slate-50 hover:shadow-lg hover:border-slate-300 active:scale-95"
@@ -234,8 +266,6 @@ const MenuPage = () => {
         )}
       </div>
 
-
-
       {/* Delete Category Confirmation Modal */}
       {categoryToDelete && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -271,6 +301,41 @@ const MenuPage = () => {
         </div>
       )}
 
+      {/* Delete Whole Menu Confirmation Modal */}
+      {isDeleteWholeMenuOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[32px] w-full max-w-[400px] p-8 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center text-[#AD221F] mb-5">
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Delete Entire Menu?</h3>
+            <p className="text-slate-500 text-sm leading-relaxed mb-6">
+              Are you sure you want to delete <span className="font-bold text-slate-800">ALL {items.length} items</span> and categories? This action <span className="font-bold text-red-600">cannot be undone</span>.
+            </p>
+
+            <div className="flex flex-col w-full gap-3">
+              <button
+                onClick={confirmDeleteWholeMenu}
+                disabled={isDeletingWholeMenu}
+                className="w-full bg-[#AD221F] text-white font-bold py-4 rounded-2xl hover:bg-red-800 transition-all shadow-lg shadow-red-100 active:scale-[0.98] disabled:opacity-50"
+              >
+                {isDeletingWholeMenu ? 'Deleting Whole Menu...' : 'Yes, Delete Entire Menu'}
+              </button>
+              <button
+                onClick={() => setIsDeleteWholeMenuOpen(false)}
+                disabled={isDeletingWholeMenu}
+                className="w-full bg-slate-50 text-slate-500 font-bold py-4 rounded-2xl hover:bg-slate-100 transition-all active:scale-[0.98]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AddItemModal
         isOpen={isAddItemModalOpen}
         onClose={() => {
@@ -292,6 +357,7 @@ const MenuPage = () => {
         isOpen={isBulkUploadOpen}
         onClose={() => setIsBulkUploadOpen(false)}
         categories={categories}
+        existingItems={items}
         onUploadSuccess={loadMenuData}
       />
     </div>

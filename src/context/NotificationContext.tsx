@@ -85,19 +85,35 @@ const stopWebAudioChime = () => {
 };
 
 const unlockAudio = () => {
-  if (isAudioUnlocked || !notificationAudio) return;
+  if (isAudioUnlocked) return;
 
-  notificationAudio.volume = 0;
-  notificationAudio.play()
-    .then(() => {
-      notificationAudio.pause();
-      notificationAudio.volume = 1;
-      isAudioUnlocked = true;
-      cleanupListeners();
-    })
-    .catch(err => {
-      console.warn('[Notification] Failed to unlock audio (will retry on next user interaction):', err);
-    });
+  if (notificationAudio) {
+    notificationAudio.volume = 0;
+    notificationAudio.play()
+      .then(() => {
+        notificationAudio.pause();
+        notificationAudio.volume = 1;
+        isAudioUnlocked = true;
+        cleanupListeners();
+      })
+      .catch(err => {
+        console.warn('[Notification] Failed to unlock audio (will retry on next user interaction):', err);
+      });
+  }
+
+  try {
+    const AudioCtx = typeof window !== 'undefined' ? (window.AudioContext || (window as any).webkitAudioContext) : null;
+    if (AudioCtx) {
+      if (!audioCtxInstance) {
+        audioCtxInstance = new AudioCtx();
+      }
+      if (audioCtxInstance.state === 'suspended') {
+        audioCtxInstance.resume();
+      }
+    }
+  } catch (e) {
+    console.warn('[Notification] Failed to resume AudioContext:', e);
+  }
 };
 
 const cleanupListeners = () => {
@@ -316,15 +332,23 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         console.error('[Notification] SignalR connection failed:', err);
       });
 
-      const unsubscribe = signalRService.onNewOrder((data) => {
+      const handleIncomingNotification = (data: any) => {
         setLastOrderReceived(data);
-        showToast(`New Order #${data.orderNumber} received!`, 'info');
+        const orderNum = data.orderNumber || data.orderNo || data.orderCode || data.id;
+        const toastMsg = orderNum 
+          ? `New Order #${orderNum} received!` 
+          : (data.title || data.message || 'New notification received!');
+        showToast(toastMsg, 'info');
         playNotification();
         showBrowserNotification(data);
-      });
+      };
+
+      const unsubscribeOrder = signalRService.onNewOrder(handleIncomingNotification);
+      const unsubscribeNotif = signalRService.onNotification(handleIncomingNotification);
 
       return () => {
-        unsubscribe();
+        unsubscribeOrder();
+        unsubscribeNotif();
         signalRService.stop();
         setIsConnected(false);
       };
