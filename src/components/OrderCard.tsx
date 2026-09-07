@@ -13,6 +13,7 @@ import { KitchenTicket } from './orders/KitchenTicket';
 import { OrderLabel } from './orders/OrderLabel';
 
 import { getCachedOrderDetail, saveOrderDetailToCache } from '../utils/orderCache';
+import { getOrderSupportUrl } from '../utils/whatsapp';
 
 interface OrderCardProps {
   order: Order;
@@ -684,7 +685,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
 
           <div className="mt-4 flex gap-2 pt-3 border-t border-slate-100/80">
              <a 
-               href={`https://wa.me/919082220155?text=Need%20help%20with%20Order%20%23${order.orderNumber}`}
+               href={getOrderSupportUrl({ order, restaurantName: user?.name, type: 'help' })}
                target="_blank"
                rel="noopener noreferrer"
                className="flex-1 text-center rounded-xl border border-slate-100 bg-white py-2 text-[10px] font-bold uppercase text-slate-500 hover:bg-slate-50 hover:text-emerald-600 transition-colors"
@@ -692,7 +693,7 @@ const OrderCard = ({ order: initialOrder, onUpdate }: OrderCardProps) => {
                 Live Chat Support
              </a>
              <a 
-               href={`https://wa.me/919082220155?text=Issue%20with%20Order%20%23${order.orderNumber}`}
+               href={getOrderSupportUrl({ order, restaurantName: user?.name, type: 'issue' })}
                target="_blank"
                rel="noopener noreferrer"
                className="flex-1 text-center rounded-xl border border-slate-100 bg-white py-2 text-[10px] font-bold uppercase text-slate-500 hover:bg-slate-50 hover:text-emerald-600 transition-colors"
